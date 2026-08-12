@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Permohonan Pelatihan — CCSI</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a3c6e;--navy-dk:#12294d;--navy-lt:#2a5298;
+  --accent:#e8a020;--accent-lt:#fef3dc;
+  --red:#d63031;--red-lt:#ffeaea;
+  --green:#00a86b;--green-lt:#e6f7f1;
+  --yellow:#f39c12;--yellow-lt:#fff8e6;
+  --purple:#6c3483;--purple-lt:#f4ecf7;
+  --bg:#f0f3f8;--surface:#fff;--border:#dde3ec;
+  --text:#1e293b;--text2:#64748b;--text3:#94a3b8;
+  --font:'Segoe UI',system-ui,Arial,sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--navy);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo-box{width:34px;height:34px;background:var(--accent);border-radius:6px;display:grid;place-items:center;font-weight:800;font-size:.8rem;color:var(--navy-dk)}
+.header-title{font-size:.95rem;font-weight:700;line-height:1.2}
+.header-sub{font-size:.68rem;opacity:.7}
+.page{max-width:900px;margin:0 auto;padding:20px 16px}
+.card{background:var(--surface);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:16px}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card-title{font-size:.88rem;font-weight:700;color:var(--navy)}
+.card-body{padding:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid .full{grid-column:1/-1}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:.76rem;font-weight:600;color:var(--text2)}
+.form-group input,.form-group select,.form-group textarea{padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:.83rem;font-family:var(--font);color:var(--text);outline:none;transition:border .15s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--navy-lt)}
+.form-group textarea{resize:vertical;min-height:58px}
+select.filter{padding:7px 11px;border:1px solid var(--border);border-radius:7px;font-size:.83rem;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;cursor:pointer}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.81rem}
+thead th{background:#f8fafd;color:var(--text2);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid #f0f3f6;transition:background .1s}
+tbody tr:hover{background:#f8fafd}
+tbody td{padding:10px 12px;vertical-align:middle}
+.empty-row td{text-align:center;color:var(--text3);padding:28px;font-size:.83rem}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;white-space:nowrap}
+.b-green{background:var(--green-lt);color:#007a50}.b-red{background:var(--red-lt);color:var(--red)}
+.b-yellow{background:var(--yellow-lt);color:#b7760a}.b-navy{background:#e8eef7;color:var(--navy)}
+.b-gray{background:#f1f5f9;color:var(--text2)}.b-purple{background:var(--purple-lt);color:var(--purple)}
+.btn-sm{padding:3px 9px;border-radius:5px;font-size:.73rem;cursor:pointer;border:1px solid;font-family:var(--font);font-weight:500;transition:all .12s}
+.btn-edit{color:var(--navy);border-color:var(--border);background:#f8fafd}
+.btn-del{color:var(--red);border-color:#fcd4d4;background:var(--red-lt)}
+.btn-del:hover{background:#ffc5c5}
+.btn-cancel{padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:#f8fafd;color:var(--text2);cursor:pointer;font-family:var(--font);font-size:.83rem}
+.toast{position:fixed;bottom:20px;right:20px;background:#1e293b;color:#fff;padding:10px 18px;border-radius:8px;font-size:.83rem;z-index:999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.tn-submit{padding:10px 28px;border-radius:8px;border:none;background:var(--navy);color:#fff;cursor:pointer;font-family:var(--font);font-size:.88rem;font-weight:700;transition:background .15s}
+.tn-submit:hover{background:var(--navy-dk)}
+.tn-submit:disabled{opacity:.5;cursor:not-allowed}
+.tn-success{background:var(--green-lt);border:1px solid #a7e8cc;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#007a50;margin-bottom:16px}
+.tn-peserta-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.tn-peserta-row input{flex:1}
+.tn-peserta-remove{background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 4px;line-height:1}
+.tn-add-peserta{background:none;border:1px dashed var(--navy-lt);color:var(--navy-lt);border-radius:6px;padding:5px 12px;font-size:.78rem;cursor:pointer;font-family:var(--font);margin-top:4px;transition:all .15s}
+.tn-add-peserta:hover{background:rgba(42,82,152,.06)}
+.section-title{font-size:.82rem;font-weight:700;color:var(--navy);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.section-title:first-child{margin-top:0}
+.eq-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.eq-item{display:flex;align-items:center;gap:8px;font-size:.82rem}
+.eq-item label{flex:1;color:var(--text)}
+.eq-item input[type="number"]{width:55px;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;text-align:center;font-family:var(--font)}
+.cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cost-item{display:flex;align-items:center;gap:8px;font-size:.82rem}
+.cost-item label{flex:1;min-width:100px;color:var(--text)}
+.cost-item input{flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;font-family:var(--font)}
+.cost-total{font-size:.88rem;font-weight:700;color:var(--navy);margin-top:8px;padding:8px 12px;background:#e8eef7;border-radius:6px;text-align:right}
+.cb-toggle{display:flex;align-items:center;gap:10px;font-size:.83rem;margin-top:4px}
+.cb-toggle label{cursor:pointer}
+.tn-score-section{margin-top:14px;border-top:1px solid var(--border);padding-top:14px}
+.tn-score-section h4{font-size:.82rem;font-weight:700;color:var(--navy);margin-bottom:8px}
+.tn-score-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:8px}
+.tn-score-table th,.tn-score-table td{border:1px solid var(--border);padding:6px 10px;text-align:center}
+.tn-score-table th{background:#f8fafd;color:var(--text2);font-size:.72rem;font-weight:600;text-transform:uppercase}
+.tn-score-table td:first-child{text-align:left;font-weight:500}
+.tn-score-table input[type="number"]{width:50px;text-align:center;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;font-family:var(--font)}
+.tn-score-table tr.score-total td{font-weight:700;background:#f8fafd}
+.tn-score-legend{font-size:.72rem;color:var(--text3);line-height:1.6;margin-top:4px}
+.tn-score-legend span{margin-right:12px}
+.tn-gt-result{margin-top:6px;font-size:.82rem;font-weight:600}
+.tn-gt-result.accepted{color:var(--green)}
+.tn-gt-result.refused{color:var(--red)}
+.doc-id{font-size:.72rem;color:var(--text3);font-weight:400}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}.eq-grid{grid-template-columns:1fr}.cost-grid{grid-template-columns:1fr}.header{padding:0 12px}}
+@media print{.header,.btn-sm,.tn-submit,.tn-add-peserta,.tn-peserta-remove,.btn-cancel{display:none!important}.card{box-shadow:none;border:1px solid #ccc}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo-box">CCSI</div>
+    <div>
+      <div class="header-title">Permohonan Pelatihan</div>
+      <div class="header-sub">PT Communication Cable Systems Indonesia</div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📝 Form Permohonan Pelatihan <span class="doc-id">QHSE-F-HRD-011</span></span>
+      <span style="font-size:.78rem;color:var(--text3)">Rencana Training: <strong>Tidak Terjadwal</strong></span>
+    </div>
+    <div class="card-body">
+
+      <!-- INFO DASAR -->
+      <div class="section-title">Informasi Dasar</div>
+      <div class="form-grid" style="margin-bottom:14px">
+        <div class="form-group">
+          <label>Diajukan oleh</label>
+          <input type="text" id="pr_submitter" placeholder="Nama pengaju">
+        </div>
+        <div class="form-group">
+          <label>Departemen / Divisi *</label>
+          <input type="text" id="pr_dept" placeholder="Nama departemen" list="deptListPR">
+          <datalist id="deptListPR"><option>HR & GA</option><option>Finance</option><option>IT</option><option>Produksi</option><option>QC/QA</option><option>Engineering</option><option>Purchasing</option><option>PPIC</option><option>Maintenance</option><option>Warehouse</option><option>Sales</option></datalist>
+        </div>
+        <div class="form-group full">
+          <label>Nama Pelatihan *</label>
+          <input type="text" id="pr_name" placeholder="Nama program pelatihan">
+        </div>
+        <div class="form-group full">
+          <label>Tempat Pelatihan</label>
+          <input type="text" id="pr_venue" placeholder="Lokasi / tempat pelaksanaan">
+        </div>
+        <div class="form-group">
+          <label>Tanggal Mulai *</label>
+          <input type="date" id="pr_date_start">
+        </div>
+        <div class="form-group">
+          <label>Tanggal Selesai</label>
+          <input type="date" id="pr_date_end">
+        </div>
+      </div>
+
+      <!-- PESERTA -->
+      <div class="section-title">Nama Peserta *</div>
+      <div id="pr_peserta">
+        <div class="tn-peserta-row"><input type="text" placeholder="Nama peserta ke-1"></div>
+      </div>
+      <button class="tn-add-peserta" onclick="prAddPeserta()">+ Tambah Peserta</button>
+
+      <!-- JENIS TRAINING -->
+      <div class="section-title">Jenis Training *</div>
+      <div class="form-grid" style="margin-bottom:14px">
+        <div class="form-group">
+          <label>Jenis *</label>
+          <select id="pr_type">
+            <option value="">-- Pilih --</option>
+            <option value="Internal">Internal</option>
+            <option value="Eksternal">Eksternal</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Penyelenggara</label>
+          <input type="text" id="pr_organizer" placeholder="Nama penyelenggara">
+        </div>
+        <div class="form-group full">
+          <label>Alasan Pelatihan</label>
+          <textarea id="pr_reason" placeholder="Jelaskan alasan / tujuan pelatihan..." rows="2"></textarea>
+        </div>
+      </div>
+
+      <!-- BIAYA -->
+      <div id="pr_cost_section">
+        <div class="section-title">Rincian Biaya</div>
+        <div class="cost-grid" style="margin-bottom:8px">
+          <div class="cost-item"><label>Training Fee</label><input type="text" id="pr_cost_fee" placeholder="0" oninput="prFormatCost(this);prCalcTotal()"></div>
+          <div class="cost-item"><label>Akomodasi</label><input type="text" id="pr_cost_akomodasi" placeholder="0" oninput="prFormatCost(this);prCalcTotal()"></div>
+          <div class="cost-item"><label>Transport</label><input type="text" id="pr_cost_transport" placeholder="0" oninput="prFormatCost(this);prCalcTotal()"></div>
+          <div class="cost-item"><label>Makan</label><input type="text" id="pr_cost_makan" placeholder="0" oninput="prFormatCost(this);prCalcTotal()"></div>
+          <div class="cost-item"><label>Snack</label><input type="text" id="pr_cost_snack" placeholder="0" oninput="prFormatCost(this);prCalcTotal()"></div>
+          <div class="cost-item"><label>Emergency Cash</label><input type="text" id="pr_cost_emergency" placeholder="0" oninput="prFormatCost(this);prCalcTotal()"></div>
+        </div>
+        <div class="cost-total">Total Biaya: <span id="pr_cost_total">Rp 0</span></div>
+      </div>
+
+      <!-- PERALATAN -->
+      <div id="pr_eq_section">
+        <div class="section-title">Peralatan yang Dibutuhkan</div>
+        <div class="eq-grid" style="margin-bottom:14px">
+          <div class="eq-item"><label>Proyektor</label><input type="number" id="pr_eq_proyektor" min="0" value="0"> unit</div>
+          <div class="eq-item"><label>Laptop</label><input type="number" id="pr_eq_laptop" min="0" value="0"> unit</div>
+          <div class="eq-item"><label>Kabel HDMI</label><input type="number" id="pr_eq_hdmi" min="0" value="0"> pcs</div>
+          <div class="eq-item"><label>Pointer</label><input type="number" id="pr_eq_pointer" min="0" value="0"> pcs</div>
+          <div class="eq-item"><label>Kertas Flip Chart</label><input type="number" id="pr_eq_flipchart" min="0" value="0"> roll</div>
+          <div class="eq-item"><label>Note Book</label><input type="number" id="pr_eq_notebook" min="0" value="0"> pcs</div>
+          <div class="eq-item"><label>Ruangan</label><input type="number" id="pr_eq_ruangan" min="0" value="0"> unit</div>
+          <div class="eq-item"><label>Colokan Listrik</label><input type="number" id="pr_eq_colokan" min="0" value="0"> pcs</div>
+        </div>
+
+        <div class="section-title">Coffee Break</div>
+        <div class="cb-toggle">
+          <label><input type="radio" name="pr_cb" value="1"> Ya</label>
+          <label><input type="radio" name="pr_cb" value="0" checked> Tidak</label>
+        </div>
+      </div>
+
+      <!-- SCORING TABLE -->
+      <div class="tn-score-section">
+        <h4>Kriteria Penilaian (Proposed Criteria / Score)</h4>
+        <table class="tn-score-table">
+          <thead>
+            <tr><th rowspan="2">Kriteria Penilaian</th><th colspan="2">Peserta</th><th colspan="2">Materi</th></tr>
+            <tr><th>Atasan</th><th>HRD</th><th>Atasan</th><th>HRD</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Tuntutan Jabatan</td>
+              <td><input type="number" min="1" max="4" class="sc-pa" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-ph" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-ma" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-mh" oninput="prCalcScore()"></td></tr>
+            <tr><td>Sasaran Perusahaan / Dept.</td>
+              <td><input type="number" min="1" max="4" class="sc-pa" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-ph" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-ma" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-mh" oninput="prCalcScore()"></td></tr>
+            <tr><td>Masa Kerja / Senioritas</td>
+              <td><input type="number" min="1" max="4" class="sc-pa" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-ph" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-ma" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-mh" oninput="prCalcScore()"></td></tr>
+            <tr><td>Kepemimpinan</td>
+              <td><input type="number" min="1" max="4" class="sc-pa" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-ph" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-ma" oninput="prCalcScore()"></td>
+              <td><input type="number" min="1" max="4" class="sc-mh" oninput="prCalcScore()"></td></tr>
+            <tr class="score-total"><td>Total Nilai</td>
+              <td id="sc_pa_total">0</td><td id="sc_ph_total">0</td>
+              <td id="sc_ma_total">0</td><td id="sc_mh_total">0</td></tr>
+            <tr class="score-total"><td>Grand Total (GT)</td>
+              <td colspan="4" id="sc_gt">0</td></tr>
+          </tbody>
+        </table>
+        <div class="tn-score-legend">
+          <span>1 = tidak penting</span>
+          <span>2 = dipertimbangkan</span>
+          <span>3 = penting</span>
+          <span>4 = sangat penting</span>
+        </div>
+        <div class="tn-score-legend" style="margin-top:2px">
+          <span>GT &ge; 32 &rarr; <strong style="color:var(--green)">Diterima</strong></span>
+          <span>GT &lt; 32 &rarr; <strong style="color:var(--red)">Ditolak</strong></span>
+        </div>
+        <div class="tn-gt-result" id="sc_gt_status"></div>
+      </div>
+
+      <!-- SUBMIT -->
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+        <button class="btn-cancel" onclick="prReset()">Reset Form</button>
+        <button class="tn-submit" id="prSubmitBtn" onclick="prSubmit()">📤 Kirim Permohonan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REKAP -->
+  <div id="prRecapSection" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 Rekap Permohonan Pelatihan</span>
+        <button class="btn-sm btn-edit" onclick="window.scrollTo({top:0,behavior:'smooth'})">+ Permohonan Baru</button>
+      </div>
+      <div class="card-body">
+        <div id="prRecapMsg"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Departemen</th><th>Nama Pelatihan</th><th>Peserta</th><th>Jenis</th><th>Penyelenggara</th><th>Tanggal</th><th>Total Biaya</th><th>GT</th><th>Status</th><th>Aksi</th></tr></thead>
+            <tbody id="prRecapBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+async function api(path, opts) {
+  const res = await fetch(path, { headers: {'Content-Type':'application/json'}, ...opts });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
+function showToast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = ok ? '#1e293b' : 'var(--red)';
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+const fmtRp = n => (!n || n == 0) ? '-' : 'Rp ' + Number(n).toLocaleString('id-ID');
+
+function prFormatCost(el) {
+  let v = el.value.replace(/\D/g, '');
+  if (v) el.value = Number(v).toLocaleString('id-ID');
+  else el.value = '';
+}
+
+function prParseCost(id) {
+  return parseInt((document.getElementById(id)?.value || '0').replace(/\D/g, '')) || 0;
+}
+
+function prCalcTotal() {
+  const total = prParseCost('pr_cost_fee') + prParseCost('pr_cost_akomodasi') +
+    prParseCost('pr_cost_transport') + prParseCost('pr_cost_makan') +
+    prParseCost('pr_cost_snack') + prParseCost('pr_cost_emergency');
+  document.getElementById('pr_cost_total').textContent = fmtRp(total);
+}
+
+let pesertaCount = 1;
+function prAddPeserta() {
+  pesertaCount++;
+  const row = document.createElement('div');
+  row.className = 'tn-peserta-row';
+  row.innerHTML = `<input type="text" placeholder="Nama peserta ke-${pesertaCount}"><button class="tn-peserta-remove" onclick="this.parentElement.remove()" title="Hapus">✕</button>`;
+  document.getElementById('pr_peserta').appendChild(row);
+}
+
+function prCalcScore() {
+  const sum = cls => [...document.querySelectorAll(`.${cls}`)].reduce((a, el) => a + (parseInt(el.value) || 0), 0);
+  const pa = sum('sc-pa'), ph = sum('sc-ph'), ma = sum('sc-ma'), mh = sum('sc-mh');
+  document.getElementById('sc_pa_total').textContent = pa;
+  document.getElementById('sc_ph_total').textContent = ph;
+  document.getElementById('sc_ma_total').textContent = ma;
+  document.getElementById('sc_mh_total').textContent = mh;
+  const gt = pa + ph + ma + mh;
+  document.getElementById('sc_gt').textContent = gt;
+  const statusEl = document.getElementById('sc_gt_status');
+  if (gt > 0) {
+    statusEl.textContent = gt >= 32 ? `GT = ${gt} → Diterima ✅` : `GT = ${gt} → Ditolak ❌`;
+    statusEl.className = 'tn-gt-result ' + (gt >= 32 ? 'accepted' : 'refused');
+  } else { statusEl.textContent = ''; }
+}
+
+function prReset() {
+  if (!confirm('Reset form? Data yang belum dikirim akan hilang.')) return;
+  document.querySelectorAll('#pr_dept,#pr_name,#pr_venue,#pr_date_start,#pr_date_end,#pr_organizer,#pr_reason,#pr_submitter').forEach(el => el.value = '');
+  document.getElementById('pr_type').value = '';
+  document.getElementById('pr_peserta').innerHTML = '<div class="tn-peserta-row"><input type="text" placeholder="Nama peserta ke-1"></div>';
+  pesertaCount = 1;
+  document.querySelectorAll('[id^="pr_cost_"]').forEach(el => { if (el.tagName === 'INPUT') el.value = ''; });
+  document.querySelectorAll('[id^="pr_eq_"]').forEach(el => el.value = '0');
+  document.querySelector('input[name="pr_cb"][value="0"]').checked = true;
+  document.querySelectorAll('.tn-score-table input').forEach(el => el.value = '');
+  ['sc_pa_total','sc_ph_total','sc_ma_total','sc_mh_total','sc_gt'].forEach(id => document.getElementById(id).textContent = '0');
+  document.getElementById('sc_gt_status').textContent = '';
+  document.getElementById('pr_cost_total').textContent = 'Rp 0';
+}
+
+async function prSubmit() {
+  const dept = document.getElementById('pr_dept').value.trim();
+  const name = document.getElementById('pr_name').value.trim();
+  const venue = document.getElementById('pr_venue').value.trim();
+  const dateStart = document.getElementById('pr_date_start').value;
+  const dateEnd = document.getElementById('pr_date_end').value;
+  const type = document.getElementById('pr_type').value;
+  const organizer = document.getElementById('pr_organizer').value.trim();
+  const reason = document.getElementById('pr_reason').value.trim();
+  const submitter = document.getElementById('pr_submitter').value.trim();
+
+  const pesertaInputs = document.querySelectorAll('#pr_peserta input');
+  const participants = [...pesertaInputs].map(i => i.value.trim()).filter(Boolean);
+
+  const errors = [];
+  if (!dept) errors.push('Departemen wajib diisi');
+  if (!name) errors.push('Nama Pelatihan wajib diisi');
+  if (!dateStart) errors.push('Tanggal Mulai wajib diisi');
+  if (!type) errors.push('Jenis Training wajib dipilih');
+  if (!participants.length) errors.push('Minimal 1 peserta wajib diisi');
+
+  if (errors.length) { showToast(errors[0], false); return; }
+
+  const scoreSum = cls => [...document.querySelectorAll(`.${cls}`)].reduce((a, el) => a + (parseInt(el.value) || 0), 0);
+
+  const body = {
+    department: dept, training_name: name, training_venue: venue,
+    training_date_start: dateStart, training_date_end: dateEnd || dateStart,
+    training_type: type, organizer, training_reason: reason,
+    participants, submitted_by: submitter || null,
+    cost_training_fee: prParseCost('pr_cost_fee'),
+    cost_akomodasi: prParseCost('pr_cost_akomodasi'),
+    cost_transport: prParseCost('pr_cost_transport'),
+    cost_makan: prParseCost('pr_cost_makan'),
+    cost_snack: prParseCost('pr_cost_snack'),
+    cost_emergency: prParseCost('pr_cost_emergency'),
+    eq_proyektor: parseInt(document.getElementById('pr_eq_proyektor')?.value) || 0,
+    eq_laptop: parseInt(document.getElementById('pr_eq_laptop')?.value) || 0,
+    eq_kabel_hdmi: parseInt(document.getElementById('pr_eq_hdmi')?.value) || 0,
+    eq_pointer: parseInt(document.getElementById('pr_eq_pointer')?.value) || 0,
+    eq_flipchart: parseInt(document.getElementById('pr_eq_flipchart')?.value) || 0,
+    eq_notebook: parseInt(document.getElementById('pr_eq_notebook')?.value) || 0,
+    eq_ruangan: parseInt(document.getElementById('pr_eq_ruangan')?.value) || 0,
+    eq_colokan: parseInt(document.getElementById('pr_eq_colokan')?.value) || 0,
+    coffee_break: document.querySelector('input[name="pr_cb"]:checked')?.value === '1',
+    scores: {
+      peserta_atasan: scoreSum('sc-pa'),
+      peserta_hrd: scoreSum('sc-ph'),
+      materi_atasan: scoreSum('sc-ma'),
+      materi_hrd: scoreSum('sc-mh'),
+    },
+  };
+
+  const btn = document.getElementById('prSubmitBtn');
+  btn.disabled = true; btn.textContent = '⏳ Mengirim...';
+
+  try {
+    await api('/api/training-requests', { method: 'POST', body: JSON.stringify(body) });
+    showToast('Permohonan pelatihan berhasil dikirim!');
+    prReset();
+    renderRecap();
+  } catch (e) {
+    showToast(e.message, false);
+  } finally {
+    btn.disabled = false; btn.textContent = '📤 Kirim Permohonan';
+  }
+}
+
+async function renderRecap() {
+  const section = document.getElementById('prRecapSection');
+  let data;
+  try { data = await api('/api/training-requests'); } catch { data = []; }
+
+  if (!data.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const totalCost = data.reduce((a, b) => a + Number(b.cost_total || 0), 0);
+  document.getElementById('prRecapMsg').innerHTML =
+    `<div class="tn-success">✅ <strong>${data.length}</strong> permohonan pelatihan tercatat — Total biaya: <strong>${fmtRp(totalCost)}</strong></div>`;
+
+  document.getElementById('prRecapBody').innerHTML = data.map((r, i) => {
+    const tgl = r.training_date_start ? (() => {
+      const d = r.training_date_start.includes('T') ? r.training_date_start.split('T')[0] : r.training_date_start;
+      const e = r.training_date_end ? (r.training_date_end.includes('T') ? r.training_date_end.split('T')[0] : r.training_date_end) : d;
+      return d === e ? d : d + ' s/d ' + e;
+    })() : '-';
+    const statusCls = {'Pending':'b-yellow','Approved':'b-green','Rejected':'b-red'}[r.status] || 'b-gray';
+    return `<tr>
+      <td style="color:var(--text3)">${i+1}</td>
+      <td><strong>${r.department}</strong></td>
+      <td>${r.training_name}</td>
+      <td style="font-size:.78rem">${(r.participants||[]).map(p => `<div>• ${p}</div>`).join('')}</td>
+      <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${r.training_type}</span></td>
+      <td>${r.organizer || '-'}</td>
+      <td style="white-space:nowrap;font-size:.78rem">${tgl}</td>
+      <td style="white-space:nowrap">${fmtRp(r.cost_total)}</td>
+      <td style="text-align:center;font-weight:600;color:${r.score_grand_total >= 32 ? 'var(--green)' : r.score_grand_total > 0 ? 'var(--red)' : 'var(--text3)'}">${r.score_grand_total || '-'} ${r.score_grand_total ? (r.score_grand_total >= 32 ? '✅' : '❌') : ''}</td>
+      <td><span class="badge ${statusCls}">${r.status}</span></td>
+      <td><button class="btn-sm btn-del" onclick="prDelete(${r.request_id})">Hapus</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function prDelete(id) {
+  if (!confirm('Hapus permohonan pelatihan ini?')) return;
+  try {
+    await api(`/api/training-requests/${id}`, { method: 'DELETE' });
+    showToast('Data dihapus');
+    renderRecap();
+  } catch (e) { showToast(e.message, false); }
+}
+
+document.addEventListener('DOMContentLoaded', renderRecap);
+</script>
+</body>
+</html>

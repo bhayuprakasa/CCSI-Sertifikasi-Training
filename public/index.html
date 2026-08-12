@@ -219,6 +219,7 @@ select.filter:focus{border-color:var(--navy-lt)}
     <div class="tab" onclick="switchTab('kompetensi')">🎯 Kompetensi</div>
     <div class="tab" onclick="switchTab('evaluasi')">📝 Evaluasi</div>
     <div class="tab" onclick="switchTab('master')">⚙ Master Data</div>
+    <div class="tab" onclick="switchTab('formlinks')">📝 Form & Laporan</div>
   </div>
 
   <!-- DASHBOARD -->
@@ -363,6 +364,37 @@ select.filter:focus{border-color:var(--navy-lt)}
     <div class="card">
       <div class="card-header"><span class="card-title">🎯 Master Kompetensi</span><button class="btn-sm btn-edit" onclick="openMasterModal('competency')">+ Tambah</button></div>
       <div class="card-body"><div class="comp-grid" id="compGrid"></div></div>
+    </div>
+  </div>
+
+  <!-- FORM & LAPORAN -->
+  <div id="tab-formlinks" class="tab-panel">
+    <div class="card">
+      <div class="card-header"><span class="card-title">📝 Form & Laporan</span><span style="font-size:.78rem;color:var(--text3)">Klik untuk membuka form di halaman baru</span></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
+          <div class="dept-card" style="cursor:pointer;transition:box-shadow .15s" onclick="location.href='/permohonan-pelatihan.html'" onmouseover="this.style.boxShadow='0 4px 16px rgba(26,60,110,.12)'" onmouseout="this.style.boxShadow=''">
+            <div class="dept-name">📋 Form Permintaan Training</div>
+            <div class="dept-meta">Permohonan Pelatihan · QHSE-F-HRD-011</div>
+            <div style="font-size:.78rem;color:var(--text2);margin-top:6px">Formulir pengajuan kebutuhan pelatihan beserta analisa kebutuhan dan estimasi biaya.</div>
+          </div>
+          <div class="dept-card" style="cursor:pointer;transition:box-shadow .15s" onclick="location.href='/training-needs.html'" onmouseover="this.style.boxShadow='0 4px 16px rgba(26,60,110,.12)'" onmouseout="this.style.boxShadow=''">
+            <div class="dept-name">📊 Form Kebutuhan Pelatihan</div>
+            <div class="dept-meta">Training Needs Analysis (TNA)</div>
+            <div style="font-size:.78rem;color:var(--text2);margin-top:6px">Form analisa kebutuhan pelatihan per departemen beserta penilaian gap kompetensi.</div>
+          </div>
+          <div class="dept-card" style="cursor:pointer;transition:box-shadow .15s" onclick="location.href='/daftar-hadir-training.html'" onmouseover="this.style.boxShadow='0 4px 16px rgba(26,60,110,.12)'" onmouseout="this.style.boxShadow=''">
+            <div class="dept-name">✅ Daftar Hadir Training</div>
+            <div class="dept-meta">Absensi Peserta Pelatihan</div>
+            <div style="font-size:.78rem;color:var(--text2);margin-top:6px">Form daftar hadir dan tanda tangan peserta pelatihan per sesi program.</div>
+          </div>
+          <div class="dept-card" style="cursor:pointer;transition:box-shadow .15s" onclick="location.href='/rekap-training-sertifikasi.html'" onmouseover="this.style.boxShadow='0 4px 16px rgba(26,60,110,.12)'" onmouseout="this.style.boxShadow=''">
+            <div class="dept-name">🏅 Form Sertifikasi</div>
+            <div class="dept-meta">Rekap Training & Sertifikasi</div>
+            <div style="font-size:.78rem;color:var(--text2);margin-top:6px">Form pencatatan dan rekap sertifikasi karyawan berikut tanggal berlaku dan perpanjangan.</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -604,7 +636,7 @@ function showToast(msg, ok=true) {
 // =====================
 // TABS
 // =====================
-const tabOrder = ['dashboard','rekap','sertifikasi','alert','departemen','kompetensi','evaluasi','master'];
+const tabOrder = ['dashboard','rekap','sertifikasi','alert','departemen','kompetensi','evaluasi','master','formlinks'];
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
@@ -1670,9 +1702,20 @@ function hideTip(id) {
   try{
     await openDB();
     await seedIfEmpty();
-    document.getElementById('dbStatus').textContent='● DB Aktif (IndexedDB)';
-    document.getElementById('dbStatus').style.color='#7bffc4';
     renderDashboard();
+    // Check MySQL API connectivity
+    fetch('/api/employees?limit=1').then(r=>{
+      if(r.ok){
+        document.getElementById('dbStatus').textContent='● DB Aktif (MySQL)';
+        document.getElementById('dbStatus').style.color='#7bffc4';
+      } else {
+        document.getElementById('dbStatus').textContent='● DB Aktif (IndexedDB)';
+        document.getElementById('dbStatus').style.color='#7bffc4';
+      }
+    }).catch(()=>{
+      document.getElementById('dbStatus').textContent='● DB Aktif (IndexedDB)';
+      document.getElementById('dbStatus').style.color='#7bffc4';
+    });
   } catch(e){
     document.getElementById('dbStatus').textContent='● DB Error';
     document.getElementById('dbStatus').style.color='#ff7b7b';

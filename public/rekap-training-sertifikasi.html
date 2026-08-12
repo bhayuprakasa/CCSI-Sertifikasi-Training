@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pendaftaran Sertifikasi — CCSI</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a3c6e;--navy-dk:#12294d;--navy-lt:#2a5298;
+  --accent:#e8a020;--accent-lt:#fef3dc;
+  --red:#d63031;--red-lt:#ffeaea;
+  --green:#00a86b;--green-lt:#e6f7f1;
+  --yellow:#f39c12;--yellow-lt:#fff8e6;
+  --purple:#6c3483;--purple-lt:#f4ecf7;
+  --bg:#f0f3f8;--surface:#fff;--border:#dde3ec;
+  --text:#1e293b;--text2:#64748b;--text3:#94a3b8;
+  --font:'Segoe UI',system-ui,Arial,sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--navy);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo-box{width:34px;height:34px;background:var(--accent);border-radius:6px;display:grid;place-items:center;font-weight:800;font-size:.8rem;color:var(--navy-dk)}
+.header-title{font-size:.95rem;font-weight:700;line-height:1.2}
+.header-sub{font-size:.68rem;opacity:.7}
+.page{max-width:1100px;margin:0 auto;padding:20px 16px}
+.card{background:var(--surface);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:16px}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card-title{font-size:.88rem;font-weight:700;color:var(--navy)}
+.card-body{padding:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid .full{grid-column:1/-1}
+.form-grid .w-third{grid-column:span 1}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:.76rem;font-weight:600;color:var(--text2)}
+.form-group input,.form-group select,.form-group textarea{padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:.83rem;font-family:var(--font);color:var(--text);outline:none;transition:border .15s}
+.form-group input:focus,.form-group select:focus{border-color:var(--navy-lt)}
+.form-group input:disabled{background:#f5f7fa;color:var(--text3)}
+.checkbox-group{display:flex;align-items:center;gap:8px;padding:8px 0}
+.checkbox-group input[type="checkbox"]{width:16px;height:16px;cursor:pointer}
+.checkbox-group label{margin:0;font-size:.83rem}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.81rem}
+thead th{background:#f8fafd;color:var(--text2);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid #f0f3f6;transition:background .1s}
+tbody tr:hover{background:#f8fafd}
+tbody td{padding:10px 12px;vertical-align:middle}
+.empty-row td{text-align:center;color:var(--text3);padding:28px;font-size:.83rem}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;white-space:nowrap}
+.b-green{background:var(--green-lt);color:#007a50}.b-red{background:var(--red-lt);color:var(--red)}
+.b-yellow{background:var(--yellow-lt);color:#b7760a}.b-navy{background:#e8eef7;color:var(--navy)}
+.b-gray{background:#f1f5f9;color:var(--text2)}.b-purple{background:var(--purple-lt);color:var(--purple)}
+.btn-sm{padding:3px 9px;border-radius:5px;font-size:.73rem;cursor:pointer;border:1px solid;font-family:var(--font);font-weight:500;transition:all .12s}
+.btn-edit{color:var(--navy);border-color:var(--border);background:#f8fafd}
+.btn-edit:hover{background:#e8eef7}
+.btn-del{color:var(--red);border-color:#fcd4d4;background:var(--red-lt)}
+.btn-del:hover{background:#ffc5c5}
+.btn-cancel{padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:#f8fafd;color:var(--text2);cursor:pointer;font-family:var(--font);font-size:.83rem}
+.tn-submit{padding:10px 28px;border-radius:8px;border:none;background:var(--navy);color:#fff;cursor:pointer;font-family:var(--font);font-size:.88rem;font-weight:700;transition:background .15s}
+.tn-submit:hover{background:var(--navy-dk)}
+.tn-submit:disabled{opacity:.5;cursor:not-allowed}
+.tn-success{background:var(--green-lt);border:1px solid #a7e8cc;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#007a50;margin-bottom:16px}
+.section-title{font-size:.82rem;font-weight:700;color:var(--navy);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.section-title:first-child{margin-top:0}
+.toast{position:fixed;bottom:20px;right:20px;background:#1e293b;color:#fff;padding:10px 18px;border-radius:8px;font-size:.83rem;z-index:999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.emp-dropdown{position:relative}
+.emp-list{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:7px;max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.1);display:none}
+.emp-list.show{display:block}
+.emp-option{padding:8px 12px;cursor:pointer;font-size:.82rem;border-bottom:1px solid #f0f3f6;display:flex;justify-content:space-between;align-items:center}
+.emp-option:hover{background:#f0f3f8}
+.emp-option .eo-name{font-weight:500}
+.emp-option .eo-info{font-size:.72rem;color:var(--text3)}
+.emp-option.selected{background:var(--green-lt);color:#007a50}
+.row-flex{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;align-items:center;margin-bottom:12px}
+.inline-flex{display:flex;gap:12px;align-items:flex-end}
+.inline-flex .form-group{flex:1}
+.hidden-if-lifetime{display:none}
+.hidden-if-lifetime.show{display:block}
+@media(max-width:768px){.form-grid{grid-template-columns:1fr}.row-flex{grid-template-columns:1fr}.inline-flex{flex-direction:column;align-items:stretch}.inline-flex .form-group{flex:none}}
+@media print{.header,.tabs,.tab-btn,.btn-sm,.tn-submit,.btn-cancel{display:none!important}.card{box-shadow:none;border:1px solid #ccc}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo-box">CCSI</div>
+    <div>
+      <div class="header-title">Pendaftaran Sertifikasi</div>
+      <div class="header-sub">PT Communication Cable Systems Indonesia</div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="card">
+    <div class="card-body">
+      <div>
+        <div class="section-title">📝 Form Pendaftaran Sertifikasi</div>
+        <div class="form-grid" style="margin-bottom:14px">
+          <div class="form-group">
+            <label>Departemen *</label>
+            <select id="cert_dept" onchange="loadEmployees()">
+              <option value="">-- Pilih Departemen --</option>
+            </select>
+          </div>
+          <div class="form-group emp-dropdown">
+            <label>Nama Karyawan *</label>
+            <input type="text" id="cert_emp_search" placeholder="Cari nama..." oninput="filterEmployees()" onfocus="showEmpList()" disabled>
+            <div class="emp-list" id="cert_emp_list"></div>
+          </div>
+        </div>
+
+        <div class="row-flex" style="margin-bottom:14px">
+          <div class="form-group">
+            <label>No Sertifikat *</label>
+            <input type="text" id="cert_number" placeholder="Nomor sertifikat">
+          </div>
+          <div class="form-group">
+            <label>Tanggal Sertifikat *</label>
+            <input type="date" id="cert_issue_date">
+          </div>
+          <div class="checkbox-group">
+            <input type="checkbox" id="cert_lifetime" onchange="toggleExpiryDate()">
+            <label for="cert_lifetime">Seumur Hidup</label>
+          </div>
+        </div>
+
+        <div class="row-flex hidden-if-lifetime show" id="expiryRow" style="margin-bottom:14px">
+          <div class="form-group">
+            <label>Berlaku Hingga</label>
+            <input type="date" id="cert_expiry_date">
+          </div>
+        </div>
+
+        <div class="form-grid" style="margin-bottom:14px">
+          <div class="form-group">
+            <label>No Kartu</label>
+            <input type="text" id="cert_card_number" placeholder="No kartu (opsional)">
+          </div>
+          <div class="form-group">
+            <label>Tanggal Kartu</label>
+            <input type="date" id="cert_card_date">
+          </div>
+        </div>
+
+        <div class="form-grid" style="margin-bottom:14px">
+          <div class="form-group">
+            <label>Kompetensi *</label>
+            <select id="cert_competency">
+              <option value="">-- Pilih Kompetensi --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Online / Offline *</label>
+            <select id="cert_method">
+              <option value="Offline">Offline</option>
+              <option value="Online">Online</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid" style="margin-bottom:14px">
+          <div class="form-group">
+            <label>Internal / Eksternal *</label>
+            <select id="cert_type">
+              <option value="Eksternal">Eksternal</option>
+              <option value="Internal">Internal</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Diselenggarakan Oleh *</label>
+            <input type="text" id="cert_issuing_body" placeholder="Nama organisasi / lembaga">
+          </div>
+        </div>
+
+        <div class="form-group full" style="margin-bottom:18px">
+          <label>Lokasi</label>
+          <input type="text" id="cert_location" placeholder="Lokasi pelaksanaan sertifikasi">
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn-cancel" onclick="resetCertForm()">Reset Form</button>
+          <button class="tn-submit" id="certSubmitBtn" onclick="submitCertForm()">📤 Simpan Sertifikasi</button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+async function api(path, opts) {
+  const res = await fetch(path, { headers: {'Content-Type':'application/json'}, ...opts });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
+function showToast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = ok ? '#1e293b' : 'var(--red)';
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+let allEmployees = [];
+let selectedEmployee = null;
+let allCompetencies = [];
+
+async function initPage() {
+  try {
+    const [emps, comps] = await Promise.all([
+      api('/api/employees'),
+      api('/api/competencies'),
+    ]);
+
+    allEmployees = emps.filter(e => e.is_active);
+    allCompetencies = comps;
+
+    const depts = [...new Set(allEmployees.map(e => e.department))].sort();
+    const sel = document.getElementById('cert_dept');
+    depts.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+
+    const compSel = document.getElementById('cert_competency');
+    allCompetencies.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.competency_id;
+      o.textContent = c.competency_name;
+      compSel.appendChild(o);
+    });
+
+  } catch(e) {
+    showToast('Gagal memuat data: ' + e.message, false);
+  }
+}
+
+function loadEmployees() {
+  const dept = document.getElementById('cert_dept').value;
+  const search = document.getElementById('cert_emp_search');
+  search.disabled = !dept;
+  search.value = '';
+  selectedEmployee = null;
+  if (!dept) { hideEmpList(); return; }
+  renderEmpList();
+}
+
+function filterEmployees() { renderEmpList(); }
+
+function showEmpList() {
+  if (!document.getElementById('cert_dept').value) return;
+  renderEmpList();
+}
+
+function hideEmpList() {
+  document.getElementById('cert_emp_list').classList.remove('show');
+}
+
+function renderEmpList() {
+  const dept = document.getElementById('cert_dept').value;
+  const q = document.getElementById('cert_emp_search').value.toLowerCase();
+  const filtered = allEmployees
+    .filter(e => e.department === dept)
+    .filter(e => !q || e.full_name.toLowerCase().includes(q) || e.employee_id.toLowerCase().includes(q));
+
+  const list = document.getElementById('cert_emp_list');
+  if (!filtered.length) {
+    list.innerHTML = '<div style="padding:12px;font-size:.82rem;color:var(--text3);text-align:center">Tidak ada karyawan ditemukan</div>';
+    list.classList.add('show');
+    return;
+  }
+
+  list.innerHTML = filtered.map(e => {
+    const isSelected = selectedEmployee?.employee_id === e.employee_id;
+    return `<div class="emp-option ${isSelected ? 'selected' : ''}" onclick="selectEmployee('${e.employee_id}','${e.full_name.replace(/'/g,"\\'")}')">
+      <span class="eo-name">${e.full_name} ${isSelected ? '✅' : ''}</span>
+      <span class="eo-info">${e.employee_id}</span>
+    </div>`;
+  }).join('');
+  list.classList.add('show');
+}
+
+function selectEmployee(empId, empName) {
+  selectedEmployee = { employee_id: empId, full_name: empName };
+  document.getElementById('cert_emp_search').value = empName;
+  hideEmpList();
+}
+
+function toggleExpiryDate() {
+  const isLifetime = document.getElementById('cert_lifetime').checked;
+  const row = document.getElementById('expiryRow');
+  const input = document.getElementById('cert_expiry_date');
+  if (isLifetime) {
+    row.classList.remove('show');
+    input.value = '';
+  } else {
+    row.classList.add('show');
+  }
+}
+
+function resetCertForm() {
+  if (!confirm('Reset form? Data yang belum disimpan akan hilang.')) return;
+  document.getElementById('cert_dept').value = '';
+  document.getElementById('cert_emp_search').value = '';
+  document.getElementById('cert_emp_search').disabled = true;
+  document.getElementById('cert_number').value = '';
+  document.getElementById('cert_issue_date').value = '';
+  document.getElementById('cert_expiry_date').value = '';
+  document.getElementById('cert_card_number').value = '';
+  document.getElementById('cert_card_date').value = '';
+  document.getElementById('cert_competency').value = '';
+  document.getElementById('cert_method').value = 'Offline';
+  document.getElementById('cert_type').value = 'Eksternal';
+  document.getElementById('cert_issuing_body').value = '';
+  document.getElementById('cert_location').value = '';
+  document.getElementById('cert_lifetime').checked = false;
+  toggleExpiryDate();
+  selectedEmployee = null;
+  hideEmpList();
+}
+
+async function submitCertForm() {
+  if (!selectedEmployee) { showToast('Pilih karyawan terlebih dahulu', false); return; }
+  const certNumber = document.getElementById('cert_number').value.trim();
+  const issueDate = document.getElementById('cert_issue_date').value;
+  const expiryDate = document.getElementById('cert_expiry_date').value;
+  const competencyId = document.getElementById('cert_competency').value;
+  const method = document.getElementById('cert_method').value;
+  const type = document.getElementById('cert_type').value;
+  const issuingBody = document.getElementById('cert_issuing_body').value.trim();
+  const isLifetime = document.getElementById('cert_lifetime').checked;
+
+  const errors = [];
+  if (!certNumber) errors.push('No Sertifikat wajib diisi');
+  if (!issueDate) errors.push('Tanggal Sertifikat wajib diisi');
+  if (!competencyId) errors.push('Kompetensi wajib dipilih');
+  if (!issuingBody) errors.push('Diselenggarakan Oleh wajib diisi');
+  if (!isLifetime && !expiryDate) errors.push('Berlaku Hingga wajib diisi atau pilih Seumur Hidup');
+
+  if (errors.length) { showToast(errors[0], false); return; }
+
+  const btn = document.getElementById('certSubmitBtn');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+
+  try {
+    await api('/api/certifications', {
+      method: 'POST',
+      body: JSON.stringify({
+        employee_id: selectedEmployee.employee_id,
+        sertif_name: document.getElementById('cert_competency').options[document.getElementById('cert_competency').selectedIndex].text,
+        certificate_number: certNumber,
+        issue_date: issueDate,
+        expiry_date: expiryDate || null,
+        issuing_body: issuingBody,
+        card_number: document.getElementById('cert_card_number').value.trim() || null,
+        card_date: document.getElementById('cert_card_date').value || null,
+        competency_id: competencyId,
+        delivery_method: method,
+        certification_type: type,
+        location: document.getElementById('cert_location').value.trim() || null,
+        is_lifetime: isLifetime ? 1 : 0,
+      }),
+    });
+    showToast('Data sertifikasi berhasil disimpan!');
+    resetCertForm();
+  } catch (e) {
+    showToast(e.message, false);
+  } finally {
+    btn.disabled = false; btn.textContent = '📤 Simpan Sertifikasi';
+  }
+}
+
+
+document.addEventListener('click', e => {
+  const dropdown = document.querySelector('.emp-dropdown');
+  if (dropdown && !dropdown.contains(e.target)) hideEmpList();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  initPage();
+});
+</script>
+</body>
+</html>

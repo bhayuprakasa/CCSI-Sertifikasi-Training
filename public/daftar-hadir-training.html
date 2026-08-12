@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daftar Hadir Training — CCSI</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a3c6e;--navy-dk:#12294d;--navy-lt:#2a5298;
+  --accent:#e8a020;--accent-lt:#fef3dc;
+  --red:#d63031;--red-lt:#ffeaea;
+  --green:#00a86b;--green-lt:#e6f7f1;
+  --yellow:#f39c12;--yellow-lt:#fff8e6;
+  --purple:#6c3483;--purple-lt:#f4ecf7;
+  --bg:#f0f3f8;--surface:#fff;--border:#dde3ec;
+  --text:#1e293b;--text2:#64748b;--text3:#94a3b8;
+  --font:'Segoe UI',system-ui,Arial,sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--navy);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo-box{width:34px;height:34px;background:var(--accent);border-radius:6px;display:grid;place-items:center;font-weight:800;font-size:.8rem;color:var(--navy-dk)}
+.header-title{font-size:.95rem;font-weight:700;line-height:1.2}
+.header-sub{font-size:.68rem;opacity:.7}
+.page{max-width:900px;margin:0 auto;padding:20px 16px}
+.card{background:var(--surface);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:16px}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card-title{font-size:.88rem;font-weight:700;color:var(--navy)}
+.card-body{padding:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid .full{grid-column:1/-1}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:.76rem;font-weight:600;color:var(--text2)}
+.form-group input,.form-group select,.form-group textarea{padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:.83rem;font-family:var(--font);color:var(--text);outline:none;transition:border .15s}
+.form-group input:focus,.form-group select:focus{border-color:var(--navy-lt)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.81rem}
+thead th{background:#f8fafd;color:var(--text2);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid #f0f3f6;transition:background .1s}
+tbody tr:hover{background:#f8fafd}
+tbody td{padding:10px 12px;vertical-align:middle}
+.empty-row td{text-align:center;color:var(--text3);padding:28px;font-size:.83rem}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;white-space:nowrap}
+.b-green{background:var(--green-lt);color:#007a50}.b-red{background:var(--red-lt);color:var(--red)}
+.b-yellow{background:var(--yellow-lt);color:#b7760a}.b-navy{background:#e8eef7;color:var(--navy)}
+.b-gray{background:#f1f5f9;color:var(--text2)}.b-purple{background:var(--purple-lt);color:var(--purple)}
+.btn-sm{padding:3px 9px;border-radius:5px;font-size:.73rem;cursor:pointer;border:1px solid;font-family:var(--font);font-weight:500;transition:all .12s}
+.btn-edit{color:var(--navy);border-color:var(--border);background:#f8fafd}
+.btn-del{color:var(--red);border-color:#fcd4d4;background:var(--red-lt)}
+.btn-del:hover{background:#ffc5c5}
+.btn-cancel{padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:#f8fafd;color:var(--text2);cursor:pointer;font-family:var(--font);font-size:.83rem}
+.tn-submit{padding:10px 28px;border-radius:8px;border:none;background:var(--navy);color:#fff;cursor:pointer;font-family:var(--font);font-size:.88rem;font-weight:700;transition:background .15s}
+.tn-submit:hover{background:var(--navy-dk)}
+.tn-submit:disabled{opacity:.5;cursor:not-allowed}
+.tn-success{background:var(--green-lt);border:1px solid #a7e8cc;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#007a50;margin-bottom:16px}
+.section-title{font-size:.82rem;font-weight:700;color:var(--navy);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.section-title:first-child{margin-top:0}
+.toast{position:fixed;bottom:20px;right:20px;background:#1e293b;color:#fff;padding:10px 18px;border-radius:8px;font-size:.83rem;z-index:999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.date-range{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.participant-list{margin-top:8px}
+.participant-item{border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:#fafbfd;overflow:hidden}
+.p-header{display:flex;align-items:center;gap:8px;padding:7px 10px;font-size:.82rem}
+.p-name{flex:1;font-weight:500}
+.p-id{font-size:.72rem;color:var(--text3)}
+.p-remove{background:none;border:none;color:var(--red);cursor:pointer;font-size:.9rem;line-height:1;padding:2px 4px}
+.p-eval-btn{background:var(--accent-lt);border:1px solid #f0d080;color:#92610a;border-radius:5px;padding:2px 8px;font-size:.7rem;font-weight:600;cursor:pointer;font-family:var(--font);white-space:nowrap;transition:all .12s}
+.p-eval-btn:hover{background:#fde68a}
+.p-eval-btn.active{background:var(--green-lt);border-color:#a7e8cc;color:#007a50}
+.eval-section{border-top:1px solid var(--border);padding:12px 14px;background:var(--surface);display:none}
+.eval-section.open{display:block}
+.eval-sec-hdr{font-size:.76rem;font-weight:700;color:var(--navy);background:#eef2f9;padding:5px 9px;border-radius:5px;margin:8px 0 5px}
+.eval-sec-hdr:first-child{margin-top:0}
+.eval-row{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid #f0f3f6}
+.eval-row:last-child{border-bottom:none}
+.eval-q{font-size:.75rem;color:var(--text);line-height:1.4}
+.eval-opts{display:flex;gap:2px;flex-shrink:0}
+.eval-opt-label{display:inline-flex;align-items:center;justify-content:center;width:32px;height:24px;border-radius:4px;font-size:.68rem;font-weight:700;border:1px solid var(--border);cursor:pointer;color:var(--text2);transition:all .12s;user-select:none}
+.eval-opt-label:hover{border-color:var(--navy-lt);color:var(--navy);background:#eef2f9}
+.eval-opt-label.sb.checked{background:#d4edda;border-color:#28a745;color:#155724}
+.eval-opt-label.b.checked{background:#cce5ff;border-color:#004085;color:#004085}
+.eval-opt-label.c.checked{background:var(--yellow-lt);border-color:var(--yellow);color:#856404}
+.eval-opt-label.k.checked{background:var(--red-lt);border-color:var(--red);color:var(--red)}
+.emp-dropdown{position:relative}
+.emp-list{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:7px;max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.1);display:none}
+.emp-list.show{display:block}
+.emp-option{padding:8px 12px;cursor:pointer;font-size:.82rem;border-bottom:1px solid #f0f3f6;display:flex;justify-content:space-between;align-items:center}
+.emp-option:hover{background:#f0f3f8}
+.emp-option .eo-name{font-weight:500}
+.emp-option .eo-info{font-size:.72rem;color:var(--text3)}
+.emp-option.selected{background:var(--green-lt);color:#007a50}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+@media print{.header,.btn-sm,.tn-submit,.add-btn,.date-remove,.p-remove,.btn-cancel{display:none!important}.card{box-shadow:none;border:1px solid #ccc}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo-box">CCSI</div>
+    <div>
+      <div class="header-title">Daftar Hadir Training</div>
+      <div class="header-sub">PT Communication Cable Systems Indonesia</div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📝 Form Daftar Hadir Training</span>
+    </div>
+    <div class="card-body">
+
+      <div class="section-title" style="margin-top:0">Informasi Training</div>
+      <div class="form-grid" style="margin-bottom:14px">
+        <div class="form-group full">
+          <label>Judul Training *</label>
+          <input type="text" id="at_title" placeholder="Nama / judul program training">
+        </div>
+        <div class="form-group">
+          <label>Instruktur</label>
+          <input type="text" id="at_instructor" placeholder="Nama instruktur / trainer">
+        </div>
+        <div class="form-group">
+          <label>Lokasi</label>
+          <input type="text" id="at_location" placeholder="Tempat pelaksanaan">
+        </div>
+      </div>
+
+      <div class="section-title">Tanggal Pelaksanaan *</div>
+      <div class="date-range" style="margin-bottom:14px">
+        <div class="form-group">
+          <label>Tanggal Mulai *</label>
+          <input type="date" id="at_date_start">
+        </div>
+        <div class="form-group">
+          <label>Tanggal Selesai</label>
+          <input type="date" id="at_date_end">
+        </div>
+      </div>
+
+      <div class="section-title">Peserta *</div>
+      <div class="form-grid" style="margin-bottom:10px">
+        <div class="form-group">
+          <label>Departemen *</label>
+          <select id="at_dept" onchange="loadEmployees()">
+            <option value="">-- Pilih Departemen --</option>
+          </select>
+        </div>
+        <div class="form-group emp-dropdown">
+          <label>Tambah Karyawan</label>
+          <input type="text" id="at_emp_search" placeholder="Cari nama karyawan..." oninput="filterEmployees()" onfocus="showEmpList()" disabled>
+          <div class="emp-list" id="at_emp_list"></div>
+        </div>
+      </div>
+      <div id="at_participants" class="participant-list"></div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+        <button class="btn-cancel" onclick="resetForm()">Reset Form</button>
+        <button class="tn-submit" id="submitBtn" onclick="submitForm()">📤 Kirim Data Kehadiran</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+async function api(path, opts) {
+  const res = await fetch(path, { headers: {'Content-Type':'application/json'}, ...opts });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
+function showToast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = ok ? '#1e293b' : 'var(--red)';
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+let allEmployees = [];
+let selectedParticipants = [];
+
+async function initPage() {
+  const emps = await api('/api/employees');
+  allEmployees = emps.filter(e => e.is_active);
+  const depts = [...new Set(allEmployees.map(e => e.department))].sort();
+  const sel = document.getElementById('at_dept');
+  depts.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+}
+
+function loadEmployees() {
+  const dept = document.getElementById('at_dept').value;
+  const search = document.getElementById('at_emp_search');
+  search.disabled = !dept;
+  search.value = '';
+  if (!dept) { hideEmpList(); return; }
+  renderEmpList();
+}
+
+function filterEmployees() { renderEmpList(); }
+
+function showEmpList() {
+  if (!document.getElementById('at_dept').value) return;
+  renderEmpList();
+}
+
+function hideEmpList() {
+  document.getElementById('at_emp_list').classList.remove('show');
+}
+
+function renderEmpList() {
+  const dept = document.getElementById('at_dept').value;
+  const q = document.getElementById('at_emp_search').value.toLowerCase();
+  const filtered = allEmployees
+    .filter(e => e.department === dept)
+    .filter(e => !q || e.full_name.toLowerCase().includes(q) || e.employee_id.toLowerCase().includes(q));
+
+  const list = document.getElementById('at_emp_list');
+  if (!filtered.length) {
+    list.innerHTML = '<div style="padding:12px;font-size:.82rem;color:var(--text3);text-align:center">Tidak ada karyawan ditemukan</div>';
+    list.classList.add('show');
+    return;
+  }
+
+  list.innerHTML = filtered.map(e => {
+    const isSelected = selectedParticipants.some(p => p.employee_id === e.employee_id);
+    return `<div class="emp-option ${isSelected ? 'selected' : ''}" onclick="toggleEmployee('${e.employee_id}','${e.full_name.replace(/'/g,"\\'")}')">
+      <span class="eo-name">${e.full_name} ${isSelected ? '✅' : ''}</span>
+      <span class="eo-info">${e.employee_id} · ${e.position || '-'}</span>
+    </div>`;
+  }).join('');
+  list.classList.add('show');
+}
+
+function toggleEmployee(empId, empName) {
+  const idx = selectedParticipants.findIndex(p => p.employee_id === empId);
+  if (idx >= 0) {
+    selectedParticipants.splice(idx, 1);
+  } else {
+    selectedParticipants.push({ employee_id: empId, employee_name: empName });
+  }
+  renderParticipants();
+  renderEmpList();
+}
+
+function removeParticipant(empId) {
+  selectedParticipants = selectedParticipants.filter(p => p.employee_id !== empId);
+  renderParticipants();
+  renderEmpList();
+}
+
+const EVAL_SECTIONS = [
+  {key:'instruktur', label:'I. Instruktur', questions:[
+    'Keterangan dan penjelasan materi yang disampaikan kepada peserta',
+    'Efisiensi penggunaan waktu',
+    'Teknik Penyajian Materi',
+    'Interaksi dan diskusi dengan peserta',
+    'Kemampuan dan kejelasan menjawab pertanyaan atau masalah peserta',
+    'Tampilan instruktur secara keseluruhan'
+  ]},
+  {key:'materi', label:'II. Isi / Bahan Training', questions:[
+    'Manfaat materi dari sisi hubungan dengan pekerjaan',
+    'Kualitas isi bahan / materi training',
+    'Informasi terbaru dari materi yang disampaikan',
+    'Keteraturan materi training',
+    'Tampak keseluruhan bahan training'
+  ]},
+  {key:'lainlain', label:'III. Lain-lain', questions:[
+    'Penggunaan bermacam macam fasilitas',
+    'Penggunaan bermacam-macam metode training (studi kasus, role playing, diskusi kelompok, brain storming, tanya jawab, peragaan, simulasi dll)'
+  ]}
+];
+const EVAL_OPTS = [
+  {v:4,l:'SB',cls:'sb',t:'Sangat Baik'},
+  {v:3,l:'B', cls:'b', t:'Baik'},
+  {v:2,l:'C', cls:'c', t:'Cukup'},
+  {v:1,l:'K', cls:'k', t:'Kurang'}
+];
+
+function buildEvalHtml(empId) {
+  const safeId = empId.replace(/[^a-z0-9]/gi,'_');
+  let html = `<div style="font-size:.71rem;color:var(--text3);margin-bottom:8px">
+    SB=Sangat Baik(4) &nbsp;·&nbsp; B=Baik(3) &nbsp;·&nbsp; C=Cukup(2) &nbsp;·&nbsp; K=Kurang(1) &nbsp;—&nbsp; <em>Opsional, kosongkan jika tidak mengisi</em>
+  </div>`;
+  EVAL_SECTIONS.forEach(sec => {
+    html += `<div class="eval-sec-hdr">${sec.label}</div>`;
+    sec.questions.forEach((q, i) => {
+      const fname = `eval_${safeId}_${sec.key}_${i+1}`;
+      html += `<div class="eval-row">
+        <div class="eval-q">${i+1}. ${q}</div>
+        <div class="eval-opts">`;
+      EVAL_OPTS.forEach(o => {
+        html += `<label class="eval-opt-label ${o.cls}" title="${o.t}" onclick="evalClick(this)">
+          <input type="radio" name="${fname}" value="${o.v}" style="display:none">${o.l}
+        </label>`;
+      });
+      html += `</div></div>`;
+    });
+  });
+  html += `<div class="form-group" style="margin-top:10px">
+    <label style="font-size:.74rem;font-weight:600;color:var(--text2)">Saran &amp; Komentar</label>
+    <textarea id="saran_${safeId}" rows="2" placeholder="Masukan atau saran peserta..." style="padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:.8rem;font-family:inherit;resize:vertical;outline:none"></textarea>
+  </div>`;
+  return html;
+}
+
+function evalClick(label) {
+  label.closest('.eval-opts').querySelectorAll('.eval-opt-label').forEach(l => l.classList.remove('checked'));
+  label.classList.add('checked');
+  label.querySelector('input[type=radio]').checked = true;
+}
+
+function toggleEvalSection(empId) {
+  const safeId = empId.replace(/[^a-z0-9]/gi,'_');
+  const section = document.getElementById('es_' + safeId);
+  const btn = document.getElementById('eb_' + safeId);
+  if (!section) return;
+  const isOpen = section.classList.toggle('open');
+  btn.classList.toggle('active', isOpen);
+  btn.textContent = isOpen ? '✅ Evaluasi' : '📝 Isi Evaluasi';
+}
+
+function getParticipantEval(empId) {
+  const safeId = empId.replace(/[^a-z0-9]/gi,'_');
+  const data = { saran: (document.getElementById('saran_' + safeId)||{value:''}).value || '' };
+  EVAL_SECTIONS.forEach(sec => {
+    data[sec.key] = sec.questions.map((_,i) => {
+      const el = document.querySelector(`input[name="eval_${safeId}_${sec.key}_${i+1}"]:checked`);
+      return el ? parseInt(el.value) : null;
+    });
+  });
+  const allVals = [...data.instruktur, ...data.materi, ...data.lainlain].filter(v => v !== null);
+  data.avg = allVals.length ? +(allVals.reduce((a,b)=>a+b,0)/allVals.length).toFixed(3) : null;
+  const hasAny = allVals.length > 0 || data.saran.trim();
+  return hasAny ? data : null;
+}
+
+function renderParticipants() {
+  const container = document.getElementById('at_participants');
+  if (!selectedParticipants.length) {
+    container.innerHTML = '<p style="font-size:.8rem;color:var(--text3)">Belum ada peserta dipilih. Pilih departemen lalu klik nama karyawan.</p>';
+    return;
+  }
+  container.innerHTML = selectedParticipants.map(p => {
+    const safeId = p.employee_id.replace(/[^a-z0-9]/gi,'_');
+    return `<div class="participant-item">
+      <div class="p-header">
+        <span class="p-name">${p.employee_name}</span>
+        <span class="p-id">${p.employee_id}</span>
+        <button class="p-eval-btn" id="eb_${safeId}" onclick="toggleEvalSection('${p.employee_id}')" title="Isi kuesioner evaluasi trainer">📝 Isi Evaluasi</button>
+        <button class="p-remove" onclick="removeParticipant('${p.employee_id}')" title="Hapus peserta">✕</button>
+      </div>
+      <div class="eval-section" id="es_${safeId}">${buildEvalHtml(p.employee_id)}</div>
+    </div>`;
+  }).join('');
+}
+
+function resetForm() {
+  if (!confirm('Reset form? Data yang belum dikirim akan hilang.')) return;
+  resetFormSilent();
+}
+
+async function submitForm() {
+  const title = document.getElementById('at_title').value.trim();
+  const instructor = document.getElementById('at_instructor').value.trim();
+  const location = document.getElementById('at_location').value.trim();
+  const dept = document.getElementById('at_dept').value;
+  const dateStart = document.getElementById('at_date_start').value;
+  const dateEnd = document.getElementById('at_date_end').value;
+
+  const errors = [];
+  if (!title) errors.push('Judul Training wajib diisi');
+  if (!dateStart) errors.push('Tanggal Mulai wajib diisi');
+  if (!dept) errors.push('Departemen wajib dipilih');
+  if (!selectedParticipants.length) errors.push('Minimal 1 peserta wajib dipilih');
+  if (dateEnd && dateEnd < dateStart) errors.push('Tanggal Selesai tidak boleh sebelum Tanggal Mulai');
+
+  if (errors.length) { showToast(errors[0], false); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '⏳ Mengirim...';
+
+  try {
+    const participantsWithEval = selectedParticipants.map(p => ({
+      ...p,
+      eval_json: getParticipantEval(p.employee_id),
+    }));
+    await api('/api/training-attendance', {
+      method: 'POST',
+      body: JSON.stringify({
+        training_title: title, instructor, location, department: dept,
+        training_date_start: dateStart,
+        training_date_end: dateEnd || dateStart,
+        participants: participantsWithEval,
+      }),
+    });
+    showToast('Data kehadiran training berhasil dikirim!');
+    resetFormSilent();
+  } catch (e) {
+    showToast(e.message, false);
+  } finally {
+    btn.disabled = false; btn.textContent = '📤 Kirim Data Kehadiran';
+  }
+}
+
+function resetFormSilent() {
+  document.getElementById('at_title').value = '';
+  document.getElementById('at_instructor').value = '';
+  document.getElementById('at_location').value = '';
+  document.getElementById('at_dept').value = '';
+  document.getElementById('at_emp_search').value = '';
+  document.getElementById('at_emp_search').disabled = true;
+  document.getElementById('at_date_start').value = '';
+  document.getElementById('at_date_end').value = '';
+  selectedParticipants = [];
+  renderParticipants();
+  hideEmpList();
+}
+
+
+document.addEventListener('click', e => {
+  const dropdown = document.querySelector('.emp-dropdown');
+  if (dropdown && !dropdown.contains(e.target)) hideEmpList();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderParticipants();
+  initPage();
+});
+</script>
+</body>
+</html>
