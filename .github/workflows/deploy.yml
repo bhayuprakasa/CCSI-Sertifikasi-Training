@@ -7,17 +7,17 @@ on:
 
 jobs:
   deploy:
-    runs-on: self-hosted   # runner yang diinstall di server lokal
+    runs-on: self-hosted
 
     steps:
       - name: Pull latest code
         run: |
-          cd /var/www/ccsi-app   # sesuaikan dengan path di server Anda
+          cd C:\www\ccsi-app
           git pull origin main
 
       - name: Install dependencies
         run: |
-          cd /var/www/ccsi-app
+          cd C:\www\ccsi-app
           npm install --production
 
       - name: Restart app via PM2
