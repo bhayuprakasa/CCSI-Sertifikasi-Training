@@ -4,8 +4,12 @@ const pool = require('../db');
 const { logAudit } = require('../middleware/auditLog');
 
 router.get('/', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM trx_training_attendance ORDER BY attendance_id DESC');
-  const [parts] = await pool.query('SELECT * FROM trx_training_attendance_participant ORDER BY participant_id');
+  const [rows] = await pool.query(
+    'SELECT attendance_id, training_title, instructor, location, department, training_date_start, training_date_end, submitted_at FROM trx_training_attendance ORDER BY attendance_id DESC'
+  );
+  const [parts] = await pool.query(
+    'SELECT participant_id, attendance_id, employee_id, employee_name, eval_json FROM trx_training_attendance_participant ORDER BY participant_id'
+  );
   const result = rows.map(r => ({
     ...r,
     participants: parts.filter(p => p.attendance_id === r.attendance_id).map(p => ({
@@ -43,6 +47,15 @@ router.post('/', async (req, res) => {
       }
     }
 
+    await logAudit({
+      table_name: 'trx_training_attendance',
+      record_id: id,
+      operation: 'CREATE',
+      new_data: { training_title, instructor, location, department, training_date_start, training_date_end, participant_count: participants.length },
+      changed_by: req.changedBy,
+      conn,
+    });
+
     await conn.commit();
     res.status(201).json({ attendance_id: id });
   } catch (e) {
@@ -54,7 +67,7 @@ router.post('/', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
-  const [old] = await pool.query('SELECT * FROM trx_training_attendance WHERE attendance_id = ?', [req.params.id]);
+  const [old] = await pool.query('SELECT attendance_id, training_title, department, training_date_start FROM trx_training_attendance WHERE attendance_id = ?', [req.params.id]);
   const [oldParts] = await pool.query('SELECT employee_id, employee_name, eval_json FROM trx_training_attendance_participant WHERE attendance_id = ?', [req.params.id]);
 
   if (old.length) {
@@ -70,7 +83,7 @@ router.delete('/:id', async (req, res) => {
           eval_json: p.eval_json ? JSON.parse(p.eval_json) : null,
         })),
       },
-      changed_by: req.query.changed_by || null,
+      changed_by: req.changedBy,
     });
   }
 

@@ -1,8 +1,10 @@
 const pool = require('../db');
 
-async function logAudit({ table_name, record_id, operation, old_data, new_data, changed_by }) {
+// Pass `conn` to run the log inside an existing transaction
+async function logAudit({ table_name, record_id, operation, old_data, new_data, changed_by, conn }) {
   try {
-    await pool.query(
+    const db = conn || pool;
+    await db.query(
       'INSERT INTO trx_audit_log (table_name, record_id, operation, old_data, new_data, changed_by) VALUES (?,?,?,?,?,?)',
       [
         table_name,

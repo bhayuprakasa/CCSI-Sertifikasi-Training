@@ -5,9 +5,19 @@ const pool = require('../db');
 const { logAudit } = require('../middleware/auditLog');
 const { sendApprovalEmail, sendHrdApprovalEmail } = require('../utils/mailer');
 
+const VALID_TRAINING_TYPE = ['Internal', 'Eksternal'];
+
+function validScore(v) {
+  if (v == null) return true;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 0 && n <= 100;
+}
+
 router.get('/', async (req, res) => {
-  const [requests] = await pool.query('SELECT * FROM trx_training_request ORDER BY request_id DESC');
-  const [participants] = await pool.query('SELECT * FROM trx_training_request_participant ORDER BY participant_id');
+  const [requests] = await pool.query(
+    'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, training_type, organizer, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status FROM trx_training_request ORDER BY request_id DESC'
+  );
+  const [participants] = await pool.query('SELECT participant_id, request_id, participant_name FROM trx_training_request_participant ORDER BY participant_id');
   const result = requests.map(r => ({
     ...r,
     participants: participants.filter(p => p.request_id === r.request_id).map(p => p.participant_name),
@@ -20,6 +30,16 @@ router.post('/', async (req, res) => {
   if (!item.department || !item.training_name || !item.training_date_start || !item.training_type || !item.participants?.length) {
     return res.status(400).json({ error: 'Field wajib belum lengkap' });
   }
+  if (!VALID_TRAINING_TYPE.includes(item.training_type)) {
+    return res.status(400).json({ error: `training_type must be one of: ${VALID_TRAINING_TYPE.join(', ')}` });
+  }
+  const pa = item.scores?.peserta_atasan ?? null;
+  const ph = item.scores?.peserta_hrd ?? null;
+  const ma = item.scores?.materi_atasan ?? null;
+  const mh = item.scores?.materi_hrd ?? null;
+  if (!validScore(pa) || !validScore(ph) || !validScore(ma) || !validScore(mh)) {
+    return res.status(400).json({ error: 'Scores must be integers between 0 and 100' });
+  }
 
   const conn = await pool.getConnection();
   try {
@@ -29,10 +49,6 @@ router.post('/', async (req, res) => {
       (item.cost_transport || 0) + (item.cost_makan || 0) +
       (item.cost_snack || 0) + (item.cost_emergency || 0);
 
-    const pa = item.scores?.peserta_atasan || null;
-    const ph = item.scores?.peserta_hrd || null;
-    const ma = item.scores?.materi_atasan || null;
-    const mh = item.scores?.materi_hrd || null;
     const gt = (pa || 0) + (ph || 0) + (ma || 0) + (mh || 0) || null;
 
     const approvalToken = crypto.randomBytes(32).toString('hex');
@@ -71,6 +87,15 @@ router.post('/', async (req, res) => {
         await conn.query('INSERT INTO trx_training_request_participant (request_id, participant_name) VALUES (?,?)', [requestId, name.trim()]);
       }
     }
+
+    await logAudit({
+      table_name: 'trx_training_request',
+      record_id: requestId,
+      operation: 'CREATE',
+      new_data: { department: item.department, training_name: item.training_name, training_type: item.training_type, cost_total: costTotal, participant_count: item.participants.length },
+      changed_by: req.changedBy,
+      conn,
+    });
 
     await conn.commit();
 
@@ -227,7 +252,7 @@ router.delete('/:id', async (req, res) => {
       record_id: req.params.id,
       operation: 'DELETE',
       old_data: { ...old[0], participants: oldParts.map(p => p.participant_name) },
-      changed_by: req.query.changed_by || null,
+      changed_by: req.changedBy,
     });
   }
 
