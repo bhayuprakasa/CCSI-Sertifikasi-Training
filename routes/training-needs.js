@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const { logAudit } = require('../middleware/auditLog');
 
 router.get('/', async (req, res) => {
   const [needs] = await pool.query('SELECT * FROM trx_training_need ORDER BY need_id DESC');
@@ -60,6 +61,19 @@ router.post('/batch', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
+  const [old] = await pool.query('SELECT * FROM trx_training_need WHERE need_id = ?', [req.params.id]);
+  const [oldParts] = await pool.query('SELECT participant_name FROM trx_training_need_participant WHERE need_id = ?', [req.params.id]);
+
+  if (old.length) {
+    await logAudit({
+      table_name: 'trx_training_need',
+      record_id: req.params.id,
+      operation: 'DELETE',
+      old_data: { ...old[0], participants: oldParts.map(p => p.participant_name) },
+      changed_by: req.query.changed_by || null,
+    });
+  }
+
   await pool.query('DELETE FROM trx_training_need WHERE need_id = ?', [req.params.id]);
   res.json({ deleted: true });
 });

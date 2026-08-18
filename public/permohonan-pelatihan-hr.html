@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Permohonan Pelatihan — CCSI</title>
+<title>Input Permohonan Pelatihan (HRD) — CCSI</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -23,7 +23,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .logo-box{width:34px;height:34px;background:var(--accent);border-radius:6px;display:grid;place-items:center;font-weight:800;font-size:.8rem;color:var(--navy-dk)}
 .header-title{font-size:.95rem;font-weight:700;line-height:1.2}
 .header-sub{font-size:.68rem;opacity:.7}
-.page{max-width:1300px;margin:0 auto;padding:20px 16px}
+.page{max-width:900px;margin:0 auto;padding:20px 16px}
 .card{background:var(--surface);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:16px}
 .card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .card-title{font-size:.88rem;font-weight:700;color:var(--navy)}
@@ -38,11 +38,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 select.filter{padding:7px 11px;border:1px solid var(--border);border-radius:7px;font-size:.83rem;font-family:var(--font);background:var(--bg);color:var(--text);outline:none;cursor:pointer}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:.81rem}
-thead th{background:#f8fafd;color:var(--text2);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:9px 8px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
-thead th.wrap{white-space:normal;min-width:90px}
+thead th{background:#f8fafd;color:var(--text2);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
 tbody tr{border-bottom:1px solid #f0f3f6;transition:background .1s}
 tbody tr:hover{background:#f8fafd}
-tbody td{padding:9px 8px;vertical-align:middle}
+tbody td{padding:10px 12px;vertical-align:middle}
 .empty-row td{text-align:center;color:var(--text3);padding:28px;font-size:.83rem}
 .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;white-space:nowrap}
 .b-green{background:var(--green-lt);color:#007a50}.b-red{background:var(--red-lt);color:var(--red)}
@@ -55,7 +54,7 @@ tbody td{padding:9px 8px;vertical-align:middle}
 .btn-cancel{padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:#f8fafd;color:var(--text2);cursor:pointer;font-family:var(--font);font-size:.83rem}
 .toast{position:fixed;bottom:20px;right:20px;background:#1e293b;color:#fff;padding:10px 18px;border-radius:8px;font-size:.83rem;z-index:999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
-.tn-submit{padding:10px 28px;border-radius:8px;border:none;background:var(--navy);color:#fff;cursor:pointer;font-family:var(--font);font-size:.88rem;font-weight:700;transition:background .15s}
+.tn-submit{padding:10px 28px;border-radius:8px;border:none;background:var(--purple);color:#fff;cursor:pointer;font-family:var(--font);font-size:.88rem;font-weight:700;transition:background .15s}
 .tn-submit:hover{background:var(--navy-dk)}
 .tn-submit:disabled{opacity:.5;cursor:not-allowed}
 .tn-success{background:var(--green-lt);border:1px solid #a7e8cc;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#007a50;margin-bottom:16px}
@@ -74,8 +73,6 @@ tbody td{padding:9px 8px;vertical-align:middle}
 .ms-clear-btn:hover{background:#e8eef7;color:var(--navy)}
 .filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .filter-bar-lbl{font-size:.75rem;font-weight:600;color:var(--text2);white-space:nowrap}
-.tn-add-peserta{background:none;border:1px dashed var(--navy-lt);color:var(--navy-lt);border-radius:6px;padding:5px 12px;font-size:.78rem;cursor:pointer;font-family:var(--font);margin-top:4px;transition:all .15s}
-.tn-add-peserta:hover{background:rgba(42,82,152,.06)}
 .section-title{font-size:.82rem;font-weight:700;color:var(--navy);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
 .section-title:first-child{margin-top:0}
 .eq-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -103,7 +100,6 @@ tbody td{padding:9px 8px;vertical-align:middle}
 .tn-gt-result.accepted{color:var(--green)}
 .tn-gt-result.refused{color:var(--red)}
 .doc-id{font-size:.72rem;color:var(--text3);font-weight:400}
-/* Peserta checkboxes */
 .peserta-box{background:#f8fafd;border:1px solid var(--border);border-radius:8px;padding:10px 14px;max-height:240px;overflow-y:auto}
 .peserta-check-row{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f3f6}
 .peserta-check-row:last-child{border-bottom:none}
@@ -111,12 +107,12 @@ tbody td{padding:9px 8px;vertical-align:middle}
 .peserta-check-row input[type="checkbox"]{width:15px;height:15px;cursor:pointer;accent-color:var(--navy)}
 .emp-pos{font-size:.71rem;color:var(--text3);margin-left:2px}
 .peserta-empty{color:var(--text3);font-size:.8rem;font-style:italic;padding:6px 0}
-/* Rencana toggle */
 .radio-group{display:flex;gap:18px;align-items:center;padding:6px 0}
 .radio-group label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.83rem;font-weight:400;color:var(--text)}
 .radio-group input[type="radio"]{accent-color:var(--navy);width:15px;height:15px}
+.hr-notice{background:var(--purple-lt);border:1px solid #c39bd3;border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--purple);margin-bottom:16px;display:flex;align-items:center;gap:8px}
 @media(max-width:600px){.form-grid{grid-template-columns:1fr}.eq-grid{grid-template-columns:1fr}.cost-grid{grid-template-columns:1fr}.header{padding:0 12px}}
-@media print{.header,.btn-sm,.tn-submit,.tn-add-peserta,.btn-cancel{display:none!important}.card{box-shadow:none;border:1px solid #ccc}body{background:#fff}}
+@media print{.header,.btn-sm,.tn-submit,.btn-cancel,.hr-notice{display:none!important}.card{box-shadow:none;border:1px solid #ccc}body{background:#fff}}
 </style>
 </head>
 <body>
@@ -125,8 +121,8 @@ tbody td{padding:9px 8px;vertical-align:middle}
   <div class="header-left">
     <div class="logo-box">CCSI</div>
     <div>
-      <div class="header-title">Permohonan Pelatihan</div>
-      <div class="header-sub">PT Communication Cable Systems Indonesia</div>
+      <div class="header-title">Input Permohonan Pelatihan</div>
+      <div class="header-sub">PT Communication Cable Systems Indonesia — HRD</div>
     </div>
   </div>
 </div>
@@ -135,28 +131,27 @@ tbody td{padding:9px 8px;vertical-align:middle}
   <div class="card">
     <div class="card-header">
       <span class="card-title">📝 Form Permohonan Pelatihan <span class="doc-id">QHSE-F-HRD-011</span></span>
+      <span class="badge b-purple">📋 Diinput oleh HRD</span>
     </div>
     <div class="card-body">
+
+      <div class="hr-notice">
+        <span>ℹ️</span>
+        <span>Form ini diisi oleh <strong>HRD</strong>. Permohonan akan langsung berstatus <strong>Submitted by HR</strong> tanpa melalui proses approval.</span>
+      </div>
 
       <!-- INFO DASAR -->
       <div class="section-title">Informasi Dasar</div>
       <div class="form-grid" style="margin-bottom:14px">
         <div class="form-group">
-          <label>Dept Head *</label>
-          <input type="text" id="pr_submitter" placeholder="Nama Dept Head">
+          <label>Dept Head / PIC</label>
+          <input type="text" id="pr_submitter" placeholder="Nama Dept Head atau PIC">
         </div>
         <div class="form-group">
           <label>Departemen / Divisi *</label>
           <select id="pr_dept" onchange="prLoadPeserta()">
             <option value="">-- Pilih Departemen --</option>
           </select>
-        </div>
-        <div class="form-group">
-          <label>Approver 1 (Direksi / BOD) *</label>
-          <select id="pr_approver1" onchange="prOnApproverChange()">
-            <option value="">-- Pilih Approver --</option>
-          </select>
-          <div id="pr_approver1_info" style="display:none;margin-top:4px;font-size:.74rem;color:var(--navy);background:#e8eef7;border-radius:5px;padding:5px 9px"></div>
         </div>
         <div class="form-group">
           <label>Rencana Pelatihan *</label>
@@ -293,17 +288,17 @@ tbody td{padding:9px 8px;vertical-align:middle}
       <!-- SUBMIT -->
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
         <button class="btn-cancel" onclick="prReset()">Reset Form</button>
-        <button class="tn-submit" id="prSubmitBtn" onclick="prSubmit()">📤 Kirim Permohonan</button>
+        <button class="tn-submit" id="prSubmitBtn" onclick="prSubmit()">📋 Simpan Permohonan</button>
       </div>
     </div>
   </div>
 
-  <!-- REKAP - selalu tampil -->
+  <!-- REKAP -->
   <div id="prRecapSection">
     <div class="card">
       <div class="card-header">
         <span class="card-title">📋 Rekap Permohonan Pelatihan</span>
-
+        <button class="btn-sm btn-edit" onclick="window.scrollTo({top:0,behavior:'smooth'})">+ Permohonan Baru</button>
       </div>
       <div class="card-body">
         <div id="prRecapMsg"></div>
@@ -326,7 +321,7 @@ tbody td{padding:9px 8px;vertical-align:middle}
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>Departemen</th><th class="wrap">Nama Pelatihan</th><th>Peserta</th><th>Terjadwal</th><th>Jenis</th><th class="wrap">Target Pelaksanaan</th><th class="wrap">Total Biaya</th><th>GT</th><th>Status</th></tr></thead>
+            <thead><tr><th>#</th><th>Departemen</th><th>Nama Pelatihan</th><th>Peserta</th><th>Terjadwal</th><th>Jenis</th><th>Target Pelaksanaan</th><th>Total Biaya</th><th>GT</th><th>Status</th></tr></thead>
             <tbody id="prRecapBody"></tbody>
           </table>
         </div>
@@ -403,16 +398,9 @@ function prCalcScore() {
   } else { statusEl.textContent = ''; }
 }
 
-let _allEmployees = null;
-async function loadAllEmployees() {
-  if (_allEmployees) return _allEmployees;
-  _allEmployees = await api('/api/employees');
-  return _allEmployees;
-}
-
 async function prLoadDepts() {
   try {
-    const emps = await loadAllEmployees();
+    const emps = await api('/api/employees');
     const depts = [...new Set(emps.map(e => e.department).filter(Boolean))].sort();
     const sel = document.getElementById('pr_dept');
     sel.innerHTML = '<option value="">-- Pilih Departemen --</option>' +
@@ -423,62 +411,6 @@ async function prLoadDepts() {
     sel.innerHTML = '<option value="">-- Pilih Departemen --</option>' +
       fallback.map(d => `<option value="${d}">${d}</option>`).join('');
   }
-}
-
-function openIDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open('CCSI_Training_v2', 1);
-    req.onsuccess = e => resolve(e.target.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function idbGetAll(db, storeName) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readonly');
-    const req = tx.objectStore(storeName).getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function prLoadApprovers() {
-  const sel = document.getElementById('pr_approver1');
-  sel.innerHTML = '<option value="">-- Memuat... --</option>';
-  sel.disabled = true;
-  try {
-    const db = await openIDB();
-    const emps = await idbGetAll(db, 'mst_employee');
-    const direksi = emps.filter(e => {
-      const dept = (e.department || '').toLowerCase();
-      const active = e.is_active !== 0 && e.is_active !== false;
-      return active && (e.is_direktur || dept.includes('direksi') || dept.includes('bod'));
-    });
-    sel.disabled = false;
-    if (!direksi.length) {
-      sel.innerHTML = '<option value="">⚠ Tidak ada karyawan Direksi/BOD aktif</option>';
-      return;
-    }
-    sel.innerHTML = '<option value="">-- Pilih Approver --</option>' +
-      direksi.map(e =>
-        `<option value="${e.employee_id}" data-name="${e.full_name}" data-email="${e.email || ''}" data-pos="${e.position || ''}">${e.full_name} — ${e.position || 'Direksi'}</option>`
-      ).join('');
-  } catch (err) {
-    sel.disabled = false;
-    sel.innerHTML = '<option value="">⚠ Gagal memuat data karyawan</option>';
-    console.error('[Approver] Gagal baca IndexedDB:', err);
-  }
-}
-
-function prOnApproverChange() {
-  const sel = document.getElementById('pr_approver1');
-  const infoEl = document.getElementById('pr_approver1_info');
-  const opt = sel.selectedOptions[0];
-  if (!opt || !opt.value) { infoEl.style.display = 'none'; return; }
-  const email = opt.dataset.email;
-  const pos = opt.dataset.pos;
-  infoEl.textContent = `${opt.dataset.name} · ${pos || 'Direksi'} · ${email || '(email belum diisi)'}`;
-  infoEl.style.display = 'block';
 }
 
 async function prLoadPeserta() {
@@ -515,8 +447,6 @@ function prReset(skipConfirm = false) {
   document.getElementById('pr_dept').value = '';
   document.getElementById('pr_target_month').value = '';
   document.getElementById('pr_type').value = '';
-  document.getElementById('pr_approver1').value = '';
-  document.getElementById('pr_approver1_info').style.display = 'none';
   document.querySelector('input[name="pr_scheduled"][value="0"]').checked = true;
   document.getElementById('pr_peserta').innerHTML = '<div class="peserta-empty">Pilih departemen terlebih dahulu</div>';
   document.querySelectorAll('[id^="pr_cost_"]').forEach(el => { if (el.tagName === 'INPUT') el.value = ''; });
@@ -539,18 +469,11 @@ async function prSubmit() {
   const reason = document.getElementById('pr_reason').value.trim();
   const isScheduled = document.querySelector('input[name="pr_scheduled"]:checked')?.value === '1' ? 1 : 0;
 
-  const approverSel = document.getElementById('pr_approver1');
-  const approverOpt = approverSel.selectedOptions[0];
-  const approverName = approverOpt?.dataset?.name || '';
-  const approverEmail = approverOpt?.dataset?.email || '';
-  const approverPos = approverOpt?.dataset?.pos || '';
-
   const checked = document.querySelectorAll('input[name="pr_peserta_check"]:checked');
   const participants = [...checked].map(i => i.value.trim()).filter(Boolean);
 
   const errors = [];
   if (!dept) errors.push('Departemen wajib dipilih');
-  if (!approverSel.value) errors.push('Approver 1 (Direksi/BOD) wajib dipilih');
   if (!name) errors.push('Nama Pelatihan wajib diisi');
   if (!targetMonth) errors.push('Target Pelaksanaan wajib diisi');
   if (!type) errors.push('Jenis Training wajib dipilih');
@@ -566,8 +489,8 @@ async function prSubmit() {
     department: dept, training_name: name, training_venue: venue,
     training_date_start: dateStart, training_date_end: dateStart,
     training_type: type, organizer, training_reason: reason,
-    participants, submitted_by: submitter || null,
-    approver1_name: approverName, approver1_email: approverEmail, approver1_position: approverPos,
+    participants, submitted_by: submitter || 'HRD',
+    submitted_by_hr: true,
     is_scheduled: isScheduled,
     cost_training_fee: prParseCost('pr_cost_fee'),
     cost_akomodasi: prParseCost('pr_cost_akomodasi'),
@@ -593,17 +516,17 @@ async function prSubmit() {
   };
 
   const btn = document.getElementById('prSubmitBtn');
-  btn.disabled = true; btn.textContent = '⏳ Mengirim...';
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
 
   try {
     await api('/api/training-requests', { method: 'POST', body: JSON.stringify(body) });
-    showToast('Permohonan pelatihan berhasil dikirim!');
+    showToast('Permohonan berhasil disimpan dengan status Submitted by HR!');
     prReset(true);
     loadRekapData();
   } catch (e) {
     showToast(e.message, false);
   } finally {
-    btn.disabled = false; btn.textContent = '📤 Kirim Permohonan';
+    btn.disabled = false; btn.textContent = '📋 Simpan Permohonan';
   }
 }
 
@@ -681,7 +604,7 @@ function renderRecap(data) {
 
   if (!data.length) {
     msgEl.innerHTML = '';
-    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="11">Belum ada data yang sesuai filter</td></tr>';
+    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="10">Belum ada data yang sesuai filter</td></tr>';
     return;
   }
 
@@ -692,6 +615,7 @@ function renderRecap(data) {
     const tgl = fmtMonthYear(r.training_date_start);
     const apvStatus = r.approval_status || 'Pending';
     const apvMap = {
+      'Submitted_HR':  { cls:'b-purple', icon:'📋', label:'Submitted by HR' },
       'Pending':       { cls:'b-yellow', icon:'⏳', label:'Pending Direktur Dept' },
       'PendingHRD':    { cls:'b-navy',   icon:'⏳', label:'Pending Direktur HR' },
       'Approved':      { cls:'b-green',  icon:'✅', label:'Disetujui' },
@@ -717,21 +641,11 @@ function renderRecap(data) {
   }).join('');
 }
 
-async function prDelete(id) {
-  if (!confirm('Hapus permohonan pelatihan ini?')) return;
-  try {
-    await api(`/api/training-requests/${id}`, { method: 'DELETE' });
-    showToast('Data dihapus');
-    loadRekapData();
-  } catch (e) { showToast(e.message, false); }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   const today = new Date();
   const minMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
   document.getElementById('pr_target_month').min = minMonth;
   prLoadDepts();
-  prLoadApprovers();
   loadRekapData();
 });
 </script>

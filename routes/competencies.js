@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const { logAudit } = require('../middleware/auditLog');
 
 router.get('/', async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM mst_competency ORDER BY competency_id');
@@ -18,7 +19,20 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  const { competency_name, competency_type, category } = req.body;
+  const { competency_name, competency_type, category, changed_by } = req.body;
+
+  const [old] = await pool.query('SELECT * FROM mst_competency WHERE competency_id = ?', [req.params.id]);
+  if (!old.length) return res.status(404).json({ error: 'Not found' });
+
+  await logAudit({
+    table_name: 'mst_competency',
+    record_id: req.params.id,
+    operation: 'UPDATE',
+    old_data: old[0],
+    new_data: req.body,
+    changed_by,
+  });
+
   const [result] = await pool.query(
     'UPDATE mst_competency SET competency_name=?, competency_type=?, category=? WHERE competency_id=?',
     [competency_name, competency_type, category || null, req.params.id]
@@ -30,6 +44,18 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const [progs] = await pool.query('SELECT 1 FROM mst_program WHERE competency_id = ? LIMIT 1', [req.params.id]);
   if (progs.length) return res.status(409).json({ error: 'Cannot delete: used in programs' });
+
+  const [old] = await pool.query('SELECT * FROM mst_competency WHERE competency_id = ?', [req.params.id]);
+  if (old.length) {
+    await logAudit({
+      table_name: 'mst_competency',
+      record_id: req.params.id,
+      operation: 'DELETE',
+      old_data: old[0],
+      changed_by: req.query.changed_by || null,
+    });
+  }
+
   await pool.query('DELETE FROM mst_competency WHERE competency_id = ?', [req.params.id]);
   res.json({ deleted: true });
 });

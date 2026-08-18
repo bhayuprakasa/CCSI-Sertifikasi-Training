@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const { logAudit } = require('../middleware/auditLog');
 
 router.get('/', async (req, res) => {
   const [rows] = await pool.query(
@@ -26,7 +27,20 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  const { employee_id, trx_id, sertif_name, certificate_number, issue_date, expiry_date, issuing_body, card_number, card_date, competency_id, delivery_method, certification_type, location, is_lifetime, is_active, renewal_count, notes } = req.body;
+  const { employee_id, trx_id, sertif_name, certificate_number, issue_date, expiry_date, issuing_body, card_number, card_date, competency_id, delivery_method, certification_type, location, is_lifetime, is_active, renewal_count, notes, changed_by } = req.body;
+
+  const [old] = await pool.query('SELECT * FROM trx_certification WHERE cert_id = ?', [req.params.id]);
+  if (!old.length) return res.status(404).json({ error: 'Not found' });
+
+  await logAudit({
+    table_name: 'trx_certification',
+    record_id: req.params.id,
+    operation: 'UPDATE',
+    old_data: old[0],
+    new_data: req.body,
+    changed_by,
+  });
+
   const [result] = await pool.query(
     `UPDATE trx_certification
      SET employee_id=?, trx_id=?, sertif_name=?, certificate_number=?, issue_date=?, expiry_date=?, issuing_body=?, card_number=?, card_date=?, competency_id=?, delivery_method=?, certification_type=?, location=?, is_lifetime=?, is_active=?, renewal_count=?, notes=?
@@ -38,6 +52,17 @@ router.put('/:id', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
+  const [old] = await pool.query('SELECT * FROM trx_certification WHERE cert_id = ?', [req.params.id]);
+  if (old.length) {
+    await logAudit({
+      table_name: 'trx_certification',
+      record_id: req.params.id,
+      operation: 'DELETE',
+      old_data: old[0],
+      changed_by: req.query.changed_by || null,
+    });
+  }
+
   await pool.query('DELETE FROM trx_certification WHERE cert_id = ?', [req.params.id]);
   res.json({ deleted: true });
 });
