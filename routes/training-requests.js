@@ -76,7 +76,7 @@ router.post('/', async (req, res) => {
         pa, ph, ma, mh, gt,
         item.submitted_by || null,
         item.is_scheduled != null ? (item.is_scheduled ? 1 : 0) : 0,
-        item.submitted_by_hr ? 'Submitted_HR' : 'Pending',
+        item.submitted_by_hr ? 'Submitted_HR' : 'PendingBODDept',
         approvalToken,
       ]
     );
@@ -114,7 +114,7 @@ router.post('/', async (req, res) => {
       }).catch(err => console.error('[Mailer] Gagal kirim email approval:', err.message));
     }
 
-    res.status(201).json({ request_id: requestId, ...item, cost_total: costTotal, approval_status: 'Pending' });
+    res.status(201).json({ request_id: requestId, ...item, cost_total: costTotal, approval_status: item.submitted_by_hr ? 'Submitted_HR' : 'PendingBODDept' });
   } catch (e) {
     await conn.rollback();
     throw e;
@@ -134,7 +134,7 @@ router.get('/approve/:token', async (req, res) => {
   if (!rows.length) return res.status(404).send(approvalPage('not_found'));
 
   const req_ = rows[0];
-  if (req_.approval_status !== 'Pending') {
+  if (req_.approval_status !== 'PendingBODDept') {
     return res.send(approvalPage('already_done', req_.approval_status, req_));
   }
 
@@ -142,7 +142,7 @@ router.get('/approve/:token', async (req, res) => {
 
   await pool.query(
     'UPDATE trx_training_request SET approval_status = ?, approval_token = NULL, approval_hrd_token = ? WHERE request_id = ?',
-    ['PendingHRD', hrdToken, req_.request_id]
+    ['PendingBODHR', hrdToken, req_.request_id]
   );
 
   // Ambil info Direktur HRD dari tabel config atau env
@@ -177,7 +177,7 @@ router.get('/approve/:token', async (req, res) => {
     }).catch(err => console.error('[Mailer] Gagal kirim email HRD:', err.message));
   }
 
-  res.send(approvalPage('approved_l1', 'PendingHRD', req_));
+  res.send(approvalPage('approved_l1', 'PendingBODHR', req_));
 });
 
 // Handle klik Tolak dari email (Direktur Dept)
@@ -195,9 +195,9 @@ router.get('/reject/:token', async (req, res) => {
 
   await pool.query(
     'UPDATE trx_training_request SET approval_status = ?, approval_token = NULL WHERE request_id = ?',
-    ['Rejected_Dept', req_.request_id]
+    ['Rejected_BODDept', req_.request_id]
   );
-  res.send(approvalPage('rejected_dept', 'Rejected_Dept', req_));
+  res.send(approvalPage('rejected_dept', 'Rejected_BODDept', req_));
 });
 
 // ── Layer 2: Direktur HRD ────────────────────────────────────────────────────
@@ -211,7 +211,7 @@ router.get('/approve-hrd/:token', async (req, res) => {
   if (!rows.length) return res.status(404).send(approvalPage('not_found'));
 
   const req_ = rows[0];
-  if (req_.approval_status !== 'PendingHRD') {
+  if (req_.approval_status !== 'PendingBODHR') {
     return res.send(approvalPage('already_done', req_.approval_status, req_));
   }
 
@@ -231,15 +231,15 @@ router.get('/reject-hrd/:token', async (req, res) => {
   if (!rows.length) return res.status(404).send(approvalPage('not_found'));
 
   const req_ = rows[0];
-  if (req_.approval_status !== 'PendingHRD') {
+  if (req_.approval_status !== 'PendingBODHR') {
     return res.send(approvalPage('already_done', req_.approval_status, req_));
   }
 
   await pool.query(
     'UPDATE trx_training_request SET approval_status = ?, approval_hrd_token = NULL WHERE request_id = ?',
-    ['Rejected_HRD', req_.request_id]
+    ['Rejected_BODHR', req_.request_id]
   );
-  res.send(approvalPage('rejected_hrd', 'Rejected_HRD', req_));
+  res.send(approvalPage('rejected_hrd', 'Rejected_BODHR', req_));
 });
 
 router.delete('/:id', async (req, res) => {
@@ -262,11 +262,11 @@ router.delete('/:id', async (req, res) => {
 
 function approvalPage(state, status, req_) {
   const statusLabel = {
-    'Pending':       'Menunggu Direktur Dept',
-    'PendingHRD':    'Menunggu Direktur HRD',
-    'Approved':      'Disetujui',
-    'Rejected_Dept': 'Ditolak oleh Direktur Dept',
-    'Rejected_HRD':  'Ditolak oleh Direktur HRD',
+    'PendingBODDept':  'Menunggu Direktur Dept',
+    'PendingBODHR':    'Menunggu Direktur HRD',
+    'Approved':        'Disetujui',
+    'Rejected_BODDept': 'Ditolak oleh Direktur Dept',
+    'Rejected_BODHR':  'Ditolak oleh Direktur HRD',
   }[status] || status;
 
   const alreadyIcon  = ['Approved'].includes(status) ? '✅' : '❌';
