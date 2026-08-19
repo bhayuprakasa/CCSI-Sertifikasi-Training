@@ -341,7 +341,7 @@ select.filter:focus{border-color:var(--navy-lt)}
       <div class="card-header" style="cursor:pointer;user-select:none" onclick="toggleSection('rekapPermBody','chevRekapPerm')">
         <span class="card-title">📋 Rekap Permohonan Pelatihan</span>
         <div style="display:flex;align-items:center;gap:8px">
-          <button class="btn-sm btn-edit" onclick="event.stopPropagation();window.open('/permohonan-pelatihan-hr.html','_blank')">+ Permohonan Baru</button>
+          <button class="btn-sm btn-edit" onclick="event.stopPropagation();openPermHRModal()">+ Permohonan Baru</button>
           <span id="chevRekapPerm" class="section-chev">▼</span>
         </div>
       </div>
@@ -655,6 +655,87 @@ select.filter:focus{border-color:var(--navy-lt)}
     <div class="modal-header"><span class="modal-title" id="masterTitle">Tambah Data</span><button class="modal-close" onclick="closeModal('modalMaster')">✕</button></div>
     <div class="modal-body" id="masterBody"></div>
     <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('modalMaster')">Batal</button><button class="btn-save" onclick="saveMaster()">💾 Simpan</button></div>
+  </div>
+</div>
+
+<!-- MODAL PERMOHONAN PELATIHAN (HRD — tanpa approval) -->
+<div class="modal-overlay" id="modalPermHR" onclick="closeModalOutside(event,'modalPermHR')">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <span class="modal-title">📋 Tambah Permohonan Pelatihan</span>
+      <button class="modal-close" onclick="closeModal('modalPermHR')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--purple-lt);border:1px solid #c39bd3;border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--purple);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+        <span>ℹ️</span>
+        <span>Form ini diisi oleh <strong>HRD</strong>. Permohonan akan langsung berstatus <strong>Submitted by HR</strong> tanpa melalui proses approval.</span>
+      </div>
+      <div class="form-grid" style="margin-bottom:12px">
+        <div class="form-group">
+          <label>Dept Head / PIC</label>
+          <input type="text" id="mph_submitter" placeholder="Nama Dept Head atau PIC">
+        </div>
+        <div class="form-group">
+          <label>Departemen / Divisi *</label>
+          <select id="mph_dept" onchange="mphLoadPeserta()">
+            <option value="">-- Pilih Departemen --</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Nama Pelatihan *</label>
+          <input type="text" id="mph_name" placeholder="Nama program pelatihan">
+        </div>
+        <div class="form-group full">
+          <label>Tempat Pelatihan</label>
+          <input type="text" id="mph_venue" placeholder="Lokasi / tempat pelaksanaan">
+        </div>
+        <div class="form-group">
+          <label>Target Pelaksanaan *</label>
+          <input type="month" id="mph_target_month">
+        </div>
+        <div class="form-group">
+          <label>Rencana Pelatihan</label>
+          <div style="display:flex;gap:14px;padding:6px 0">
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.83rem;color:var(--text)"><input type="radio" name="mph_scheduled" value="1" style="accent-color:var(--navy);width:14px;height:14px"> Terjadwal</label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.83rem;color:var(--text)"><input type="radio" name="mph_scheduled" value="0" checked style="accent-color:var(--navy);width:14px;height:14px"> Tidak Terjadwal</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Jenis Training *</label>
+          <select id="mph_type">
+            <option value="">-- Pilih --</option>
+            <option value="Internal">Internal</option>
+            <option value="Eksternal">Eksternal</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Penyelenggara</label>
+          <input type="text" id="mph_organizer" placeholder="Nama penyelenggara">
+        </div>
+        <div class="form-group full">
+          <label>Alasan Pelatihan</label>
+          <textarea id="mph_reason" placeholder="Jelaskan alasan / tujuan pelatihan..." rows="2"></textarea>
+        </div>
+      </div>
+      <div style="font-size:.82rem;font-weight:700;color:var(--navy);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Peserta * <span style="font-size:.72rem;font-weight:400;color:var(--text3)">(dari master data karyawan berdasarkan departemen)</span></div>
+      <div id="mph_peserta" style="background:#f8fafd;border:1px solid var(--border);border-radius:8px;padding:10px 14px;max-height:180px;overflow-y:auto;margin-bottom:14px">
+        <div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen terlebih dahulu</div>
+      </div>
+      <div style="font-size:.82rem;font-weight:700;color:var(--navy);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Rincian Biaya</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:.82rem"><label style="flex:1;min-width:80px;color:var(--text)">Training Fee</label><input type="text" id="mph_cost_fee" placeholder="0" oninput="mphFormatCost(this);mphCalcTotal()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;font-family:var(--font)"></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:.82rem"><label style="flex:1;min-width:80px;color:var(--text)">Akomodasi</label><input type="text" id="mph_cost_akomodasi" placeholder="0" oninput="mphFormatCost(this);mphCalcTotal()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;font-family:var(--font)"></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:.82rem"><label style="flex:1;min-width:80px;color:var(--text)">Transport</label><input type="text" id="mph_cost_transport" placeholder="0" oninput="mphFormatCost(this);mphCalcTotal()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;font-family:var(--font)"></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:.82rem"><label style="flex:1;min-width:80px;color:var(--text)">Makan</label><input type="text" id="mph_cost_makan" placeholder="0" oninput="mphFormatCost(this);mphCalcTotal()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;font-family:var(--font)"></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:.82rem"><label style="flex:1;min-width:80px;color:var(--text)">Snack</label><input type="text" id="mph_cost_snack" placeholder="0" oninput="mphFormatCost(this);mphCalcTotal()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;font-family:var(--font)"></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:.82rem"><label style="flex:1;min-width:80px;color:var(--text)">Emergency Cash</label><input type="text" id="mph_cost_emergency" placeholder="0" oninput="mphFormatCost(this);mphCalcTotal()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;font-family:var(--font)"></div>
+      </div>
+      <div style="font-size:.88rem;font-weight:700;color:var(--navy);padding:8px 12px;background:#e8eef7;border-radius:6px;text-align:right;margin-bottom:4px">Total Biaya: <span id="mph_cost_total">Rp 0</span></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modalPermHR')">Batal</button>
+      <button class="btn-save" id="mphSaveBtn" onclick="mphSave()" style="background:var(--purple)">📋 Simpan Permohonan</button>
+    </div>
   </div>
 </div>
 
@@ -2464,6 +2545,100 @@ async function syncEmployeesToServer() {
     btn.disabled = false;
     btn.textContent = '⟳ Sync ke Server';
   }
+}
+
+// =====================
+// MODAL PERMOHONAN PELATIHAN (HRD — tanpa approval)
+// =====================
+async function openPermHRModal() {
+  ['mph_submitter','mph_name','mph_venue','mph_organizer','mph_reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const deptSel=document.getElementById('mph_dept');
+  if(deptSel)deptSel.value='';
+  document.getElementById('mph_type').value='';
+  const targetMon=document.getElementById('mph_target_month');
+  if(targetMon){const today=new Date();targetMon.min=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');targetMon.value='';}
+  document.querySelectorAll('input[name="mph_scheduled"]').forEach(r=>{r.checked=(r.value==='0');});
+  ['mph_cost_fee','mph_cost_akomodasi','mph_cost_transport','mph_cost_makan','mph_cost_snack','mph_cost_emergency'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('mph_cost_total').textContent='Rp 0';
+  document.getElementById('mph_peserta').innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen terlebih dahulu</div>';
+
+  try {
+    const emps=await fetch('/api/employees').then(r=>r.json());
+    const depts=[...new Set(emps.map(e=>e.department).filter(Boolean))].sort();
+    deptSel.innerHTML='<option value="">-- Pilih Departemen --</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
+  } catch {
+    const fallback=['Engineering','Finance','HR & GA','IT','Maintenance','PPIC','Produksi','Purchasing','QC/QA','Sales','Warehouse'];
+    deptSel.innerHTML='<option value="">-- Pilih Departemen --</option>'+fallback.map(d=>`<option value="${d}">${d}</option>`).join('');
+  }
+  document.getElementById('modalPermHR').classList.add('open');
+}
+
+async function mphLoadPeserta() {
+  const dept=document.getElementById('mph_dept').value;
+  const container=document.getElementById('mph_peserta');
+  if(!dept){container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen terlebih dahulu</div>';return;}
+  container.innerHTML='<div style="color:var(--text3);font-size:.8rem">Memuat data karyawan...</div>';
+  try {
+    const emps=await fetch(`/api/employees?dept=${encodeURIComponent(dept)}`).then(r=>r.json());
+    if(!emps.length){container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Tidak ada karyawan aktif di departemen ini</div>';return;}
+    container.innerHTML=emps.map(e=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f3f6">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;flex:1">
+          <input type="checkbox" name="mph_peserta_check" value="${e.full_name}" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
+          <span>${e.full_name}</span>
+          <span style="font-size:.71rem;color:var(--text3)">${e.position||''}</span>
+        </label>
+      </div>`).join('');
+  } catch {container.innerHTML='<div style="color:var(--red);font-size:.8rem">Gagal memuat data karyawan</div>';}
+}
+
+function mphFormatCost(el){let v=el.value.replace(/\D/g,'');if(v)el.value=Number(v).toLocaleString('id-ID');else el.value='';}
+function mphParseCost(id){return parseInt((document.getElementById(id)?.value||'0').replace(/\D/g,''))||0;}
+function mphCalcTotal(){
+  const t=mphParseCost('mph_cost_fee')+mphParseCost('mph_cost_akomodasi')+mphParseCost('mph_cost_transport')+mphParseCost('mph_cost_makan')+mphParseCost('mph_cost_snack')+mphParseCost('mph_cost_emergency');
+  document.getElementById('mph_cost_total').textContent=t>0?'Rp '+t.toLocaleString('id-ID'):'Rp 0';
+}
+
+async function mphSave() {
+  const dept=document.getElementById('mph_dept').value.trim();
+  const name=document.getElementById('mph_name').value.trim();
+  const targetMonth=document.getElementById('mph_target_month').value;
+  const type=document.getElementById('mph_type').value;
+  const submitter=document.getElementById('mph_submitter').value.trim();
+  const venue=document.getElementById('mph_venue').value.trim();
+  const organizer=document.getElementById('mph_organizer').value.trim();
+  const reason=document.getElementById('mph_reason').value.trim();
+  const isScheduled=document.querySelector('input[name="mph_scheduled"]:checked')?.value==='1'?1:0;
+  const participants=[...document.querySelectorAll('input[name="mph_peserta_check"]:checked')].map(i=>i.value.trim()).filter(Boolean);
+
+  if(!dept){showToast('Departemen wajib dipilih',false);return;}
+  if(!name){showToast('Nama Pelatihan wajib diisi',false);return;}
+  if(!targetMonth){showToast('Target Pelaksanaan wajib diisi',false);return;}
+  if(!type){showToast('Jenis Training wajib dipilih',false);return;}
+  if(!participants.length){showToast('Pilih minimal 1 peserta',false);return;}
+
+  const body={
+    department:dept,training_name:name,training_venue:venue||null,
+    training_date_start:targetMonth+'-01',training_date_end:targetMonth+'-01',
+    training_type:type,organizer:organizer||null,training_reason:reason||null,
+    participants,submitted_by:submitter||'HRD',submitted_by_hr:true,
+    is_scheduled:isScheduled,
+    cost_training_fee:mphParseCost('mph_cost_fee'),cost_akomodasi:mphParseCost('mph_cost_akomodasi'),
+    cost_transport:mphParseCost('mph_cost_transport'),cost_makan:mphParseCost('mph_cost_makan'),
+    cost_snack:mphParseCost('mph_cost_snack'),cost_emergency:mphParseCost('mph_cost_emergency'),
+  };
+
+  const btn=document.getElementById('mphSaveBtn');
+  btn.disabled=true;btn.textContent='⏳ Menyimpan...';
+  try {
+    const res=await fetch('/api/training-requests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Gagal menyimpan');}
+    showToast('Permohonan berhasil disimpan — status: Submitted by HR');
+    closeModal('modalPermHR');
+    renderRekap();
+    renderDashboard();
+  } catch(e){showToast(e.message,false);}
+  finally{btn.disabled=false;btn.textContent='📋 Simpan Permohonan';}
 }
 
 // =====================
