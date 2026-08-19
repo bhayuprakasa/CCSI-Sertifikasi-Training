@@ -143,17 +143,17 @@ tbody td{padding:9px 8px;vertical-align:middle}
       <div class="section-title">Informasi Dasar</div>
       <div class="form-grid" style="margin-bottom:14px">
         <div class="form-group">
-          <label>Dept Head *</label>
-          <select id="pr_submitter" onchange="prOnSubmitterChange()">
-            <option value="">-- Pilih Dept Head --</option>
-          </select>
-          <div id="pr_submitter_info" style="display:none;margin-top:4px;font-size:.74rem;color:var(--navy);background:#e8eef7;border-radius:5px;padding:5px 9px"></div>
-        </div>
-        <div class="form-group">
           <label>Departemen / Divisi *</label>
-          <select id="pr_dept" onchange="prLoadPeserta()">
+          <select id="pr_dept" onchange="prOnDeptChange()">
             <option value="">-- Pilih Departemen --</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Dept Head *</label>
+          <select id="pr_submitter" onchange="prOnSubmitterChange()" disabled>
+            <option value="">-- Pilih Departemen dahulu --</option>
+          </select>
+          <div id="pr_submitter_info" style="display:none;margin-top:4px;font-size:.74rem;color:var(--navy);background:#e8eef7;border-radius:5px;padding:5px 9px"></div>
         </div>
         <div class="form-group">
           <label>Approver 1 (Direksi / BOD) *</label>
@@ -482,28 +482,39 @@ async function prLoadApprovers() {
   }
 }
 
-async function prLoadDeptHeads() {
+async function prLoadDeptHeads(dept) {
   const sel = document.getElementById('pr_submitter');
   sel.innerHTML = '<option value="">-- Memuat... --</option>';
   sel.disabled = true;
+  if (!dept) {
+    sel.innerHTML = '<option value="">-- Pilih Departemen dahulu --</option>';
+    return;
+  }
   try {
     let deptHeads = [];
     try {
-      const res = await fetch('/api/employees?dept_head=1');
+      const res = await fetch(`/api/employees?dept_head=1&dept=${encodeURIComponent(dept)}`);
       if (res.ok) deptHeads = await res.json();
     } catch (_) {}
-    // Fallback ke IndexedDB
+    // Fallback ke IndexedDB — filter by dept
     if (!deptHeads.length) {
       const db = await openIDB();
       const emps = await idbGetAll(db, 'mst_employee');
       deptHeads = emps.filter(e => {
         const active = e.is_active !== 0 && e.is_active !== false;
-        return active && e.is_dept_head;
+        return active && e.is_dept_head && e.department === dept;
       });
+    }
+    // Fallback kedua: semua dept head tanpa filter dept
+    if (!deptHeads.length) {
+      try {
+        const res = await fetch('/api/employees?dept_head=1');
+        if (res.ok) deptHeads = await res.json();
+      } catch (_) {}
     }
     sel.disabled = false;
     if (!deptHeads.length) {
-      sel.innerHTML = '<option value="">⚠ Tidak ada karyawan bertanda Dept Head</option>';
+      sel.innerHTML = '<option value="">⚠ Tidak ada Dept Head di departemen ini</option>';
       return;
     }
     sel.innerHTML = '<option value="">-- Pilih Dept Head --</option>' +
@@ -515,6 +526,16 @@ async function prLoadDeptHeads() {
     sel.innerHTML = '<option value="">⚠ Gagal memuat data Dept Head</option>';
     console.error('[DeptHead] Gagal memuat:', err);
   }
+}
+
+async function prOnDeptChange() {
+  const dept = document.getElementById('pr_dept').value;
+  // Reset dept head
+  document.getElementById('pr_submitter').value = '';
+  document.getElementById('pr_submitter_info').style.display = 'none';
+  // Load dept head sesuai departemen, lalu load peserta
+  await prLoadDeptHeads(dept);
+  prLoadPeserta();
 }
 
 function prOnSubmitterChange() {
@@ -578,13 +599,15 @@ async function prLoadPeserta() {
 
 function prReset(skipConfirm = false) {
   if (!skipConfirm && !confirm('Reset form? Data yang belum dikirim akan hilang.')) return;
-  document.querySelectorAll('#pr_submitter,#pr_name,#pr_venue,#pr_organizer,#pr_reason').forEach(el => el.value = '');
+  document.querySelectorAll('#pr_name,#pr_venue,#pr_organizer,#pr_reason').forEach(el => el.value = '');
   document.getElementById('pr_dept').value = '';
   document.getElementById('pr_target_month').value = '';
   document.getElementById('pr_type').value = '';
   document.getElementById('pr_approver1').value = '';
   document.getElementById('pr_approver1_info').style.display = 'none';
-  document.getElementById('pr_submitter').value = '';
+  const submitterSel = document.getElementById('pr_submitter');
+  submitterSel.innerHTML = '<option value="">-- Pilih Departemen dahulu --</option>';
+  submitterSel.disabled = true;
   document.getElementById('pr_submitter_info').style.display = 'none';
   document.querySelector('input[name="pr_scheduled"][value="0"]').checked = true;
   document.getElementById('pr_peserta').innerHTML = '<div class="peserta-empty">Pilih departemen terlebih dahulu</div>';
@@ -802,7 +825,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pr_target_month').min = minMonth;
   prLoadDepts();
   prLoadApprovers();
-  prLoadDeptHeads();
   loadRekapData();
 });
 </script>

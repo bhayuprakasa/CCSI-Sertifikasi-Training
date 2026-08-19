@@ -17,6 +17,13 @@ router.get('/', async (req, res) => {
     return res.json(rows);
   }
   if (dept_head === '1') {
+    if (dept) {
+      const [rows] = await pool.query(
+        `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND is_dept_head = 1 AND department = ? ORDER BY full_name`,
+        [dept]
+      );
+      return res.json(rows);
+    }
     const [rows] = await pool.query(
       `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND is_dept_head = 1 ORDER BY full_name`,
     );
