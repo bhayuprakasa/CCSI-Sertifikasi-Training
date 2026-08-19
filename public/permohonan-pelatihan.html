@@ -144,7 +144,10 @@ tbody td{padding:9px 8px;vertical-align:middle}
       <div class="form-grid" style="margin-bottom:14px">
         <div class="form-group">
           <label>Dept Head *</label>
-          <input type="text" id="pr_submitter" placeholder="Nama Dept Head">
+          <select id="pr_submitter" onchange="prOnSubmitterChange()">
+            <option value="">-- Pilih Dept Head --</option>
+          </select>
+          <div id="pr_submitter_info" style="display:none;margin-top:4px;font-size:.74rem;color:var(--navy);background:#e8eef7;border-radius:5px;padding:5px 9px"></div>
         </div>
         <div class="form-group">
           <label>Departemen / Divisi *</label>
@@ -453,14 +456,14 @@ async function prLoadApprovers() {
       const res = await fetch('/api/employees?direktur=1');
       if (res.ok) direksi = await res.json();
     } catch (_) {}
-    // Fallback ke IndexedDB jika API tidak tersedia
+    // Fallback ke IndexedDB — filter berdasarkan nama department saja
     if (!direksi.length) {
       const db = await openIDB();
       const emps = await idbGetAll(db, 'mst_employee');
       direksi = emps.filter(e => {
         const dept = (e.department || '').toLowerCase();
         const active = e.is_active !== 0 && e.is_active !== false;
-        return active && (e.is_direktur || dept.includes('direksi') || dept.includes('bod'));
+        return active && (dept.includes('direksi') || dept.includes('bod'));
       });
     }
     sel.disabled = false;
@@ -477,6 +480,52 @@ async function prLoadApprovers() {
     sel.innerHTML = '<option value="">⚠ Gagal memuat data karyawan</option>';
     console.error('[Approver] Gagal memuat karyawan BOD:', err);
   }
+}
+
+async function prLoadDeptHeads() {
+  const sel = document.getElementById('pr_submitter');
+  sel.innerHTML = '<option value="">-- Memuat... --</option>';
+  sel.disabled = true;
+  try {
+    let deptHeads = [];
+    try {
+      const res = await fetch('/api/employees?dept_head=1');
+      if (res.ok) deptHeads = await res.json();
+    } catch (_) {}
+    // Fallback ke IndexedDB
+    if (!deptHeads.length) {
+      const db = await openIDB();
+      const emps = await idbGetAll(db, 'mst_employee');
+      deptHeads = emps.filter(e => {
+        const active = e.is_active !== 0 && e.is_active !== false;
+        return active && e.is_dept_head;
+      });
+    }
+    sel.disabled = false;
+    if (!deptHeads.length) {
+      sel.innerHTML = '<option value="">⚠ Tidak ada karyawan bertanda Dept Head</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">-- Pilih Dept Head --</option>' +
+      deptHeads.map(e =>
+        `<option value="${e.full_name}" data-email="${e.email || ''}" data-pos="${e.position || ''}">${e.full_name} — ${e.position || 'Dept Head'}</option>`
+      ).join('');
+  } catch (err) {
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">⚠ Gagal memuat data Dept Head</option>';
+    console.error('[DeptHead] Gagal memuat:', err);
+  }
+}
+
+function prOnSubmitterChange() {
+  const sel = document.getElementById('pr_submitter');
+  const infoEl = document.getElementById('pr_submitter_info');
+  const opt = sel.selectedOptions[0];
+  if (!opt || !opt.value) { infoEl.style.display = 'none'; return; }
+  const email = opt.dataset.email;
+  const pos = opt.dataset.pos;
+  infoEl.textContent = `${opt.value} · ${pos || 'Dept Head'} · ${email || '(email belum diisi)'}`;
+  infoEl.style.display = 'block';
 }
 
 function prOnApproverChange() {
@@ -535,6 +584,8 @@ function prReset(skipConfirm = false) {
   document.getElementById('pr_type').value = '';
   document.getElementById('pr_approver1').value = '';
   document.getElementById('pr_approver1_info').style.display = 'none';
+  document.getElementById('pr_submitter').value = '';
+  document.getElementById('pr_submitter_info').style.display = 'none';
   document.querySelector('input[name="pr_scheduled"][value="0"]').checked = true;
   document.getElementById('pr_peserta').innerHTML = '<div class="peserta-empty">Pilih departemen terlebih dahulu</div>';
   document.querySelectorAll('[id^="pr_cost_"]').forEach(el => { if (el.tagName === 'INPUT') el.value = ''; });
@@ -751,6 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pr_target_month').min = minMonth;
   prLoadDepts();
   prLoadApprovers();
+  prLoadDeptHeads();
   loadRekapData();
 });
 </script>
