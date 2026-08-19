@@ -1,5 +1,40 @@
 const nodemailer = require('nodemailer');
 
+// ── Email settings cache ──────────────────────────────────────────────────────
+let _settingsCache = {};
+let _settingsCacheAt = 0;
+const SETTINGS_TTL = 5 * 60 * 1000; // 5 menit
+
+async function getEmailSettings(layer) {
+  const now = Date.now();
+  if (now - _settingsCacheAt < SETTINGS_TTL && _settingsCache[layer]) {
+    return _settingsCache[layer];
+  }
+  try {
+    const pool = require('../db');
+    const [rows] = await pool.query('SELECT * FROM cfg_email_settings WHERE layer = ?', [layer]);
+    if (rows.length) {
+      _settingsCache[layer] = rows[0];
+      _settingsCacheAt = now;
+      return rows[0];
+    }
+  } catch { /* tabel belum ada — pakai default */ }
+  return null;
+}
+
+function applySubjectTemplate(template, request) {
+  if (!template) return null;
+  return template
+    .replace(/\{training_name\}/g, request.training_name || '')
+    .replace(/\{department\}/g,    request.department    || '')
+    .replace(/\{request_id\}/g,    request.request_id    || '');
+}
+
+function parseCcList(ccStr) {
+  if (!ccStr) return [];
+  return ccStr.split(',').map(e => e.trim()).filter(Boolean);
+}
+
 // ── Email log (in-memory, max 200 entri) ─────────────────────────────────────
 const emailLog = [];
 function addLog(entry) {
@@ -34,9 +69,20 @@ async function getGraphToken() {
   return data.access_token;
 }
 
-async function sendViaGraph(toEmail, subject, html) {
+async function sendViaGraph(toEmail, subject, html, { senderName, ccEmails, replyTo } = {}) {
   const senderEmail = process.env.SMTP_USER;
   const token = await getGraphToken();
+
+  const ccRecipients = (ccEmails || []).map(addr => ({ emailAddress: { address: addr } }));
+
+  const message = {
+    subject,
+    body:         { contentType: 'HTML', content: html },
+    toRecipients: [{ emailAddress: { address: toEmail } }],
+    from:         { emailAddress: { address: senderEmail, name: senderName || 'CCSI Training' } },
+  };
+  if (ccRecipients.length) message.ccRecipients = ccRecipients;
+  if (replyTo) message.replyTo = [{ emailAddress: { address: replyTo } }];
 
   const resp = await fetch(
     `https://graph.microsoft.com/v1.0/users/${senderEmail}/sendMail`,
@@ -46,15 +92,7 @@ async function sendViaGraph(toEmail, subject, html) {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        message: {
-          subject,
-          body:         { contentType: 'HTML', content: html },
-          toRecipients: [{ emailAddress: { address: toEmail } }],
-          from:         { emailAddress: { address: senderEmail } },
-        },
-        saveToSentItems: false,
-      }),
+      body: JSON.stringify({ message, saveToSentItems: false }),
     }
   );
 
@@ -273,7 +311,13 @@ async function sendApprovalEmail({ request, token, participants, approver }) {
 </body>
 </html>`;
 
-  const subject = `[Persetujuan Diperlukan] Pelatihan: ${request.training_name} — ${request.department}`;
+  const cfg = await getEmailSettings('dept');
+  const defaultSubject = `[Persetujuan Diperlukan] Pelatihan: ${request.training_name} — ${request.department}`;
+  const subject = applySubjectTemplate(cfg?.subject_template, request) || defaultSubject;
+  const ccEmails = parseCcList(cfg?.cc_emails);
+  const senderName = cfg?.sender_name || 'CCSI Training';
+  const replyTo  = cfg?.reply_to || null;
+
   const logBase = {
     to: toEmail,
     approver_name: approverName,
@@ -287,11 +331,13 @@ async function sendApprovalEmail({ request, token, participants, approver }) {
 
   try {
     if (useGraph) {
-      await sendViaGraph(toEmail, subject, html);
+      await sendViaGraph(toEmail, subject, html, { senderName, ccEmails, replyTo });
     } else {
       await transporter.sendMail({
-        from: process.env.SMTP_FROM || `"CCSI Training" <${process.env.SMTP_USER}>`,
-        to:   toEmail,
+        from:    process.env.SMTP_FROM || `"${senderName}" <${process.env.SMTP_USER}>`,
+        to:      toEmail,
+        cc:      ccEmails.join(', ') || undefined,
+        replyTo: replyTo || undefined,
         subject,
         html,
       });
@@ -479,7 +525,13 @@ async function sendHrdApprovalEmail({ request, token, participants, approver }) 
 </body>
 </html>`;
 
-  const subject = `[Persetujuan HRD] Pelatihan: ${request.training_name} — ${request.department}`;
+  const cfg = await getEmailSettings('hrd');
+  const defaultSubject = `[Persetujuan HRD] Pelatihan: ${request.training_name} — ${request.department}`;
+  const subject = applySubjectTemplate(cfg?.subject_template, request) || defaultSubject;
+  const ccEmails = parseCcList(cfg?.cc_emails);
+  const senderName = cfg?.sender_name || 'CCSI Training';
+  const replyTo  = cfg?.reply_to || null;
+
   const logBase = {
     to: toEmail,
     approver_name: approverName,
@@ -493,11 +545,13 @@ async function sendHrdApprovalEmail({ request, token, participants, approver }) 
 
   try {
     if (useGraph) {
-      await sendViaGraph(toEmail, subject, html);
+      await sendViaGraph(toEmail, subject, html, { senderName, ccEmails, replyTo });
     } else {
       await transporter.sendMail({
-        from: process.env.SMTP_FROM || `"CCSI Training" <${process.env.SMTP_USER}>`,
-        to:   toEmail,
+        from:    process.env.SMTP_FROM || `"${senderName}" <${process.env.SMTP_USER}>`,
+        to:      toEmail,
+        cc:      ccEmails.join(', ') || undefined,
+        replyTo: replyTo || undefined,
         subject,
         html,
       });
@@ -515,4 +569,9 @@ function isEmailConfigured() {
   return hasSmtp || hasGraph;
 }
 
-module.exports = { sendApprovalEmail, sendHrdApprovalEmail, getEmailLog, isEmailConfigured };
+function invalidateEmailSettingsCache() {
+  _settingsCache = {};
+  _settingsCacheAt = 0;
+}
+
+module.exports = { sendApprovalEmail, sendHrdApprovalEmail, getEmailLog, isEmailConfigured, invalidateEmailSettingsCache };
