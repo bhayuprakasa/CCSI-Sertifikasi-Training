@@ -622,14 +622,14 @@ function renderRecap(data) {
 
   bodyEl.innerHTML = data.map((r, i) => {
     const tgl = fmtMonthYear(r.training_date_start);
-    const apvStatus = r.approval_status || 'Pending';
+    const apvStatus = r.approval_status || 'PendingBODDept';
     const apvMap = {
-      'Submitted_HR':  { cls:'b-purple', icon:'📋', label:'Submitted by HR' },
-      'Pending':       { cls:'b-yellow', icon:'⏳', label:'Pending Direktur Dept' },
-      'PendingHRD':    { cls:'b-navy',   icon:'⏳', label:'Pending Direktur HR' },
-      'Approved':      { cls:'b-green',  icon:'✅', label:'Disetujui' },
-      'Rejected_Dept': { cls:'b-red',    icon:'❌', label:'Ditolak Direktur Dept' },
-      'Rejected_HRD':  { cls:'b-red',    icon:'❌', label:'Ditolak Direktur HR' },
+      'Submitted_HR':    { cls:'b-purple', icon:'📋', label:'Submitted by HR' },
+      'PendingBODDept':  { cls:'b-yellow', icon:'⏳', label:'Pending BOD Dept' },
+      'PendingBODHR':    { cls:'b-navy',   icon:'⏳', label:'Pending BOD HR' },
+      'Approved':        { cls:'b-green',  icon:'✅', label:'Disetujui' },
+      'Rejected_BODDept':{ cls:'b-red',    icon:'❌', label:'Ditolak BOD Dept' },
+      'Rejected_BODHR':  { cls:'b-red',    icon:'❌', label:'Ditolak BOD HR' },
     };
     const { cls: apvCls, icon: apvIcon, label: apvLabel } = apvMap[apvStatus] || { cls:'b-gray', icon:'', label: apvStatus };
     const jadwalBadge = r.is_scheduled == null ? '<span class="badge b-gray">-</span>'
