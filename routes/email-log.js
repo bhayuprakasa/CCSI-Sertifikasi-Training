@@ -5,7 +5,12 @@ const pool = require('../db');
 const { getEmailLog, sendApprovalEmail, invalidateEmailSettingsCache } = require('../utils/mailer');
 
 router.get('/', (req, res) => {
-  res.json(getEmailLog());
+  try {
+    const log = getEmailLog();
+    res.json(Array.isArray(log) ? log : []);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ─── GET Approver Direktur HRD ────────────────────────────────────────────────

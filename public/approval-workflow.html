@@ -291,6 +291,7 @@ async function loadWorkflows() {
   const el = document.getElementById('wfList');
   try {
     const data = await fetchJSON(API);
+    if (!Array.isArray(data)) throw new Error((data && data.error) || 'Respons tidak valid');
     if (!data.length) {
       el.innerHTML = `<div class="empty-state">
         <div class="icon">🔧</div>

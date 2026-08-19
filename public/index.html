@@ -1393,6 +1393,10 @@ async function renderEmailLog() {
       throw new Error(`HTTP ${resp.status} bukan JSON — ${text.substring(0, 100)}`);
     }
     elData = await resp.json();
+    if (!Array.isArray(elData)) {
+      const msg = elData && elData.error ? elData.error : JSON.stringify(elData).substring(0, 120);
+      throw new Error(`Respons tidak valid dari server: ${msg}`);
+    }
     const ok  = elData.filter(d => d.status === 'success').length;
     const err = elData.filter(d => d.status === 'failed').length;
     statsEl.innerHTML = `
