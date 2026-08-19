@@ -822,7 +822,7 @@ async function seedIfEmpty() {
   if (emps.length > 0) return;
 
   const employees = [
-    {employee_id:'CC000',full_name:'Direktur HRD',department:'BOD',position:'Direktur HRD',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2015-01-01',is_active:1,is_direktur:1},
+    {employee_id:'CC000',full_name:'Direktur HRD',department:'BOD',position:'Direktur HRD',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2015-01-01',is_active:1,is_dept_head:0},
     {employee_id:'CC001',full_name:'Budi Santoso',department:'Produksi',position:'Operator Produksi',site:'Cilegon',employment_status:'PKWTT',join_date:'2019-03-01',is_active:1},
     {employee_id:'CC002',full_name:'Siti Rahayu',department:'HR & GA',position:'Staff HR',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2020-07-15',is_active:1},
     {employee_id:'CC003',full_name:'Ahmad Fauzi',department:'Maintenance',position:'Teknisi Mesin',site:'Cilegon',employment_status:'PKWTT',join_date:'2018-11-01',is_active:1},
@@ -833,7 +833,7 @@ async function seedIfEmpty() {
     {employee_id:'CC008',full_name:'Hendra Wijaya',department:'Produksi',position:'Kepala Produksi',site:'Cilegon',employment_status:'PKWTT',join_date:'2015-08-01',is_active:1},
     {employee_id:'CC009',full_name:'Rina Marliani',department:'Purchasing',position:'Staff Purchasing',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2023-05-01',is_active:1},
     {employee_id:'CC010',full_name:'Teguh Setiawan',department:'Engineering',position:'Teknisi Listrik',site:'Cilegon',employment_status:'PKWTT',join_date:'2019-09-01',is_active:1},
-    {employee_id:'CC011',full_name:'Annisa',department:'BOD',position:'Direktur',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2020-01-01',is_active:1,is_direktur:1},
+    {employee_id:'CC011',full_name:'Annisa',department:'BOD',position:'Direktur',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2020-01-01',is_active:1,is_dept_head:0},
   ];
 
   const competencies = [
@@ -2288,7 +2288,7 @@ const masterForms = {
     <div class="form-group"><label>Status Kepegawaian</label><select id="m_empstatus"><option>PKWTT</option><option>PKWT</option></select></div>
     <div class="form-group"><label>Tgl Join</label><input type="date" id="m_join"></div>
     <div class="form-group"><label>Status</label><select id="m_active"><option value="1">Aktif</option><option value="0">Nonaktif</option></select></div>
-    <div class="form-group"><label>Direktur/BOD</label><select id="m_direktur"><option value="0">Tidak</option><option value="1">Ya</option></select></div>
+    <div class="form-group"><label>Dept Head</label><select id="m_dept_head"><option value="0">Tidak</option><option value="1">Ya</option></select></div>
   </div>`,
   program:`<div class="form-grid">
     <div class="form-group full"><label>Nama Program *</label><input type="text" id="m_pname" placeholder="Nama program training"></div>
@@ -2352,7 +2352,7 @@ async function editMaster(mode, key, isUsed=false) {
     document.getElementById('m_empstatus').value=r.employment_status;
     document.getElementById('m_join').value=r.join_date||'';
     document.getElementById('m_active').value=r.is_active;
-    document.getElementById('m_direktur').value=r.is_direktur??0;
+    document.getElementById('m_dept_head').value=r.is_dept_head??0;
 
   } else if(mode==='program'){
     const all=await getAll('mst_program'), r=all.find(x=>x.program_id===key); if(!r) return;
@@ -2425,7 +2425,7 @@ async function saveMaster() {
       employment_status:document.getElementById('m_empstatus').value,
       join_date:document.getElementById('m_join').value||null,
       is_active:parseInt(document.getElementById('m_active').value),
-      is_direktur:parseInt(document.getElementById('m_direktur').value)
+      is_dept_head:parseInt(document.getElementById('m_dept_head').value)
     };
     await putRecord('mst_employee',obj);
     // Sync ke MySQL API agar muncul di halaman lain (permohonan pelatihan, dll)

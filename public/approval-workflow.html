@@ -532,8 +532,11 @@ async function changeApproverType(apId, type, existingData) {
     }
 
   } else if (type === 'direktur') {
-    lblEl.textContent = 'Direktur';
-    const dirs = emps.filter(e => e.is_active && e.is_direktur);
+    lblEl.textContent = 'Direktur / BOD';
+    const dirs = emps.filter(e => {
+      const dept = (e.department || '').toLowerCase();
+      return e.is_active && (dept.includes('direksi') || dept.includes('bod'));
+    });
     if (dirs.length) {
       selEl.innerHTML = dirs.map(d =>
         `<option value="${d.employee_id}" data-name="${escHtml(d.full_name)}" data-email="${escHtml(d.email||'')}" data-role="${escHtml(d.position||'Direktur')}"
@@ -544,12 +547,12 @@ async function changeApproverType(apId, type, existingData) {
       nameEl.value  = dirs[0].full_name;
       emailEl.value = dirs[0].email || '';
       roleEl.value  = dirs[0].position || 'Direktur';
-      infoTxt.textContent = `✅ Direktur: ${dirs[0].full_name} (${dirs[0].email||'-'})`;
+      infoTxt.textContent = `✅ Direktur/BOD: ${dirs[0].full_name} (${dirs[0].email||'-'})`;
       infoEl.style.display = 'block';
     } else {
-      selEl.innerHTML = '<option value="">⚠ Tidak ada karyawan bertanda Direktur</option>';
+      selEl.innerHTML = '<option value="">⚠ Tidak ada karyawan di departemen Direksi/BOD</option>';
       selEl.disabled = true;
-      infoTxt.textContent = '⚠️ Tandai karyawan sebagai Direktur di Master Karyawan';
+      infoTxt.textContent = '⚠️ Tambahkan karyawan dengan departemen Direksi atau BOD di Master Karyawan';
       infoEl.style.display = 'block';
     }
     return;

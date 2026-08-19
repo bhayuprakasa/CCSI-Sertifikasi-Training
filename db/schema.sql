@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS mst_employee (
   employment_status  ENUM('PKWTT','PKWT') NOT NULL DEFAULT 'PKWTT',
   join_date          DATE          NULL,
   is_active          TINYINT(1)    NOT NULL DEFAULT 1,
-  is_direktur        TINYINT(1)    NOT NULL DEFAULT 0
+  is_dept_head       TINYINT(1)    NOT NULL DEFAULT 0
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS mst_competency (

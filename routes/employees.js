@@ -3,15 +3,22 @@ const router = express.Router();
 const pool = require('../db');
 const { logAudit } = require('../middleware/auditLog');
 
-const SAFE_COLS = 'employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_direktur';
+const SAFE_COLS = 'employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head';
 const VALID_EMPLOYMENT_STATUS = ['PKWTT', 'PKWT'];
 
 router.get('/', async (req, res) => {
-  const { dept, direktur, active } = req.query;
+  const { dept, direktur, dept_head, active } = req.query;
   if (direktur === '1') {
+    // Direktur/BOD diidentifikasi via nama department saja
     const [rows] = await pool.query(
-      `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND (is_direktur = 1 OR LOWER(department) LIKE ? OR LOWER(department) LIKE ?) ORDER BY full_name`,
+      `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND (LOWER(department) LIKE ? OR LOWER(department) LIKE ?) ORDER BY full_name`,
       ['%direksi%', '%bod%']
+    );
+    return res.json(rows);
+  }
+  if (dept_head === '1') {
+    const [rows] = await pool.query(
+      `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND is_dept_head = 1 ORDER BY full_name`,
     );
     return res.json(rows);
   }
@@ -42,15 +49,15 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_direktur } = req.body;
+  const { employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head } = req.body;
   if (!employee_id || !full_name) return res.status(400).json({ error: 'employee_id and full_name required' });
   if (employment_status && !VALID_EMPLOYMENT_STATUS.includes(employment_status)) {
     return res.status(400).json({ error: `employment_status must be one of: ${VALID_EMPLOYMENT_STATUS.join(', ')}` });
   }
 
   await pool.query(
-    'INSERT INTO mst_employee (employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_direktur) VALUES (?,?,?,?,?,?,?,?,?,?)',
-    [employee_id, full_name, department, position, site, email || null, employment_status || 'PKWTT', join_date || null, is_active ?? 1, is_direktur ?? 0]
+    'INSERT INTO mst_employee (employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head) VALUES (?,?,?,?,?,?,?,?,?,?)',
+    [employee_id, full_name, department, position, site, email || null, employment_status || 'PKWTT', join_date || null, is_active ?? 1, is_dept_head ?? 0]
   );
 
   await logAudit({
@@ -65,7 +72,7 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  const { full_name, department, position, site, email, employment_status, join_date, is_active, is_direktur } = req.body;
+  const { full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head } = req.body;
 
   if (employment_status && !VALID_EMPLOYMENT_STATUS.includes(employment_status)) {
     return res.status(400).json({ error: `employment_status must be one of: ${VALID_EMPLOYMENT_STATUS.join(', ')}` });
@@ -89,14 +96,14 @@ router.put('/:id', async (req, res) => {
       record_id: req.params.id,
       operation: 'UPDATE',
       old_data: old[0],
-      new_data: { full_name, department, position, site, email, employment_status, join_date, is_active, is_direktur },
+      new_data: { full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head },
       changed_by: req.changedBy,
       conn,
     });
 
     const [result] = await conn.query(
-      'UPDATE mst_employee SET full_name=?, department=?, position=?, site=?, email=?, employment_status=?, join_date=?, is_active=?, is_direktur=? WHERE employee_id=?',
-      [full_name, department, position, site, email || null, employment_status, join_date || null, is_active ?? 1, is_direktur ?? 0, req.params.id]
+      'UPDATE mst_employee SET full_name=?, department=?, position=?, site=?, email=?, employment_status=?, join_date=?, is_active=?, is_dept_head=? WHERE employee_id=?',
+      [full_name, department, position, site, email || null, employment_status, join_date || null, is_active ?? 1, is_dept_head ?? 0, req.params.id]
     );
     if (!result.affectedRows) {
       await conn.rollback();

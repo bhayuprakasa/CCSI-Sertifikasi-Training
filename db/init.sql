@@ -86,8 +86,8 @@ CREATE TABLE IF NOT EXISTS trx_certification (
 -- SEED DATA
 -- ==================
 
-INSERT INTO mst_employee (employee_id, full_name, department, position, site, employment_status, join_date, is_active, is_direktur) VALUES
-('CC000','Direktur HRD','BOD','Direktur HRD','HO Jakarta','PKWTT','2015-01-01',1,1);
+INSERT INTO mst_employee (employee_id, full_name, department, position, site, employment_status, join_date, is_active, is_dept_head) VALUES
+('CC000','Direktur HRD','BOD','Direktur HRD','HO Jakarta','PKWTT','2015-01-01',1,0);
 
 INSERT INTO mst_employee (employee_id, full_name, department, position, site, employment_status, join_date, is_active) VALUES
 ('CC001','Budi Santoso','Produksi','Operator Produksi','KIEC Cilegon','PKWTT','2019-03-01',1),
