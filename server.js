@@ -64,6 +64,8 @@ function autoPull() {
     if (local === remote) return; // tidak ada perubahan baru
 
     console.log('[AutoPull] Commit baru terdeteksi, menjalankan git pull...');
+    // Stash perubahan lokal agar pull tidak gagal karena konflik file
+    exec('git stash', { cwd }, () => {
     exec('git pull origin main', { cwd }, (err2, out2) => {
       if (err2) { console.error('[AutoPull] git pull error:', err2.message); return; }
       console.log('[AutoPull] git pull:', out2.trim());
@@ -73,6 +75,7 @@ function autoPull() {
         setTimeout(() => process.exit(0), 500);
       });
     });
+    }); // end git stash
   });
 }
 
