@@ -1346,8 +1346,8 @@ function rkRenderRows(data) {
     const tglStart=r.training_date_start?(r.training_date_start+'').split('T')[0]:'-';
     const tglEnd=r.training_date_end?(r.training_date_end+'').split('T')[0]:'-';
     const tgl=(tglStart===tglEnd||!r.training_date_end)?tglStart:`${tglStart} s/d ${tglEnd}`;
-    const apvStatus=r.approval_status||'Pending';
-    const apvMap={'Submitted_HR':{cls:'b-purple',icon:'📋',lbl:'Submitted by HR'},'Pending':{cls:'b-yellow',icon:'⏳',lbl:'Pending Direktur Dept'},'PendingHRD':{cls:'b-navy',icon:'⏳',lbl:'Pending Direktur HR'},'Approved':{cls:'b-green',icon:'✅',lbl:'Disetujui'},'Rejected_Dept':{cls:'b-red',icon:'❌',lbl:'Ditolak Dept'},'Rejected_HRD':{cls:'b-red',icon:'❌',lbl:'Ditolak HRD'}};
+    const apvStatus=r.approval_status||'PendingBODDept';
+    const apvMap={'Submitted_HR':{cls:'b-purple',icon:'📋',lbl:'Submitted by HR'},'PendingBODDept':{cls:'b-yellow',icon:'⏳',lbl:'Pending BOD Dept'},'PendingBODHR':{cls:'b-navy',icon:'⏳',lbl:'Pending BOD HR'},'Approved':{cls:'b-green',icon:'✅',lbl:'Disetujui'},'Rejected_BODDept':{cls:'b-red',icon:'❌',lbl:'Ditolak BOD Dept'},'Rejected_BODHR':{cls:'b-red',icon:'❌',lbl:'Ditolak BOD HR'}};
     const {cls:statusCls,icon:statusIcon,lbl:statusLbl}=apvMap[apvStatus]||{cls:'b-gray',icon:'',lbl:apvStatus};
     const gt=r.score_grand_total;
     return `<tr>
