@@ -1024,8 +1024,20 @@ function elApplyApprover(data) {
 async function elLoadEmployees() {
   document.getElementById('elDropList').innerHTML = '<div style="padding:14px;text-align:center;color:var(--text3);font-size:.81rem">⏳ Memuat...</div>';
   try {
+    // Ambil dari MySQL API
     const resp = await fetch('/api/employees?active=1');
-    elEmpData = await resp.json();
+    const apiEmps = resp.ok ? await resp.json() : [];
+
+    // Ambil dari IndexedDB sebagai fallback/merge
+    const idbEmps = await getAll('mst_employee').catch(() => []);
+    const activeIdb = idbEmps.filter(e => e.is_active == null || e.is_active == 1);
+
+    // Gabungkan: MySQL sebagai prioritas, IndexedDB untuk yang belum di-sync
+    const seen = new Set(apiEmps.map(e => e.employee_id));
+    const merged = [...apiEmps, ...activeIdb.filter(e => !seen.has(e.employee_id))];
+    merged.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+
+    elEmpData = merged;
     elRenderDropList(elEmpData);
   } catch(e) {
     document.getElementById('elDropList').innerHTML = `<div style="padding:14px;text-align:center;color:#d63031;font-size:.81rem">⚠️ Gagal: ${e.message}</div>`;
