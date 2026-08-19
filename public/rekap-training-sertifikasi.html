@@ -217,11 +217,11 @@ let allCompetencies = [];
 async function initPage() {
   try {
     const [emps, comps] = await Promise.all([
-      api('/api/employees'),
+      window.loadEmployeesWithFallback(),
       api('/api/competencies'),
     ]);
 
-    allEmployees = emps.filter(e => e.is_active);
+    allEmployees = emps.filter(e => e.is_active == null || e.is_active == 1);
     allCompetencies = comps;
 
     const depts = [...new Set(allEmployees.map(e => e.department))].sort();

@@ -2441,7 +2441,9 @@ async function syncEmployeesToServer() {
   btn.disabled = true;
   btn.textContent = '⟳ Menyinkronkan...';
   try {
-    const emps = await getAll('mst_employee');
+    // Ambil dari IndexedDB langsung (bukan getAll yang coba MySQL dulu)
+    const emps = await idbGetAll('mst_employee');
+    if (!emps.length) { showToast('Tidak ada data karyawan di IndexedDB untuk di-sync', false); return; }
     // Ambil semua employee yang sudah ada di MySQL
     const res = await fetch('/api/employees');
     if (!res.ok) throw new Error(`Server error (HTTP ${res.status})`);
