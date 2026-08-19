@@ -8,22 +8,9 @@ const { requireApiKey } = require('./middleware/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS — only allow origins listed in CORS_ORIGINS (comma-separated) + APP_URL fallback
-const allowedOrigins = [
-  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(o => o.trim()) : []),
-  process.env.APP_URL,
-].filter(Boolean);
-
+// CORS — izinkan semua origin; keamanan dijamin oleh X-API-Key middleware
 app.use(cors({
-  origin(origin, cb) {
-    // No origin header (same-origin / non-browser) → always allow
-    if (!origin) return cb(null, true);
-    // No allowlist configured → open policy (all origins permitted)
-    if (allowedOrigins.length === 0) return cb(null, true);
-    // Allowlist configured → enforce it
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error(`Origin ${origin} not allowed by CORS`));
-  },
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'X-API-Key', 'X-Changed-By'],
 }));
