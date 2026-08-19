@@ -20,6 +20,43 @@ jobs:
           cd C:\www\ccsi-app
           npm install --production
 
+      - name: Syntax check
+        run: |
+          cd C:\www\ccsi-app
+          node --check app.js
+        continue-on-error: false
+
       - name: Restart app via PM2
         run: |
           C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd restart ccsi-training
+
+      - name: Health check (tunggu app siap)
+        run: |
+          $maxRetry = 10
+          $delay = 3
+          $url = "http://localhost:3000"
+          for ($i = 1; $i -le $maxRetry; $i++) {
+            try {
+              $response = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 5
+              if ($response.StatusCode -eq 200) {
+                Write-Host "App sehat - status 200 OK"
+                exit 0
+              }
+            } catch {
+              Write-Host "Percobaan $i/$maxRetry gagal, coba lagi dalam $delay detik..."
+              Start-Sleep -Seconds $delay
+            }
+          }
+          Write-Host "Health check gagal setelah $maxRetry percobaan"
+          exit 1
+        shell: powershell
+
+      - name: Rollback jika deploy gagal
+        if: failure()
+        run: |
+          Write-Host "Deploy gagal, melakukan rollback..."
+          cd C:\www\ccsi-app
+          git revert HEAD --no-edit
+          C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd restart ccsi-training
+          Write-Host "Rollback selesai"
+        shell: powershell
