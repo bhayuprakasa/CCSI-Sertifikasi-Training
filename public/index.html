@@ -1104,13 +1104,16 @@ function elApplyApprover(data) {
 async function elLoadEmployees() {
   document.getElementById('elDropList').innerHTML = '<div style="padding:14px;text-align:center;color:var(--text3);font-size:.81rem">⏳ Memuat...</div>';
   try {
-    // Ambil dari MySQL API
-    const resp = await fetch('/api/employees?active=1');
+    // Ambil dari MySQL API — hanya karyawan departemen BOD/Direksi
+    const resp = await fetch('/api/employees?direktur=1');
     const apiEmps = resp.ok ? await resp.json() : [];
 
-    // Ambil dari IndexedDB sebagai fallback/merge
+    // Ambil dari IndexedDB sebagai fallback/merge — filter BOD/Direksi
     const idbEmps = await getAll('mst_employee').catch(() => []);
-    const activeIdb = idbEmps.filter(e => e.is_active == null || e.is_active == 1);
+    const activeIdb = idbEmps.filter(e =>
+      (e.is_active == null || e.is_active == 1) &&
+      (e.is_direktur == 1 || (e.department || '').toLowerCase().includes('direksi') || (e.department || '').toLowerCase().includes('bod'))
+    );
 
     // Gabungkan: MySQL sebagai prioritas, IndexedDB untuk yang belum di-sync
     const seen = new Set(apiEmps.map(e => e.employee_id));
