@@ -100,6 +100,18 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Tangkap promise rejection yang tidak di-catch — cegah crash Node.js
+process.on('unhandledRejection', (reason) => {
+  console.error('[UnhandledRejection]', reason);
+  // Jangan exit — biarkan server tetap jalan
+});
+
+// Tangkap exception synchronous yang tidak di-catch
+process.on('uncaughtException', (err) => {
+  console.error('[UncaughtException]', err.message);
+  // Jangan exit — biarkan server tetap jalan
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   const nets = require('os').networkInterfaces();
   const ips = Object.values(nets).flat().filter(n => n.family === 'IPv4' && !n.internal).map(n => n.address);
