@@ -463,7 +463,7 @@ async function prLoadApprovers() {
       direksi = emps.filter(e => {
         const dept = (e.department || '').toLowerCase();
         const active = e.is_active !== 0 && e.is_active !== false;
-        return active && (dept.includes('direksi') || dept.includes('bod'));
+        return active && (dept.includes('direksi') || dept.includes('bod') || dept.includes('direktur') || dept.includes('board'));
       });
     }
     sel.disabled = false;
