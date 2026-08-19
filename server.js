@@ -46,6 +46,17 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Health check — cek koneksi MySQL tanpa auth
+app.get('/api/health', async (req, res) => {
+  try {
+    const pool = require('./db');
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', db: 'connected' });
+  } catch (e) {
+    res.status(503).json({ status: 'error', db: 'disconnected', detail: e.message });
+  }
+});
+
 // ── Auto-pull dari GitHub setiap 5 menit ────────────────────────────────────
 const { exec } = require('child_process');
 const AUTO_PULL_INTERVAL = 5 * 60 * 1000; // 5 menit
