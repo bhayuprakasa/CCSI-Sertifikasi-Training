@@ -16,8 +16,12 @@ const allowedOrigins = [
 
 app.use(cors({
   origin(origin, cb) {
-    // Same-origin requests (served HTML) and tools without an Origin header are allowed
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    // No origin header (same-origin / non-browser) → always allow
+    if (!origin) return cb(null, true);
+    // No allowlist configured → open policy (all origins permitted)
+    if (allowedOrigins.length === 0) return cb(null, true);
+    // Allowlist configured → enforce it
+    if (allowedOrigins.includes(origin)) return cb(null, true);
     cb(new Error(`Origin ${origin} not allowed by CORS`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
