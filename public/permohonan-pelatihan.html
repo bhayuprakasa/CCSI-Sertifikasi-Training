@@ -702,6 +702,7 @@ function renderRecap(data) {
     const tgl = fmtMonthYear(r.training_date_start);
     const apvStatus = r.approval_status || 'Pending';
     const apvMap = {
+      'Submitted_HR':  { cls:'b-purple', icon:'📋', label:'Submitted by HR' },
       'Pending':       { cls:'b-yellow', icon:'⏳', label:'Pending Direktur Dept' },
       'PendingHRD':    { cls:'b-navy',   icon:'⏳', label:'Pending Direktur HR' },
       'Approved':      { cls:'b-green',  icon:'✅', label:'Disetujui' },
