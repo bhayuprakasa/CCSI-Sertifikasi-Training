@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const pool = require('../db');
-const { getEmailLog, sendApprovalEmail } = require('../utils/mailer');
+const { getEmailLog, sendApprovalEmail, invalidateEmailSettingsCache } = require('../utils/mailer');
 
 router.get('/', (req, res) => {
   res.json(getEmailLog());
@@ -72,6 +72,43 @@ router.post('/retry', async (req, res) => {
   });
 
   res.json({ ok: true });
+});
+
+// ─── GET Email Settings (kedua layer) ────────────────────────────────────────
+router.get('/email-settings', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM cfg_email_settings');
+    const result = { dept: null, hrd: null };
+    rows.forEach(r => { result[r.layer] = r; });
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── POST Save Email Settings (satu layer per request) ───────────────────────
+router.post('/email-settings', async (req, res) => {
+  const { layer, sender_name, reply_to, cc_emails, subject_template, updated_by } = req.body;
+  if (!['dept', 'hrd'].includes(layer)) {
+    return res.status(400).json({ error: 'layer harus "dept" atau "hrd"' });
+  }
+  try {
+    await pool.query(
+      `INSERT INTO cfg_email_settings (layer, sender_name, reply_to, cc_emails, subject_template, updated_by)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         sender_name      = VALUES(sender_name),
+         reply_to         = VALUES(reply_to),
+         cc_emails        = VALUES(cc_emails),
+         subject_template = VALUES(subject_template),
+         updated_by       = VALUES(updated_by)`,
+      [layer, sender_name || null, reply_to || null, cc_emails || null, subject_template || null, updated_by || null]
+    );
+    invalidateEmailSettingsCache();
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;

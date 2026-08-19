@@ -577,6 +577,95 @@ select.filter:focus{border-color:var(--navy-lt)}
       </div>
     </div>
 
+    <!-- ── Setup Email Settings ────────────────────────────────────────────── -->
+    <div class="card" style="margin-bottom:14px" id="esCard">
+      <div class="card-header" style="cursor:pointer;user-select:none" onclick="esToggle()">
+        <span class="card-title">✉️ Konfigurasi Email Approval</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="esBadge" style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:.72rem;font-weight:700;background:#e8eef7;color:var(--navy)">Memuat...</span>
+          <span id="esChevron" style="font-size:.72rem;color:var(--text3);transition:transform .2s">▼</span>
+        </div>
+      </div>
+      <div id="esBody" style="display:none">
+        <div class="card-body" style="padding:14px 18px">
+
+          <div style="background:#e8f4fd;border:1px solid #b8d4f0;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#0c2a52;margin-bottom:16px;line-height:1.6">
+            ℹ️ Konfigurasi berlaku untuk kedua layer approval. Placeholder subject: <code>{training_name}</code>, <code>{department}</code>, <code>{request_id}</code>.<br>
+            <strong>Sender email</strong> tidak bisa diubah di sini — diambil dari variabel <code>SMTP_USER</code> / <code>GRAPH_CLIENT</code> di server.
+          </div>
+
+          <!-- Tabs layer -->
+          <div style="display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:16px">
+            <div id="esTab-dept" onclick="esShowLayer('dept')"
+              style="padding:6px 16px;font-size:.82rem;font-weight:600;cursor:pointer;border-radius:6px 6px 0 0;border-bottom:2px solid var(--navy);margin-bottom:-2px;color:var(--navy);background:rgba(26,60,110,.06)">
+              📋 Direksi Departemen
+            </div>
+            <div id="esTab-hrd" onclick="esShowLayer('hrd')"
+              style="padding:6px 16px;font-size:.82rem;font-weight:500;cursor:pointer;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text2)">
+              🏢 Direktur HRD
+            </div>
+          </div>
+
+          <!-- Layer: Dept -->
+          <div id="esPanel-dept">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div class="form-group">
+                <label>Nama Pengirim (Sender Name)</label>
+                <input type="text" id="es-dept-sender_name" placeholder="Contoh: CCSI Training System">
+              </div>
+              <div class="form-group">
+                <label>Reply-To (opsional)</label>
+                <input type="email" id="es-dept-reply_to" placeholder="Contoh: training@ccsi.co.id">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>CC (opsional — pisahkan dengan koma)</label>
+                <input type="text" id="es-dept-cc_emails" placeholder="Contoh: hr@ccsi.co.id, manager@ccsi.co.id">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>Template Subject Email</label>
+                <input type="text" id="es-dept-subject_template"
+                  placeholder="[Persetujuan Diperlukan] Pelatihan: {training_name} — {department}">
+                <div style="font-size:.72rem;color:var(--text3);margin-top:3px" id="es-dept-preview"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn-sm btn-edit" onclick="esSave('dept')" id="esBtnDept">💾 Simpan</button>
+              <span id="esMsg-dept" style="font-size:.78rem;display:none"></span>
+            </div>
+          </div>
+
+          <!-- Layer: HRD -->
+          <div id="esPanel-hrd" style="display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div class="form-group">
+                <label>Nama Pengirim (Sender Name)</label>
+                <input type="text" id="es-hrd-sender_name" placeholder="Contoh: CCSI Training System">
+              </div>
+              <div class="form-group">
+                <label>Reply-To (opsional)</label>
+                <input type="email" id="es-hrd-reply_to" placeholder="Contoh: training@ccsi.co.id">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>CC (opsional — pisahkan dengan koma)</label>
+                <input type="text" id="es-hrd-cc_emails" placeholder="Contoh: hr@ccsi.co.id, manager@ccsi.co.id">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>Template Subject Email</label>
+                <input type="text" id="es-hrd-subject_template"
+                  placeholder="[Persetujuan HRD] Pelatihan: {training_name} — {department}">
+                <div style="font-size:.72rem;color:var(--text3);margin-top:3px" id="es-hrd-preview"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn-sm btn-edit" onclick="esSave('hrd')" id="esBtnHrd">💾 Simpan</button>
+              <span id="esMsg-hrd" style="font-size:.78rem;display:none"></span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header">
         <span class="card-title">📧 Log Pengiriman Email Approval</span>
@@ -968,7 +1057,7 @@ const tabRenderers = {
   kompetensi: renderKompetensi,
   evaluasi: renderEvaluasi,
   master: renderMaster,
-  emaillog: () => { renderEmailLog(); elLoadCurrentApprover(); }
+  emaillog: () => { renderEmailLog(); elLoadCurrentApprover(); esLoad(); }
 };
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -1041,6 +1130,102 @@ async function renderDashboard() {
 // =====================
 // LOG EMAIL TAB
 // =====================
+
+// ── Email Settings ────────────────────────────────────────────────────────────
+let esOpen = false, esLayer = 'dept';
+
+function esToggle() {
+  esOpen = !esOpen;
+  document.getElementById('esBody').style.display = esOpen ? 'block' : 'none';
+  document.getElementById('esChevron').style.transform = esOpen ? 'rotate(180deg)' : '';
+  if (esOpen) esLoad();
+}
+
+function esShowLayer(layer) {
+  esLayer = layer;
+  ['dept','hrd'].forEach(l => {
+    const active = l === layer;
+    document.getElementById('esPanel-' + l).style.display = active ? 'block' : 'none';
+    const tab = document.getElementById('esTab-' + l);
+    tab.style.fontWeight    = active ? '600' : '500';
+    tab.style.color         = active ? 'var(--navy)' : 'var(--text2)';
+    tab.style.borderBottom  = active ? '2px solid var(--navy)' : '2px solid transparent';
+    tab.style.background    = active ? 'rgba(26,60,110,.06)' : '';
+  });
+}
+
+function esUpdatePreview(layer) {
+  const tpl = document.getElementById(`es-${layer}-subject_template`).value;
+  const prev = document.getElementById(`es-${layer}-preview`);
+  if (!tpl) { prev.textContent = ''; return; }
+  const sample = tpl
+    .replace(/{training_name}/g, 'Pelatihan K3')
+    .replace(/{department}/g, 'Dept. Teknik')
+    .replace(/{request_id}/g, '42');
+  prev.innerHTML = `Preview: <em style="color:var(--navy)">${sample}</em>`;
+}
+
+async function esLoad() {
+  const badge = document.getElementById('esBadge');
+  try {
+    const resp = await fetch('/api/email-log/email-settings');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    let configured = 0;
+    ['dept','hrd'].forEach(layer => {
+      const cfg = data[layer] || {};
+      ['sender_name','reply_to','cc_emails','subject_template'].forEach(f => {
+        const el = document.getElementById(`es-${layer}-${f}`);
+        if (el) el.value = cfg[f] || '';
+      });
+      if (cfg.sender_name || cfg.cc_emails || cfg.subject_template) configured++;
+      esUpdatePreview(layer);
+    });
+    ['dept','hrd'].forEach(layer => {
+      const el = document.getElementById(`es-${layer}-subject_template`);
+      if (el) el.addEventListener('input', () => esUpdatePreview(layer));
+    });
+    badge.textContent = configured === 2 ? '✅ Terkonfigurasi' : configured === 1 ? '⚠️ Sebagian' : 'Belum diatur';
+    badge.style.background = configured === 2 ? '#e6f7f1' : configured === 1 ? '#fff8e6' : '#e8eef7';
+    badge.style.color      = configured === 2 ? '#007a50' : configured === 1 ? '#b7760a' : 'var(--navy)';
+  } catch (e) {
+    badge.textContent = '⚠️ Error';
+  }
+}
+
+async function esSave(layer) {
+  const btn = document.getElementById(layer === 'dept' ? 'esBtnDept' : 'esBtnHrd');
+  const msg = document.getElementById(`esMsg-${layer}`);
+  const body = {
+    layer,
+    sender_name:      document.getElementById(`es-${layer}-sender_name`).value.trim(),
+    reply_to:         document.getElementById(`es-${layer}-reply_to`).value.trim(),
+    cc_emails:        document.getElementById(`es-${layer}-cc_emails`).value.trim(),
+    subject_template: document.getElementById(`es-${layer}-subject_template`).value.trim(),
+  };
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  msg.style.display = 'none';
+  try {
+    const resp = await fetch('/api/email-log/email-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result.error || 'Gagal menyimpan');
+    msg.textContent = '✅ Tersimpan';
+    msg.style.color = 'var(--green)';
+    msg.style.display = 'inline';
+    await esLoad();
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+  } catch (e) {
+    msg.textContent = '❌ ' + e.message;
+    msg.style.color = 'var(--red)';
+    msg.style.display = 'inline';
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Simpan';
+  }
+}
 
 // ── Setup Approver HRD ──────────────────────────────────────────────────────
 let elEmpData = [], elSelectedEmp = null, elSetupOpen = false, elDropOpen = false;
