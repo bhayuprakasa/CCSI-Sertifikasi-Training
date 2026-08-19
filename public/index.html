@@ -2521,34 +2521,48 @@ async function syncEmployeesToServer() {
   btn.disabled = true;
   btn.textContent = '⟳ Menyinkronkan...';
   try {
-    // Ambil dari IndexedDB langsung (bukan getAll yang coba MySQL dulu)
     const emps = await idbGetAll('mst_employee');
     if (!emps.length) { showToast('Tidak ada data karyawan di IndexedDB untuk di-sync', false); return; }
-    // Ambil semua employee yang sudah ada di MySQL
-    const res = await fetch('/api/employees');
-    if (!res.ok) throw new Error(`Server error (HTTP ${res.status})`);
-    const serverEmps = await res.json();
-    const serverIds = new Set(serverEmps.map(e => e.employee_id));
+
+    // GET daftar server — opsional, tidak gagal total jika MySQL error
+    let serverIds = new Set();
+    try {
+      const res = await fetch('/api/employees');
+      if (res.ok) {
+        const serverEmps = await res.json();
+        serverIds = new Set(serverEmps.map(e => e.employee_id));
+      }
+    } catch (_) {}
 
     let added = 0, updated = 0, failed = 0;
     for (const emp of emps) {
       try {
         if (serverIds.has(emp.employee_id)) {
-          // Update yang sudah ada
-          await fetch(`/api/employees/${encodeURIComponent(emp.employee_id)}`, {
+          const r = await fetch(`/api/employees/${encodeURIComponent(emp.employee_id)}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(emp)
           });
-          updated++;
+          if (r.ok) updated++; else failed++;
         } else {
-          // Insert baru
-          await fetch('/api/employees', {
+          // POST dulu; jika 409/500 (mungkin sudah ada), fallback ke PUT
+          const r = await fetch('/api/employees', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(emp)
           });
-          added++;
+          if (r.ok) {
+            added++;
+          } else if (r.status === 409 || r.status === 500) {
+            const r2 = await fetch(`/api/employees/${encodeURIComponent(emp.employee_id)}`, {
+              method: 'PUT',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(emp)
+            });
+            if (r2.ok) updated++; else failed++;
+          } else {
+            failed++;
+          }
         }
       } catch { failed++; }
     }
