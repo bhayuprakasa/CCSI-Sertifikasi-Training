@@ -997,7 +997,7 @@ document.addEventListener('click', function(e) {
 
 async function elLoadCurrentApprover() {
   try {
-    const resp = await fetch(location.origin + '/api/email-log/approver-hrd');
+    const resp = await fetch('/api/email-log/approver-hrd');
     if (!resp.ok) return;
     const data = await resp.json();
     if (data) elApplyApprover(data);
@@ -1024,7 +1024,7 @@ function elApplyApprover(data) {
 async function elLoadEmployees() {
   document.getElementById('elDropList').innerHTML = '<div style="padding:14px;text-align:center;color:var(--text3);font-size:.81rem">⏳ Memuat...</div>';
   try {
-    const resp = await fetch(location.origin + '/api/employees?active=1');
+    const resp = await fetch('/api/employees?active=1');
     elEmpData = await resp.json();
     elRenderDropList(elEmpData);
   } catch(e) {
@@ -1074,7 +1074,7 @@ async function elSaveApprover() {
   btn.textContent = '⏳ Menyimpan...';
   msg.style.display = 'none';
   try {
-    const resp = await fetch(location.origin + '/api/email-log/approver-hrd', {
+    const resp = await fetch('/api/email-log/approver-hrd', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1113,8 +1113,7 @@ async function renderEmailLog() {
   if (!statsEl || !bodyEl) return;
   bodyEl.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">⏳ Memuat...</td></tr>';
   try {
-    const url = location.origin + '/api/email-log';
-    const resp = await fetch(url);
+    const resp = await fetch('/api/email-log');
     const ct = resp.headers.get('content-type') || '';
     if (!ct.includes('application/json')) {
       const text = await resp.text();
@@ -1170,7 +1169,7 @@ async function elRetry(idx) {
   const btn = document.getElementById(`elbtn-${idx}`);
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Mengirim...'; }
   try {
-    const resp = await fetch(location.origin + '/api/email-log/retry', {
+    const resp = await fetch('/api/email-log/retry', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ request_id: d.request_id, approver_email: d.to, approver_name: d.approver_name, approver_position: d.approver_position || '' }),
@@ -2201,6 +2200,7 @@ const masterForms = {
     <div class="form-group"><label>Status Kepegawaian</label><select id="m_empstatus"><option>PKWTT</option><option>PKWT</option></select></div>
     <div class="form-group"><label>Tgl Join</label><input type="date" id="m_join"></div>
     <div class="form-group"><label>Status</label><select id="m_active"><option value="1">Aktif</option><option value="0">Nonaktif</option></select></div>
+    <div class="form-group"><label>Direktur/BOD</label><select id="m_direktur"><option value="0">Tidak</option><option value="1">Ya</option></select></div>
   </div>`,
   program:`<div class="form-grid">
     <div class="form-group full"><label>Nama Program *</label><input type="text" id="m_pname" placeholder="Nama program training"></div>
@@ -2264,6 +2264,7 @@ async function editMaster(mode, key, isUsed=false) {
     document.getElementById('m_empstatus').value=r.employment_status;
     document.getElementById('m_join').value=r.join_date||'';
     document.getElementById('m_active').value=r.is_active;
+    document.getElementById('m_direktur').value=r.is_direktur??0;
 
   } else if(mode==='program'){
     const all=await getAll('mst_program'), r=all.find(x=>x.program_id===key); if(!r) return;
@@ -2335,7 +2336,8 @@ async function saveMaster() {
       email:document.getElementById('m_email').value.trim()||null,
       employment_status:document.getElementById('m_empstatus').value,
       join_date:document.getElementById('m_join').value||null,
-      is_active:parseInt(document.getElementById('m_active').value)
+      is_active:parseInt(document.getElementById('m_active').value),
+      is_direktur:parseInt(document.getElementById('m_direktur').value)
     };
     await putRecord('mst_employee',obj);
     // Sync ke MySQL API agar muncul di halaman lain (permohonan pelatihan, dll)
@@ -2430,7 +2432,7 @@ async function syncEmployeesToServer() {
     const emps = await getAll('mst_employee');
     // Ambil semua employee yang sudah ada di MySQL
     const res = await fetch('/api/employees');
-    if (!res.ok) throw new Error('Server tidak dapat dijangkau');
+    if (!res.ok) throw new Error(`Server error (HTTP ${res.status})`);
     const serverEmps = await res.json();
     const serverIds = new Set(serverEmps.map(e => e.employee_id));
 
