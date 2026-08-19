@@ -1245,7 +1245,11 @@ function elToggleDropdown(e) {
   document.getElementById('elDropTrigger').style.borderColor = elDropOpen ? 'var(--navy-lt)' : 'var(--border)';
   if (elDropOpen) {
     document.getElementById('elEmpSearch').value = '';
-    elRenderDropList(elEmpData);
+    if (elEmpData.length) {
+      elRenderDropList(elEmpData);
+    } else {
+      elLoadEmployees();
+    }
     setTimeout(() => document.getElementById('elEmpSearch').focus(), 50);
   }
 }
