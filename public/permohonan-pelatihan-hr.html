@@ -401,7 +401,7 @@ function prCalcScore() {
 
 async function prLoadDepts() {
   try {
-    const emps = await api('/api/employees');
+    const emps = await window.loadEmployeesWithFallback();
     const depts = [...new Set(emps.map(e => e.department).filter(Boolean))].sort();
     const sel = document.getElementById('pr_dept');
     sel.innerHTML = '<option value="">-- Pilih Departemen --</option>' +
@@ -423,7 +423,15 @@ async function prLoadPeserta() {
   }
   container.innerHTML = '<div class="peserta-empty">Memuat data karyawan...</div>';
   try {
-    const emps = await api(`/api/employees?dept=${encodeURIComponent(dept)}`);
+    let emps;
+    try {
+      const res = await fetch(`/api/employees?dept=${encodeURIComponent(dept)}`);
+      emps = res.ok ? await res.json() : [];
+    } catch (_) { emps = []; }
+    if (!emps.length) {
+      const all = await window.loadEmployeesWithFallback();
+      emps = all.filter(e => e.department === dept && (e.is_active == null || e.is_active == 1));
+    }
     if (!emps.length) {
       container.innerHTML = '<div class="peserta-empty">Tidak ada karyawan aktif di departemen ini</div>';
       return;
