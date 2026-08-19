@@ -509,4 +509,10 @@ async function sendHrdApprovalEmail({ request, token, participants, approver }) 
   }
 }
 
-module.exports = { sendApprovalEmail, sendHrdApprovalEmail, getEmailLog };
+function isEmailConfigured() {
+  const hasSmtp  = !!process.env.SMTP_HOST;
+  const hasGraph = !!(process.env.GRAPH_TENANT_ID && process.env.GRAPH_CLIENT_ID && process.env.GRAPH_CLIENT_SECRET);
+  return hasSmtp || hasGraph;
+}
+
+module.exports = { sendApprovalEmail, sendHrdApprovalEmail, getEmailLog, isEmailConfigured };

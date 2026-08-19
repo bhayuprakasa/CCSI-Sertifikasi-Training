@@ -3,7 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const pool = require('../db');
 const { logAudit } = require('../middleware/auditLog');
-const { sendApprovalEmail, sendHrdApprovalEmail } = require('../utils/mailer');
+const { sendApprovalEmail, sendHrdApprovalEmail, isEmailConfigured } = require('../utils/mailer');
 
 const VALID_TRAINING_TYPE = ['Internal', 'Eksternal'];
 
@@ -101,7 +101,7 @@ router.post('/', async (req, res) => {
 
     // Kirim email approval ke approver yang dipilih (non-blocking) — dilewati jika submitted by HR
     const approverEmail = item.approver1_email || process.env.APPROVAL_EMAIL;
-    if (!item.submitted_by_hr && approverEmail && process.env.SMTP_HOST) {
+    if (!item.submitted_by_hr && approverEmail && isEmailConfigured()) {
       sendApprovalEmail({
         request: { ...item, cost_total: costTotal, score_grand_total: gt, request_id: requestId },
         token: approvalToken,
@@ -160,7 +160,7 @@ router.get('/approve/:token', async (req, res) => {
     };
   }
 
-  if (hrdApprover) {
+  if (hrdApprover && isEmailConfigured()) {
     const [parts] = await pool.query(
       'SELECT participant_name FROM trx_training_request_participant WHERE request_id = ?',
       [req_.request_id]
