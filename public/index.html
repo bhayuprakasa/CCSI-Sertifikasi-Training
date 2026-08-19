@@ -513,7 +513,7 @@ select.filter:focus{border-color:var(--navy-lt)}
     <div class="card">
       <div class="card-header"><span class="card-title">👥 Master Karyawan</span><div style="display:flex;gap:6px"><button class="btn-sm" id="btnSyncEmp" onclick="syncEmployeesToServer()" style="background:#e8f0fe;border:1px solid #c5d4f5;color:#1a56c4;font-size:.75rem">⟳ Sync ke Server</button><button class="btn-sm btn-edit" onclick="openMasterModal('employee')">+ Tambah</button></div></div>
       <div class="card-body"><div class="table-wrap"><table>
-        <thead><tr><th>NIK</th><th>Nama</th><th>Dept</th><th>Site</th><th>Jabatan</th><th>Email</th><th>Status</th><th>Penggunaan</th><th>Aksi</th></tr></thead>
+        <thead><tr><th>NIK</th><th>Nama</th><th>Dept</th><th>Site</th><th>Jabatan</th><th>Dept Head</th><th>Email</th><th>Status</th><th>Penggunaan</th><th>Aksi</th></tr></thead>
         <tbody id="empBody"></tbody>
       </table></div></div>
     </div>
@@ -1876,6 +1876,7 @@ async function renderMaster() {
       <td>${e.department}</td>
       <td><span class="badge b-navy" style="font-size:.68rem">${e.site}</span></td>
       <td style="color:var(--text2);font-size:.8rem">${e.position}</td>
+      <td style="text-align:center">${e.is_dept_head?'<span class="badge b-green" style="font-size:.68rem">Ya</span>':'<span style="color:var(--text3);font-size:.8rem">-</span>'}</td>
       <td style="font-size:.78rem;color:var(--text2)">${e.email?`<a href="mailto:${e.email}" style="color:var(--navy-lt);text-decoration:none">${e.email}</a>`:'-'}</td>
       <td><span class="badge ${e.is_active?'b-green':'b-gray'}">${e.is_active?'Aktif':'Nonaktif'}</span></td>
       <td style="white-space:nowrap;position:relative">
