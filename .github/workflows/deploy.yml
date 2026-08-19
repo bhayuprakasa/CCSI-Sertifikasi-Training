@@ -23,7 +23,7 @@ jobs:
       - name: Syntax check
         run: |
           cd C:\www\ccsi-app
-          node --check app.js
+          node --check server.js
         continue-on-error: false
 
       - name: Restart app via PM2
