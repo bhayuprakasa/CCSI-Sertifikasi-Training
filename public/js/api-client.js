@@ -46,8 +46,6 @@ window.loadEmployeesWithFallback = async function () {
 
 (function () {
   const USER_STORAGE_KEY = 'ccsi_current_user';
-  // API key diambil dari server (/api/client-config) — tidak hardcode di sini
-  let _apiKey = '';
 
   // ── Inisialisasi sesi user ────────────────────────────────────────────────────
   function getCurrentUser() {
@@ -60,16 +58,10 @@ window.loadEmployeesWithFallback = async function () {
     return user;
   }
 
-  // ── Ambil API key dari server saat startup ────────────────────────────────────
-  const _fetch = window.fetch.bind(window);
-
-  _fetch('/api/client-config')
-    .then(r => r.ok ? r.json() : {})
-    .then(cfg => { if (cfg.apiKey) _apiKey = cfg.apiKey; })
-    .catch(() => { /* server dev mode — key kosong, request tetap diterima */ });
-
   // Panggil sekali agar prompt muncul saat halaman pertama dibuka
   getCurrentUser();
+
+  const _fetch = window.fetch.bind(window);
 
   // ── Patch window.fetch ────────────────────────────────────────────────────────
   window.fetch = function (url, options = {}) {
@@ -79,7 +71,6 @@ window.loadEmployeesWithFallback = async function () {
     }
 
     const headers = new Headers(options.headers || {});
-    if (_apiKey) headers.set('X-API-Key', _apiKey);
     headers.set('X-Changed-By', sessionStorage.getItem(USER_STORAGE_KEY) || 'unknown');
 
     return _fetch(url, { ...options, headers });
