@@ -1,20 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
 require('dotenv').config();
-
-// ── Single-instance guard via PID file ──────────────────────────────────────
-const PID_FILE = path.join(__dirname, '.server.pid');
-try {
-  const oldPid = parseInt(fs.readFileSync(PID_FILE, 'utf8').trim(), 10);
-  if (oldPid && oldPid !== process.pid) {
-    try { process.kill(oldPid, 0); process.kill(oldPid, 'SIGTERM'); console.log(`[PID] Proses lama (${oldPid}) dihentikan.`); }
-    catch (_) { /* sudah tidak berjalan */ }
-  }
-} catch (_) { /* pid file belum ada */ }
-fs.writeFileSync(PID_FILE, String(process.pid));
-['exit', 'SIGINT', 'SIGTERM'].forEach(sig => process.on(sig, () => { try { fs.unlinkSync(PID_FILE); } catch (_) {} }));
 
 const { requireApiKey } = require('./middleware/auth');
 
