@@ -31,6 +31,11 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Client config — kirim API key ke frontend; harus SEBELUM middleware auth
+app.get('/api/client-config', (req, res) => {
+  res.json({ apiKey: process.env.API_KEY || '' });
+});
+
 // API key auth — applied before all /api routes
 app.use('/api', requireApiKey);
 
