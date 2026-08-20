@@ -136,8 +136,8 @@ function row(icon, label, value, highlight) {
 }
 
 // ── Main send function ────────────────────────────────────────────────────────
-async function sendApprovalEmail({ request, token, participants, approver }) {
-  const appUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+async function sendApprovalEmail({ request, token, participants, approver, appUrl: appUrlOverride }) {
+  const appUrl = (appUrlOverride || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
   const approveUrl = `${appUrl}/api/training-requests/approve/${token}`;
   const rejectUrl  = `${appUrl}/api/training-requests/reject/${token}`;
 
@@ -350,8 +350,8 @@ async function sendApprovalEmail({ request, token, participants, approver }) {
 }
 
 // ── HRD Director approval email (layer 2) ────────────────────────────────────
-async function sendHrdApprovalEmail({ request, token, participants, approver }) {
-  const appUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+async function sendHrdApprovalEmail({ request, token, participants, approver, appUrl: appUrlOverride }) {
+  const appUrl = (appUrlOverride || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
   const approveUrl = `${appUrl}/api/training-requests/approve-hrd/${token}`;
   const rejectUrl  = `${appUrl}/api/training-requests/reject-hrd/${token}`;
 

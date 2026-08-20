@@ -104,6 +104,7 @@ router.post('/', async (req, res) => {
     // Kirim email approval ke approver yang dipilih (non-blocking) — dilewati jika submitted by HR
     const approverEmail = item.approver1_email || process.env.APPROVAL_EMAIL;
     if (!item.submitted_by_hr && approverEmail && isEmailConfigured()) {
+      const appUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
       sendApprovalEmail({
         request: { ...item, cost_total: costTotal, score_grand_total: gt, request_id: requestId },
         token: approvalToken,
@@ -113,6 +114,7 @@ router.post('/', async (req, res) => {
           email: approverEmail,
           position: item.approver1_position || '',
         },
+        appUrl,
       }).catch(err => console.error('[Mailer] Gagal kirim email approval:', err.message));
     }
 
@@ -173,6 +175,7 @@ router.get('/approve/:token', async (req, res) => {
       'SELECT participant_name FROM trx_training_request_participant WHERE request_id = ?',
       [req_.request_id]
     );
+    const appUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
     sendHrdApprovalEmail({
       request: req_,
       token:   hrdToken,
@@ -182,6 +185,7 @@ router.get('/approve/:token', async (req, res) => {
         email:    hrdApprover.email,
         position: hrdApprover.position || 'Direktur HRD',
       },
+      appUrl,
     }).catch(err => console.error('[Mailer] Gagal kirim email HRD:', err.message));
   }
 
@@ -197,7 +201,7 @@ router.get('/reject/:token', async (req, res) => {
   if (!rows.length) return res.status(404).send(approvalPage('not_found'));
 
   const req_ = rows[0];
-  if (req_.approval_status !== 'Pending') {
+  if (req_.approval_status !== 'PendingBODDept') {
     return res.send(approvalPage('already_done', req_.approval_status, req_));
   }
 
