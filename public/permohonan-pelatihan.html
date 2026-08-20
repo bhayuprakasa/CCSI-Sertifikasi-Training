@@ -556,7 +556,11 @@ function prOnApproverChange() {
   if (!opt || !opt.value) { infoEl.style.display = 'none'; return; }
   const email = opt.dataset.email;
   const pos = opt.dataset.pos;
-  infoEl.textContent = `${opt.dataset.name} · ${pos || 'Direksi'} · ${email || '(email belum diisi)'}`;
+  if (!email) {
+    infoEl.innerHTML = `<span style="color:#c0392b">⚠ ${opt.dataset.name} · ${pos || 'Direksi'} · <strong>Email belum diisi</strong> — approval email tidak dapat dikirim. Hubungi HR untuk melengkapi data.</span>`;
+  } else {
+    infoEl.textContent = `${opt.dataset.name} · ${pos || 'Direksi'} · ${email}`;
+  }
   infoEl.style.display = 'block';
 }
 
@@ -643,6 +647,7 @@ async function prSubmit() {
   const errors = [];
   if (!dept) errors.push('Departemen wajib dipilih');
   if (!approverSel.value) errors.push('Approver 1 (Direksi/BOD) wajib dipilih');
+  if (approverSel.value && !approverEmail) errors.push('Approver yang dipilih tidak memiliki email — email approval tidak dapat dikirim. Hubungi HR untuk melengkapi data karyawan.');
   if (!name) errors.push('Nama Pelatihan wajib diisi');
   if (!targetMonth) errors.push('Target Pelaksanaan wajib diisi');
   if (!type) errors.push('Jenis Training wajib dipilih');
