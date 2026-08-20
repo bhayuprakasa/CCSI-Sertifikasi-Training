@@ -6,81 +6,87 @@ const { logAudit } = require('../middleware/auditLog');
 const SAFE_COLS = 'employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head';
 const VALID_EMPLOYMENT_STATUS = ['PKWTT', 'PKWT'];
 
-router.get('/', async (req, res) => {
-  const { dept, direktur, dept_head, active } = req.query;
-  if (direktur === '1') {
-    // Direktur/BOD: match berbagai variasi nama department
-    const [rows] = await pool.query(
-      `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND (
-        LOWER(department) LIKE ? OR
-        LOWER(department) LIKE ? OR
-        LOWER(department) LIKE ? OR
-        LOWER(department) LIKE ?
-      ) ORDER BY full_name`,
-      ['%direksi%', '%bod%', '%direktur%', '%board%']
-    );
-    return res.json(rows);
-  }
-  if (dept_head === '1') {
+router.get('/', async (req, res, next) => {
+  try {
+    const { dept, direktur, dept_head, active } = req.query;
+    if (direktur === '1') {
+      // Direktur/BOD: match berbagai variasi nama department
+      const [rows] = await pool.query(
+        `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND (
+          LOWER(department) LIKE ? OR
+          LOWER(department) LIKE ? OR
+          LOWER(department) LIKE ? OR
+          LOWER(department) LIKE ?
+        ) ORDER BY full_name`,
+        ['%direksi%', '%bod%', '%direktur%', '%board%']
+      );
+      return res.json(rows);
+    }
+    if (dept_head === '1') {
+      if (dept) {
+        const [rows] = await pool.query(
+          `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND is_dept_head = 1 AND department = ? ORDER BY full_name`,
+          [dept]
+        );
+        return res.json(rows);
+      }
+      const [rows] = await pool.query(
+        `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND is_dept_head = 1 ORDER BY full_name`,
+      );
+      return res.json(rows);
+    }
     if (dept) {
       const [rows] = await pool.query(
-        `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND is_dept_head = 1 AND department = ? ORDER BY full_name`,
+        `SELECT ${SAFE_COLS} FROM mst_employee WHERE department = ? AND is_active = 1 ORDER BY full_name`,
         [dept]
       );
       return res.json(rows);
     }
-    const [rows] = await pool.query(
-      `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND is_dept_head = 1 ORDER BY full_name`,
-    );
-    return res.json(rows);
-  }
-  if (dept) {
-    const [rows] = await pool.query(
-      `SELECT ${SAFE_COLS} FROM mst_employee WHERE department = ? AND is_active = 1 ORDER BY full_name`,
-      [dept]
-    );
-    return res.json(rows);
-  }
-  if (active === '1') {
-    const [rows] = await pool.query(
-      'SELECT employee_id, full_name, department, position, email, is_active FROM mst_employee WHERE is_active = 1 ORDER BY full_name'
-    );
-    return res.json(rows);
-  }
-  const [rows] = await pool.query(`SELECT ${SAFE_COLS} FROM mst_employee ORDER BY employee_id`);
-  res.json(rows);
+    if (active === '1') {
+      const [rows] = await pool.query(
+        'SELECT employee_id, full_name, department, position, email, is_active FROM mst_employee WHERE is_active = 1 ORDER BY full_name'
+      );
+      return res.json(rows);
+    }
+    const [rows] = await pool.query(`SELECT ${SAFE_COLS} FROM mst_employee ORDER BY employee_id`);
+    res.json(rows);
+  } catch (e) { next(e); }
 });
 
-router.get('/:id', async (req, res) => {
-  const [rows] = await pool.query(
-    `SELECT ${SAFE_COLS} FROM mst_employee WHERE employee_id = ?`,
-    [req.params.id]
-  );
-  if (!rows.length) return res.status(404).json({ error: 'Not found' });
-  res.json(rows[0]);
+router.get('/:id', async (req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT ${SAFE_COLS} FROM mst_employee WHERE employee_id = ?`,
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    res.json(rows[0]);
+  } catch (e) { next(e); }
 });
 
-router.post('/', async (req, res) => {
-  const { employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head } = req.body;
-  if (!employee_id || !full_name) return res.status(400).json({ error: 'employee_id and full_name required' });
-  if (employment_status && !VALID_EMPLOYMENT_STATUS.includes(employment_status)) {
-    return res.status(400).json({ error: `employment_status must be one of: ${VALID_EMPLOYMENT_STATUS.join(', ')}` });
-  }
+router.post('/', async (req, res, next) => {
+  try {
+    const { employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head } = req.body;
+    if (!employee_id || !full_name) return res.status(400).json({ error: 'employee_id and full_name required' });
+    if (employment_status && !VALID_EMPLOYMENT_STATUS.includes(employment_status)) {
+      return res.status(400).json({ error: `employment_status must be one of: ${VALID_EMPLOYMENT_STATUS.join(', ')}` });
+    }
 
-  await pool.query(
-    'INSERT INTO mst_employee (employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head) VALUES (?,?,?,?,?,?,?,?,?,?)',
-    [employee_id, full_name, department, position, site, email || null, employment_status || 'PKWTT', join_date || null, is_active ?? 1, is_dept_head ?? 0]
-  );
+    await pool.query(
+      'INSERT INTO mst_employee (employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head) VALUES (?,?,?,?,?,?,?,?,?,?)',
+      [employee_id, full_name, department, position, site, email || null, employment_status || 'PKWTT', join_date || null, is_active ?? 1, is_dept_head ?? 0]
+    );
 
-  await logAudit({
-    table_name: 'mst_employee',
-    record_id: employee_id,
-    operation: 'CREATE',
-    new_data: req.body,
-    changed_by: req.changedBy,
-  });
+    await logAudit({
+      table_name: 'mst_employee',
+      record_id: employee_id,
+      operation: 'CREATE',
+      new_data: req.body,
+      changed_by: req.changedBy,
+    });
 
-  res.status(201).json({ employee_id });
+    res.status(201).json({ employee_id });
+  } catch (e) { next(e); }
 });
 
 router.put('/:id', async (req, res) => {
@@ -132,24 +138,26 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
-  const [trx] = await pool.query('SELECT 1 FROM trx_employee_program WHERE employee_id = ? LIMIT 1', [req.params.id]);
-  const [cert] = await pool.query('SELECT 1 FROM trx_certification WHERE employee_id = ? LIMIT 1', [req.params.id]);
-  if (trx.length || cert.length) return res.status(409).json({ error: 'Cannot delete: used in transactions' });
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const [trx] = await pool.query('SELECT 1 FROM trx_employee_program WHERE employee_id = ? LIMIT 1', [req.params.id]);
+    const [cert] = await pool.query('SELECT 1 FROM trx_certification WHERE employee_id = ? LIMIT 1', [req.params.id]);
+    if (trx.length || cert.length) return res.status(409).json({ error: 'Cannot delete: used in transactions' });
 
-  const [old] = await pool.query(`SELECT ${SAFE_COLS} FROM mst_employee WHERE employee_id = ?`, [req.params.id]);
-  if (old.length) {
-    await logAudit({
-      table_name: 'mst_employee',
-      record_id: req.params.id,
-      operation: 'DELETE',
-      old_data: old[0],
-      changed_by: req.changedBy,
-    });
-  }
+    const [old] = await pool.query(`SELECT ${SAFE_COLS} FROM mst_employee WHERE employee_id = ?`, [req.params.id]);
+    if (old.length) {
+      await logAudit({
+        table_name: 'mst_employee',
+        record_id: req.params.id,
+        operation: 'DELETE',
+        old_data: old[0],
+        changed_by: req.changedBy,
+      });
+    }
 
-  await pool.query('DELETE FROM mst_employee WHERE employee_id = ?', [req.params.id]);
-  res.json({ deleted: true });
+    await pool.query('DELETE FROM mst_employee WHERE employee_id = ?', [req.params.id]);
+    res.json({ deleted: true });
+  } catch (e) { next(e); }
 });
 
 module.exports = router;
