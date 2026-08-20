@@ -421,7 +421,7 @@ select.filter:focus{border-color:var(--navy-lt)}
       <div class="card-body">
         <div class="toolbar">
           <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchSertif" placeholder="Cari nama, sertifikasi, nomor..." oninput="renderSertif()"></div>
-          <select class="filter" id="fSertifSite" onchange="renderSertif()"><option value="">Semua Site</option><option>HO Jakarta</option><option>Cilegon</option></select>
+          <select class="filter" id="fSertifSite" onchange="renderSertif()"><option value="">Semua Site</option><option>HO Jakarta</option><option>KIEC Cilegon</option><option>KBS Cilegon</option></select>
           <select class="filter" id="fExpiry" onchange="renderSertif()"><option value="">Semua Status</option><option value="expired">Expired</option><option value="soon">Expiry &lt;90 hari</option><option value="ok">Masih Aktif</option></select>
         </div>
         <div class="table-wrap">
@@ -476,7 +476,7 @@ select.filter:focus{border-color:var(--navy-lt)}
         <div class="card-body">
           <div class="toolbar">
             <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchComp" placeholder="Cari karyawan..." oninput="renderKompetensi()"></div>
-            <select class="filter" id="fCompSite" onchange="renderKompetensi()"><option value="">Semua Site</option><option>HO Jakarta</option><option>Cilegon</option></select>
+            <select class="filter" id="fCompSite" onchange="renderKompetensi()"><option value="">Semua Site</option><option>HO Jakarta</option><option>KIEC Cilegon</option><option>KBS Cilegon</option></select>
           </div>
           <div class="table-wrap">
             <table>
@@ -912,16 +912,16 @@ async function seedIfEmpty() {
 
   const employees = [
     {employee_id:'CC000',full_name:'Direktur HRD',department:'BOD',position:'Direktur HRD',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2015-01-01',is_active:1,is_dept_head:0},
-    {employee_id:'CC001',full_name:'Budi Santoso',department:'Produksi',position:'Operator Produksi',site:'Cilegon',employment_status:'PKWTT',join_date:'2019-03-01',is_active:1},
+    {employee_id:'CC001',full_name:'Budi Santoso',department:'Produksi',position:'Operator Produksi',site:'KIEC Cilegon',employment_status:'PKWTT',join_date:'2019-03-01',is_active:1},
     {employee_id:'CC002',full_name:'Siti Rahayu',department:'HR & GA',position:'Staff HR',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2020-07-15',is_active:1},
-    {employee_id:'CC003',full_name:'Ahmad Fauzi',department:'Maintenance',position:'Teknisi Mesin',site:'Cilegon',employment_status:'PKWTT',join_date:'2018-11-01',is_active:1},
+    {employee_id:'CC003',full_name:'Ahmad Fauzi',department:'Maintenance',position:'Teknisi Mesin',site:'KBS Cilegon',employment_status:'PKWTT',join_date:'2018-11-01',is_active:1},
     {employee_id:'CC004',full_name:'Dewi Kurniawati',department:'Finance',position:'Staff Finance',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2021-02-01',is_active:1},
-    {employee_id:'CC005',full_name:'Rudi Hermawan',department:'QC/QA',position:'Supervisor QC',site:'Cilegon',employment_status:'PKWTT',join_date:'2017-06-01',is_active:1},
-    {employee_id:'CC006',full_name:'Eko Prasetyo',department:'Produksi',position:'Operator Extrusi',site:'Cilegon',employment_status:'PKWT',join_date:'2024-01-15',is_active:1},
+    {employee_id:'CC005',full_name:'Rudi Hermawan',department:'QC/QA',position:'Supervisor QC',site:'KIEC Cilegon',employment_status:'PKWTT',join_date:'2017-06-01',is_active:1},
+    {employee_id:'CC006',full_name:'Eko Prasetyo',department:'Produksi',position:'Operator Extrusi',site:'KBS Cilegon',employment_status:'PKWT',join_date:'2024-01-15',is_active:1},
     {employee_id:'CC007',full_name:'Maya Indrawati',department:'IT',position:'Staff IT',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2022-03-01',is_active:1},
-    {employee_id:'CC008',full_name:'Hendra Wijaya',department:'Produksi',position:'Kepala Produksi',site:'Cilegon',employment_status:'PKWTT',join_date:'2015-08-01',is_active:1},
+    {employee_id:'CC008',full_name:'Hendra Wijaya',department:'Produksi',position:'Kepala Produksi',site:'KIEC Cilegon',employment_status:'PKWTT',join_date:'2015-08-01',is_active:1},
     {employee_id:'CC009',full_name:'Rina Marliani',department:'Purchasing',position:'Staff Purchasing',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2023-05-01',is_active:1},
-    {employee_id:'CC010',full_name:'Teguh Setiawan',department:'Engineering',position:'Teknisi Listrik',site:'Cilegon',employment_status:'PKWTT',join_date:'2019-09-01',is_active:1},
+    {employee_id:'CC010',full_name:'Teguh Setiawan',department:'Engineering',position:'Teknisi Listrik',site:'KBS Cilegon',employment_status:'PKWTT',join_date:'2019-09-01',is_active:1},
     {employee_id:'CC011',full_name:'Annisa',department:'BOD',position:'Direktur',site:'HO Jakarta',employment_status:'PKWTT',join_date:'2020-01-01',is_active:1,is_dept_head:0},
   ];
 
@@ -1108,7 +1108,7 @@ async function renderDashboard() {
   document.getElementById('monthLabels').innerHTML=months.map(m=>`<span style="flex:1;text-align:center;font-size:.62rem;color:var(--text3)">${m}</span>`).join('');
 
   // Site stats
-  const sites=['HO Jakarta','Cilegon'];
+  const sites=['HO Jakarta','KIEC Cilegon','KBS Cilegon'];
   document.getElementById('siteStats').innerHTML=sites.map(site=>{
     const st=trxs.filter(t=>emps.find(e=>e.employee_id===t.employee_id&&e.site===site));
     const dn=st.filter(t=>t.status==='Done').length;
@@ -2473,7 +2473,7 @@ const masterForms = {
     <div class="form-group"><label>Nama Lengkap *</label><input type="text" id="m_name" placeholder="Nama karyawan"></div>
     <div class="form-group"><label>Departemen *</label><input type="text" id="m_dept" placeholder="Produksi" list="deptList2"><datalist id="deptList2"><option>Direksi/BOD</option><option>HR & GA</option><option>Finance</option><option>IT</option><option>Produksi</option><option>QC/QA</option><option>Engineering</option><option>Purchasing</option><option>PPIC</option><option>Maintenance</option><option>Warehouse</option><option>Sales</option></datalist></div>
     <div class="form-group"><label>Jabatan *</label><input type="text" id="m_pos" placeholder="Staff / Supervisor / dll"></div>
-    <div class="form-group"><label>Site *</label><select id="m_site"><option value="">-- Pilih --</option><option>HO Jakarta</option><option>Cilegon</option></select></div>
+    <div class="form-group"><label>Site *</label><select id="m_site"><option value="">-- Pilih --</option><option>HO Jakarta</option><option>KIEC Cilegon</option><option>KBS Cilegon</option></select></div>
     <div class="form-group"><label>Email</label><input type="email" id="m_email" placeholder="nama@ccsi.co.id"></div>
     <div class="form-group"><label>Status Kepegawaian</label><select id="m_empstatus"><option>PKWTT</option><option>PKWT</option></select></div>
     <div class="form-group"><label>Tgl Join</label><input type="date" id="m_join"></div>
