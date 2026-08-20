@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 const { logAudit } = require('../middleware/auditLog');
 
-const SAFE_COLS = 'employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_direktur AS is_dept_head';
+const SAFE_COLS = 'employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head';
 const BOD_COLS  = 'employee_id, full_name, department, position, site, email, employment_status, join_date, is_active';
 const VALID_EMPLOYMENT_STATUS = ['PKWTT', 'PKWT'];
 
@@ -20,20 +20,15 @@ router.get('/', async (req, res) => {
     }
   }
   if (dept_head === '1') {
-    // Coba is_dept_head dulu, fallback ke is_direktur
-    const flagCol = await (async () => {
-      try { await pool.query('SELECT is_dept_head FROM mst_employee LIMIT 0'); return 'is_dept_head'; }
-      catch { return 'is_direktur'; }
-    })();
     if (dept) {
       const [rows] = await pool.query(
-        `SELECT ${SAFE_COLS.replace('is_dept_head', `${flagCol} AS is_dept_head`)} FROM mst_employee WHERE is_active = 1 AND ${flagCol} = 1 AND department = ? ORDER BY full_name`,
+        `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND is_dept_head = 1 AND department = ? ORDER BY full_name`,
         [dept]
       );
       return res.json(rows);
     }
     const [rows] = await pool.query(
-      `SELECT ${SAFE_COLS.replace('is_dept_head', `${flagCol} AS is_dept_head`)} FROM mst_employee WHERE is_active = 1 AND ${flagCol} = 1 ORDER BY full_name`,
+      `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND is_dept_head = 1 ORDER BY full_name`
     );
     return res.json(rows);
   }
