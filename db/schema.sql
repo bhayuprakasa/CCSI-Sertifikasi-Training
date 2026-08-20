@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS mst_employee (
   full_name          VARCHAR(100)  NOT NULL,
   department         VARCHAR(50)   NOT NULL,
   position           VARCHAR(50)   NOT NULL,
-  site               ENUM('HO Jakarta','KIEC Cilegon','KBS Cilegon') NOT NULL,
+  site               ENUM('HO Jakarta','Cilegon') NOT NULL,
   email              VARCHAR(100)  NULL,
   employment_status  ENUM('PKWTT','PKWT') NOT NULL DEFAULT 'PKWTT',
   join_date          DATE          NULL,
