@@ -180,7 +180,10 @@ CREATE TABLE IF NOT EXISTS trx_training_request (
   approval_status      ENUM('PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR','Submitted_HR')
                        NOT NULL DEFAULT 'PendingBODDept',
   approval_token       VARCHAR(64)   NULL UNIQUE,
-  approval_hrd_token   VARCHAR(64)   NULL UNIQUE
+  approval_hrd_token   VARCHAR(64)   NULL UNIQUE,
+  approver_name        VARCHAR(100)  NULL,
+  approver_email       VARCHAR(150)  NULL,
+  approver_position    VARCHAR(100)  NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS trx_training_request_participant (
