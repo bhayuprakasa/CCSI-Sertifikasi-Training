@@ -2721,6 +2721,7 @@ async function syncEmployeesToServer() {
     } catch (_) {}
 
     let added = 0, updated = 0, failed = 0;
+    const errors = [];
     for (const emp of emps) {
       try {
         if (serverIds.has(emp.employee_id)) {
@@ -2729,7 +2730,12 @@ async function syncEmployeesToServer() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(emp)
           });
-          if (r.ok) updated++; else failed++;
+          if (r.ok) {
+            updated++;
+          } else {
+            failed++;
+            try { const body = await r.json(); errors.push(`PUT ${emp.employee_id} [${r.status}]: ${body.error||JSON.stringify(body)}`); } catch { errors.push(`PUT ${emp.employee_id} [${r.status}]`); }
+          }
         } else {
           // POST dulu; jika 409/500 (mungkin sudah ada), fallback ke PUT
           const r = await fetch('/api/employees', {
@@ -2745,15 +2751,22 @@ async function syncEmployeesToServer() {
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify(emp)
             });
-            if (r2.ok) updated++; else failed++;
+            if (r2.ok) {
+              updated++;
+            } else {
+              failed++;
+              try { const body = await r2.json(); errors.push(`PUT ${emp.employee_id} [${r2.status}]: ${body.error||JSON.stringify(body)}`); } catch { errors.push(`PUT ${emp.employee_id} [${r2.status}]`); }
+            }
           } else {
             failed++;
+            try { const body = await r.json(); errors.push(`POST ${emp.employee_id} [${r.status}]: ${body.error||JSON.stringify(body)}`); } catch { errors.push(`POST ${emp.employee_id} [${r.status}]`); }
           }
         }
-      } catch { failed++; }
+      } catch(e) { failed++; errors.push(`${emp.employee_id}: ${e.message}`); }
     }
     const msg = `Sync selesai: ${added} ditambah, ${updated} diperbarui${failed ? ', ' + failed + ' gagal' : ''}`;
     showToast(msg, failed === 0);
+    if (errors.length) console.error('[Sync Karyawan] Detail error:\n' + errors.join('\n'));
   } catch (e) {
     showToast('Sync gagal: ' + e.message, false);
   } finally {
