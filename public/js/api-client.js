@@ -1,8 +1,8 @@
-// Wrapper global fetch — tambah X-API-Key dan X-Changed-By otomatis ke semua request /api/*
+// Wrapper global fetch — tambah X-Changed-By otomatis ke semua request /api/*
+// Auth ditangani server via httpOnly session cookie; frontend tidak memegang API key.
 // File ini di-load di semua halaman sebelum script lain.
 
 // ── IndexedDB helper (shared, dipakai semua halaman) ─────────────────────────
-// Buka DB yang sama dengan index.html tanpa upgrade agar tidak konflik.
 window.ccsiIdb = (function () {
   const DB_NAME = 'CCSI_Training_v2', DB_VER = 1;
   let _db = null;
@@ -39,7 +39,6 @@ window.loadEmployeesWithFallback = async function () {
       if (api.length > 0) return api;
     }
   } catch (_) {}
-  // Fallback: baca dari IndexedDB
   const idb = await window.ccsiIdb.getAll('mst_employee').catch(() => []);
   return idb;
 };
@@ -58,7 +57,6 @@ window.loadEmployeesWithFallback = async function () {
     return user;
   }
 
-  // Panggil sekali agar prompt muncul saat halaman pertama dibuka
   getCurrentUser();
 
   const _fetch = window.fetch.bind(window);
