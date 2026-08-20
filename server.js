@@ -1,20 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
 require('dotenv').config();
-
-// ── Single-instance guard via PID file ──────────────────────────────────────
-const PID_FILE = path.join(__dirname, '.server.pid');
-try {
-  const oldPid = parseInt(fs.readFileSync(PID_FILE, 'utf8').trim(), 10);
-  if (oldPid && oldPid !== process.pid) {
-    try { process.kill(oldPid, 0); process.kill(oldPid, 'SIGTERM'); console.log(`[PID] Proses lama (${oldPid}) dihentikan.`); }
-    catch (_) { /* sudah tidak berjalan */ }
-  }
-} catch (_) { /* pid file belum ada */ }
-fs.writeFileSync(PID_FILE, String(process.pid));
-['exit', 'SIGINT', 'SIGTERM'].forEach(sig => process.on(sig, () => { try { fs.unlinkSync(PID_FILE); } catch (_) {} }));
 
 const { requireApiKey } = require('./middleware/auth');
 
@@ -79,21 +66,21 @@ function autoPull() {
     const local  = lines[lines.length - 2];
     const remote = lines[lines.length - 1];
 
-    if (local === remote) return; // tidak ada perubahan baru
+    if (local === remote) return;
 
     console.log('[AutoPull] Commit baru terdeteksi, menjalankan git pull...');
-    // Stash perubahan lokal agar pull tidak gagal karena konflik file
-    exec('git stash', { cwd }, () => {
-    exec('git pull origin main', { cwd }, (err2, out2) => {
-      if (err2) { console.error('[AutoPull] git pull error:', err2.message); return; }
-      console.log('[AutoPull] git pull:', out2.trim());
+    // Bersihkan state merge yang tertinggal, lalu stash, lalu pull
+    exec('git merge --abort 2>/dev/null; git stash', { cwd }, () => {
+      exec('git pull origin main', { cwd }, (err2, out2) => {
+        if (err2) { console.error('[AutoPull] git pull error:', err2.message); return; }
+        console.log('[AutoPull] git pull:', out2.trim());
 
-      exec('npm install --omit=dev', { cwd }, () => {
-        console.log('[AutoPull] npm install selesai. Restart server...');
-        setTimeout(() => process.exit(0), 500);
+        exec('npm install --omit=dev', { cwd }, () => {
+          console.log('[AutoPull] npm install selesai. Restart server...');
+          setTimeout(() => process.exit(0), 500);
+        });
       });
     });
-    }); // end git stash
   });
 }
 
