@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 const { logAudit } = require('../middleware/auditLog');
 
-const SAFE_COLS = 'employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head';
+const SAFE_COLS = 'employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_direktur AS is_dept_head';
 const BOD_COLS  = 'employee_id, full_name, department, position, site, email, employment_status, join_date, is_active';
 const VALID_EMPLOYMENT_STATUS = ['PKWTT', 'PKWT'];
 
