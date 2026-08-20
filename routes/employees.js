@@ -139,21 +139,22 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
-  const [trx] = await pool.query('SELECT 1 FROM trx_employee_program WHERE employee_id = ? LIMIT 1', [req.params.id]);
-  const [cert] = await pool.query('SELECT 1 FROM trx_certification WHERE employee_id = ? LIMIT 1', [req.params.id]);
-  if (trx.length || cert.length) return res.status(409).json({ error: 'Cannot delete: used in transactions' });  
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const [trx] = await pool.query('SELECT 1 FROM trx_employee_program WHERE employee_id = ? LIMIT 1', [req.params.id]);
+    const [cert] = await pool.query('SELECT 1 FROM trx_certification WHERE employee_id = ? LIMIT 1', [req.params.id]);
+    if (trx.length || cert.length) return res.status(409).json({ error: 'Cannot delete: used in transactions' });
 
-  const [old] = await pool.query(`SELECT ${SAFE_COLS} FROM mst_employee WHERE employee_id = ?`, [req.params.id]);
-  if (old.length) {
-    await logAudit({
-      table_name: 'mst_employee',
-      record_id: req.params.id,
-      operation: 'DELETE',
-      old_data: old[0],
-      changed_by: req.changedBy,
-    });
-  }
+    const [old] = await pool.query(`SELECT ${SAFE_COLS} FROM mst_employee WHERE employee_id = ?`, [req.params.id]);
+    if (old.length) {
+      await logAudit({
+        table_name: 'mst_employee',
+        record_id: req.params.id,
+        operation: 'DELETE',
+        old_data: old[0],
+        changed_by: req.changedBy,
+      });
+    }
 
     await pool.query('DELETE FROM mst_employee WHERE employee_id = ?', [req.params.id]);
     res.json({ deleted: true });
