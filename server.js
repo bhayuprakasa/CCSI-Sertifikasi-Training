@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { exec } = require('child_process');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const { requireApiKey, sessionToken, SESSION_COOKIE, ONE_DAY_MS } = require('./middleware/auth');
 const pool = require('./db');
