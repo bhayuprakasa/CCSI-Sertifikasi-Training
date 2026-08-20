@@ -54,36 +54,40 @@ router.get('/', async (req, res) => {
   res.json(rows);
 });
 
-router.get('/:id', async (req, res) => {
-  const [rows] = await pool.query(
-    `SELECT ${SAFE_COLS} FROM mst_employee WHERE employee_id = ?`,
-    [req.params.id]
-  );
-  if (!rows.length) return res.status(404).json({ error: 'Not found' });
-  res.json(rows[0]);
+router.get('/:id', async (req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT ${SAFE_COLS} FROM mst_employee WHERE employee_id = ?`,
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    res.json(rows[0]);
+  } catch (e) { next(e); }
 });
 
-router.post('/', async (req, res) => {
-  const { employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head } = req.body;
-  if (!employee_id || !full_name) return res.status(400).json({ error: 'employee_id and full_name required' });
-  if (employment_status && !VALID_EMPLOYMENT_STATUS.includes(employment_status)) {
-    return res.status(400).json({ error: `employment_status must be one of: ${VALID_EMPLOYMENT_STATUS.join(', ')}` });
-  }
+router.post('/', async (req, res, next) => {
+  try {
+    const { employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head } = req.body;
+    if (!employee_id || !full_name) return res.status(400).json({ error: 'employee_id and full_name required' });
+    if (employment_status && !VALID_EMPLOYMENT_STATUS.includes(employment_status)) {
+      return res.status(400).json({ error: `employment_status must be one of: ${VALID_EMPLOYMENT_STATUS.join(', ')}` });
+    }
 
-  await pool.query(
-    'INSERT INTO mst_employee (employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head) VALUES (?,?,?,?,?,?,?,?,?,?)',
-    [employee_id, full_name, department, position, site, email || null, employment_status || 'PKWTT', join_date || null, is_active ?? 1, is_dept_head ?? 0]
-  );
+    await pool.query(
+      'INSERT INTO mst_employee (employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head) VALUES (?,?,?,?,?,?,?,?,?,?)',
+      [employee_id, full_name, department, position, site, email || null, employment_status || 'PKWTT', join_date || null, is_active ?? 1, is_dept_head ?? 0]
+    );
 
-  await logAudit({
-    table_name: 'mst_employee',
-    record_id: employee_id,
-    operation: 'CREATE',
-    new_data: req.body,
-    changed_by: req.changedBy,
-  });
+    await logAudit({
+      table_name: 'mst_employee',
+      record_id: employee_id,
+      operation: 'CREATE',
+      new_data: req.body,
+      changed_by: req.changedBy,
+    });
 
-  res.status(201).json({ employee_id });
+    res.status(201).json({ employee_id });
+  } catch (e) { next(e); }
 });
 
 router.put('/:id', async (req, res) => {
@@ -151,8 +155,9 @@ router.delete('/:id', async (req, res) => {
     });
   }
 
-  await pool.query('DELETE FROM mst_employee WHERE employee_id = ?', [req.params.id]);
-  res.json({ deleted: true });
+    await pool.query('DELETE FROM mst_employee WHERE employee_id = ?', [req.params.id]);
+    res.json({ deleted: true });
+  } catch (e) { next(e); }
 });
 
 module.exports = router;
