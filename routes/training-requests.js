@@ -148,7 +148,13 @@ router.get('/approve/:token', async (req, res) => {
   // Ambil info Direktur HRD dari tabel config atau env
   let hrdApprover = null;
   try {
-    const [hrdRows] = await pool.query('SELECT * FROM cfg_approver_hrd ORDER BY id DESC LIMIT 1');
+    const [hrdRows] = await pool.query(`
+      SELECT c.id, c.employee_id, c.full_name, c.position, c.department, c.set_at,
+             COALESCE(e.email, c.email) AS email
+      FROM cfg_approver_hrd c
+      LEFT JOIN mst_employee e ON e.employee_id = c.employee_id
+      ORDER BY c.id DESC LIMIT 1
+    `);
     if (hrdRows.length && hrdRows[0].email) hrdApprover = hrdRows[0];
   } catch { /* tabel belum ada */ }
 

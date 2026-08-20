@@ -16,7 +16,13 @@ router.get('/', (req, res) => {
 // ─── GET Approver Direktur HRD ────────────────────────────────────────────────
 router.get('/approver-hrd', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM cfg_approver_hrd ORDER BY id DESC LIMIT 1');
+    const [rows] = await pool.query(`
+      SELECT c.id, c.employee_id, c.full_name, c.position, c.department, c.set_at,
+             COALESCE(e.email, c.email) AS email
+      FROM cfg_approver_hrd c
+      LEFT JOIN mst_employee e ON e.employee_id = c.employee_id
+      ORDER BY c.id DESC LIMIT 1
+    `);
     res.json(rows[0] || null);
   } catch (e) {
     res.status(500).json({ error: e.message });
