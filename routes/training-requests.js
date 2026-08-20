@@ -15,7 +15,7 @@ function validScore(v) {
 
 router.get('/', async (req, res) => {
   const [requests] = await pool.query(
-    'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, training_type, organizer, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status FROM trx_training_request ORDER BY request_id DESC'
+    'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, training_type, organizer, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status, approver_name, approver_email, approver_position FROM trx_training_request ORDER BY request_id DESC'
   );
   const [participants] = await pool.query('SELECT participant_id, request_id, participant_name FROM trx_training_request_participant ORDER BY participant_id');
   const result = requests.map(r => ({
@@ -61,8 +61,9 @@ router.post('/', async (req, res) => {
         eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan,
         coffee_break,
         score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total,
-        submitted_by, is_scheduled, approval_status, approval_token
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        submitted_by, is_scheduled, approval_status, approval_token,
+        approver_name, approver_email, approver_position
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         item.department, item.training_name, item.training_venue || null,
         item.training_date_start, item.training_date_end || item.training_date_start,
@@ -78,6 +79,7 @@ router.post('/', async (req, res) => {
         item.is_scheduled != null ? (item.is_scheduled ? 1 : 0) : 0,
         item.submitted_by_hr ? 'Submitted_HR' : 'PendingBODDept',
         approvalToken,
+        item.approver1_name || null, item.approver1_email || null, item.approver1_position || null,
       ]
     );
 
@@ -148,7 +150,13 @@ router.get('/approve/:token', async (req, res) => {
   // Ambil info Direktur HRD dari tabel config atau env
   let hrdApprover = null;
   try {
-    const [hrdRows] = await pool.query('SELECT * FROM cfg_approver_hrd ORDER BY id DESC LIMIT 1');
+    const [hrdRows] = await pool.query(`
+      SELECT c.id, c.employee_id, c.full_name, c.position, c.department, c.set_at,
+             COALESCE(e.email, c.email) AS email
+      FROM cfg_approver_hrd c
+      LEFT JOIN mst_employee e ON e.employee_id = c.employee_id
+      ORDER BY c.id DESC LIMIT 1
+    `);
     if (hrdRows.length && hrdRows[0].email) hrdApprover = hrdRows[0];
   } catch { /* tabel belum ada */ }
 

@@ -13,10 +13,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const publicDir = path.join(__dirname, 'public');
 
-// Build CORS allowlist from APP_URL + optional CORS_ORIGINS env var
+// Build CORS allowlist from APP_URL + optional CORS_ORIGINS env var.
+// localhost variants are always included so local/dev access works without .env.
 const ALLOWED_ORIGINS = [
   process.env.APP_URL,
   ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()) : []),
+  `http://localhost:${process.env.PORT || 3000}`,
+  `http://127.0.0.1:${process.env.PORT || 3000}`,
 ].filter(Boolean);
 
 app.use(cors({
