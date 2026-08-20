@@ -9,12 +9,9 @@ const VALID_EMPLOYMENT_STATUS = ['PKWTT', 'PKWT'];
 router.get('/', async (req, res) => {
   const { dept, direktur, dept_head, active } = req.query;
   if (direktur === '1') {
-    // Hanya karyawan departemen BOD atau Direksi (exact match, case-insensitive)
+    // Hanya karyawan departemen BOD
     const [rows] = await pool.query(
-      `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND (
-        LOWER(department) = 'bod' OR
-        LOWER(department) = 'direksi'
-      ) ORDER BY full_name`
+      `SELECT ${SAFE_COLS} FROM mst_employee WHERE is_active = 1 AND LOWER(department) = 'bod' ORDER BY full_name`
     );
     return res.json(rows);
   }
