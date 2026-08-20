@@ -4,24 +4,29 @@ const path = require('path');
 require('dotenv').config();
 
 const { requireApiKey } = require('./middleware/auth');
+const pool = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS — izinkan semua origin; keamanan dijamin oleh X-API-Key middleware
+// Build CORS allowlist from APP_URL + optional CORS_ORIGINS env var
+const ALLOWED_ORIGINS = [
+  process.env.APP_URL,
+  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()) : []),
+].filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin: (origin, cb) => {
+    // Allow same-origin requests (no Origin header) and whitelisted origins
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error(`Origin ${origin} not allowed by CORS`));
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'X-API-Key', 'X-Changed-By'],
 }));
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Client config — kirim API key ke frontend; harus SEBELUM middleware auth
-app.get('/api/client-config', (req, res) => {
-  res.json({ apiKey: process.env.API_KEY || '' });
-});
 
 // API key auth — applied before all /api routes
 app.use('/api', requireApiKey);
@@ -45,55 +50,11 @@ app.get('/', (req, res) => {
 // Health check — cek koneksi MySQL tanpa auth
 app.get('/api/health', async (req, res) => {
   try {
-    const pool = require('./db');
     await pool.query('SELECT 1');
     res.json({ status: 'ok', db: 'connected' });
   } catch (e) {
     res.status(503).json({ status: 'error', db: 'disconnected', detail: e.message });
   }
-});
-
-// ── Auto-pull dari GitHub setiap 5 menit ────────────────────────────────────
-const { exec } = require('child_process');
-const AUTO_PULL_INTERVAL = 5 * 60 * 1000; // 5 menit
-
-function autoPull() {
-  const cwd = __dirname;
-  exec('git fetch origin main 2>&1 && git rev-parse HEAD && git rev-parse origin/main', { cwd }, (err, stdout) => {
-    if (err) { console.warn('[AutoPull] fetch error:', err.message); return; }
-
-    const lines = stdout.trim().split('\n');
-    const local  = lines[lines.length - 2];
-    const remote = lines[lines.length - 1];
-
-    if (local === remote) return;
-
-    console.log('[AutoPull] Commit baru terdeteksi, menjalankan git pull...');
-    // Bersihkan state merge yang tertinggal, lalu stash, lalu pull
-    exec('git merge --abort 2>/dev/null; git stash', { cwd }, () => {
-      exec('git pull origin main', { cwd }, (err2, out2) => {
-        if (err2) { console.error('[AutoPull] git pull error:', err2.message); return; }
-        console.log('[AutoPull] git pull:', out2.trim());
-
-        exec('npm install --omit=dev', { cwd }, () => {
-          console.log('[AutoPull] npm install selesai. Restart server...');
-          setTimeout(() => process.exit(0), 500);
-        });
-      });
-    });
-  });
-}
-
-setInterval(autoPull, AUTO_PULL_INTERVAL);
-
-// Endpoint manual trigger deploy (opsional, butuh secret)
-app.post('/deploy', (req, res) => {
-  const secret = req.headers['x-deploy-secret'];
-  if (!secret || secret !== process.env.DEPLOY_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  res.json({ ok: true, message: 'Deploy dimulai, cek log server...' });
-  setTimeout(autoPull, 500);
 });
 
 // Global error handler — catches async throws from route handlers
@@ -103,18 +64,6 @@ app.use((err, req, res, _next) => {
     return res.status(403).json({ error: 'CORS: origin not allowed' });
   }
   res.status(500).json({ error: 'Internal server error' });
-});
-
-// Tangkap promise rejection yang tidak di-catch — cegah crash Node.js
-process.on('unhandledRejection', (reason) => {
-  console.error('[UnhandledRejection]', reason);
-  // Jangan exit — biarkan server tetap jalan
-});
-
-// Tangkap exception synchronous yang tidak di-catch
-process.on('uncaughtException', (err) => {
-  console.error('[UncaughtException]', err.message);
-  // Jangan exit — biarkan server tetap jalan
 });
 
 app.listen(PORT, '0.0.0.0', () => {
