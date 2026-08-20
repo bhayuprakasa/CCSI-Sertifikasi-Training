@@ -11,15 +11,11 @@ router.get('/', async (req, res) => {
   const { dept, direktur, dept_head, active } = req.query;
   if (direktur === '1') {
     try {
-      const [allRows] = await pool.query(`SELECT employee_id, full_name, department, is_active FROM mst_employee`);
-      console.log('[DEBUG direktur=1] semua karyawan:', JSON.stringify(allRows));
       const [rows] = await pool.query(
         `SELECT ${BOD_COLS} FROM mst_employee WHERE is_active = 1 AND LOWER(TRIM(department)) = 'bod' ORDER BY full_name`
       );
-      console.log('[DEBUG direktur=1] hasil filter BOD:', JSON.stringify(rows));
       return res.json(rows);
     } catch (e) {
-      console.error('[DEBUG direktur=1] error:', e.message);
       return res.status(500).json({ error: e.message });
     }
   }
@@ -142,7 +138,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const [trx] = await pool.query('SELECT 1 FROM trx_employee_program WHERE employee_id = ? LIMIT 1', [req.params.id]);
   const [cert] = await pool.query('SELECT 1 FROM trx_certification WHERE employee_id = ? LIMIT 1', [req.params.id]);
-  if (trx.length || cert.length) return res.status(409).json({ error: 'Cannot delete: used in transactions' });
+  if (trx.length || cert.length) return res.status(409).json({ error: 'Cannot delete: used in transactions' });  
 
   const [old] = await pool.query(`SELECT ${SAFE_COLS} FROM mst_employee WHERE employee_id = ?`, [req.params.id]);
   if (old.length) {
