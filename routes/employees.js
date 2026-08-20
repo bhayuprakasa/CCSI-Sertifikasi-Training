@@ -11,12 +11,15 @@ router.get('/', async (req, res) => {
   const { dept, direktur, dept_head, active } = req.query;
   if (direktur === '1') {
     try {
-      // Gunakan BOD_COLS — hindari kolom flag yang namanya berbeda antar migrasi
+      const [allRows] = await pool.query(`SELECT employee_id, full_name, department, is_active FROM mst_employee`);
+      console.log('[DEBUG direktur=1] semua karyawan:', JSON.stringify(allRows));
       const [rows] = await pool.query(
         `SELECT ${BOD_COLS} FROM mst_employee WHERE is_active = 1 AND LOWER(TRIM(department)) = 'bod' ORDER BY full_name`
       );
+      console.log('[DEBUG direktur=1] hasil filter BOD:', JSON.stringify(rows));
       return res.json(rows);
     } catch (e) {
+      console.error('[DEBUG direktur=1] error:', e.message);
       return res.status(500).json({ error: e.message });
     }
   }
