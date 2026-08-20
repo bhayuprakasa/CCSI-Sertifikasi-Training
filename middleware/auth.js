@@ -15,6 +15,12 @@ function requireApiKey(req, res, next) {
     return next();
   }
 
+  // GET /employees?direktur=1 — read-only untuk dropdown approver HRD, non-sensitif
+  if (req.method === 'GET' && req.path === '/employees' && req.query.direktur === '1') {
+    req.changedBy = 'system';
+    return next();
+  }
+
   if (!API_KEY) {
     // Dev mode: no key configured — allow but warn once
     if (!requireApiKey._warned) {

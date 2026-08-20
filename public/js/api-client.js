@@ -45,11 +45,11 @@ window.loadEmployeesWithFallback = async function () {
 };
 
 (function () {
-  const API_KEY = 'fe3eb92d6397054ea317d6fc0ec6d73569de2667865cb380b849394569894755';
   const USER_STORAGE_KEY = 'ccsi_current_user';
+  // API key diambil dari server (/api/client-config) — tidak hardcode di sini
+  let _apiKey = '';
 
   // ── Inisialisasi sesi user ────────────────────────────────────────────────────
-  // Minta nama user satu kali per sesi browser; simpan di sessionStorage
   function getCurrentUser() {
     let user = sessionStorage.getItem(USER_STORAGE_KEY);
     if (!user) {
@@ -60,23 +60,26 @@ window.loadEmployeesWithFallback = async function () {
     return user;
   }
 
+  // ── Ambil API key dari server saat startup ────────────────────────────────────
+  const _fetch = window.fetch.bind(window);
+
+  _fetch('/api/client-config')
+    .then(r => r.ok ? r.json() : {})
+    .then(cfg => { if (cfg.apiKey) _apiKey = cfg.apiKey; })
+    .catch(() => { /* server dev mode — key kosong, request tetap diterima */ });
+
   // Panggil sekali agar prompt muncul saat halaman pertama dibuka
   getCurrentUser();
 
   // ── Patch window.fetch ────────────────────────────────────────────────────────
-  const _fetch = window.fetch.bind(window);
-
   window.fetch = function (url, options = {}) {
-    // Hanya tambahkan header ke request /api/...
     const urlStr = typeof url === 'string' ? url : (url.url || '');
     if (!urlStr.startsWith('/api/')) {
       return _fetch(url, options);
     }
 
-    // Approval link routes (GET /api/training-requests/approve/*) tidak butuh API key
-    // tapi tidak ada harm mengirimnya juga — server mengizinkan kedua cara
     const headers = new Headers(options.headers || {});
-    headers.set('X-API-Key', API_KEY);
+    if (_apiKey) headers.set('X-API-Key', _apiKey);
     headers.set('X-Changed-By', sessionStorage.getItem(USER_STORAGE_KEY) || 'unknown');
 
     return _fetch(url, { ...options, headers });
