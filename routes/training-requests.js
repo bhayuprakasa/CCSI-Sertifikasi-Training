@@ -7,6 +7,25 @@ const { sendApprovalEmail, sendHrdApprovalEmail, isEmailConfigured } = require('
 
 const VALID_TRAINING_TYPE = ['Internal', 'Eksternal'];
 
+// Returns the best available base URL for building email links.
+// Priority: APP_URL env → request host (if not localhost) → server network IP → localhost fallback.
+function getAppUrl(req) {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, '');
+  const host = req.get('host') || '';
+  if (host && !host.startsWith('localhost') && !host.startsWith('127.0.0.1')) {
+    return `${req.protocol}://${host}`;
+  }
+  // Request came from localhost — use the server's actual network IP instead
+  const nets = require('os').networkInterfaces();
+  const ip = Object.values(nets).flat().find(n => n.family === 'IPv4' && !n.internal);
+  if (ip) {
+    console.warn('[getAppUrl] APP_URL not set — falling back to detected network IP:', ip.address,
+      '(set APP_URL in .env for a stable URL)');
+    return `http://${ip.address}:${process.env.PORT || 3000}`;
+  }
+  return `http://localhost:${process.env.PORT || 3000}`;
+}
+
 function validScore(v) {
   if (v == null) return true;
   const n = Number(v);
@@ -104,7 +123,7 @@ router.post('/', async (req, res) => {
     // Kirim email approval ke approver yang dipilih (non-blocking) — dilewati jika submitted by HR
     const approverEmail = item.approver1_email || process.env.APPROVAL_EMAIL;
     if (!item.submitted_by_hr && approverEmail && isEmailConfigured()) {
-      const appUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+      const appUrl = getAppUrl(req);
       sendApprovalEmail({
         request: { ...item, cost_total: costTotal, score_grand_total: gt, request_id: requestId },
         token: approvalToken,
@@ -175,7 +194,7 @@ router.get('/approve/:token', async (req, res) => {
       'SELECT participant_name FROM trx_training_request_participant WHERE request_id = ?',
       [req_.request_id]
     );
-    const appUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+    const appUrl = getAppUrl(req);
     sendHrdApprovalEmail({
       request: req_,
       token:   hrdToken,
