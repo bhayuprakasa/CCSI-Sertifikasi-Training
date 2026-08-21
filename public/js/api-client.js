@@ -4,8 +4,8 @@
 
 // ── IndexedDB helper (shared, dipakai semua halaman) ─────────────────────────
 window.ccsiIdb = (function () {
-  const DB_NAME = 'CCSI_Training_v2', DB_VER = 1;
-  const STORES = ['mst_employee','mst_competency','mst_program','trx_employee_program','trx_certification'];
+  const DB_NAME = 'CCSI_Training_v2', DB_VER = 2;
+  const STORES = ['mst_employee','mst_competency','mst_program','trx_employee_program','trx_certification','trx_training_request'];
   let _db = null;
 
   function open() {
