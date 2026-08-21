@@ -882,10 +882,26 @@ const _API_MAP = {
   'mst_program': '/api/programs',
   'mst_competency': '/api/competencies'
 };
+const _apiCache = {};
+const _CACHE_TTL = 30000; // 30 detik
 function getAll(store) {
   const ep = _API_MAP[store];
   if (!ep) return idbGetAll(store);
-  return fetch(ep).then(r => r.ok ? r.json() : Promise.reject(new Error('API error'))).catch(() => idbGetAll(store));
+  const now = Date.now();
+  const cached = _apiCache[store];
+  if (cached && now - cached.ts < _CACHE_TTL) return Promise.resolve(cached.data);
+  const pending = _apiCache[store + '_pending'];
+  if (pending) return pending;
+  const req = fetch(ep)
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('API error')))
+    .then(data => { _apiCache[store] = { data, ts: Date.now() }; delete _apiCache[store + '_pending']; return data; })
+    .catch(() => { delete _apiCache[store + '_pending']; return idbGetAll(store); });
+  _apiCache[store + '_pending'] = req;
+  return req;
+}
+function invalidateCache(store) {
+  delete _apiCache[store];
+  delete _apiCache[store + '_pending'];
 }
 function putRecord(store, obj) {
   return new Promise((res, rej) => {
@@ -2414,6 +2430,7 @@ async function saveTrx() {
         const r=await fetch('/api/transactions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
         if(r.ok){const d=await r.json();obj.trx_id=d.trx_id;await putRecord('trx_employee_program',obj);}
       }
+      invalidateCache('trx_employee_program');
     } catch(e){console.warn('MySQL sync trx gagal:',e);}
     showToast(editTrxId?'Data berhasil diupdate':'Data berhasil disimpan');
   } else {
@@ -2440,6 +2457,7 @@ async function saveTrx() {
         const r=await fetch('/api/certifications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
         if(r.ok){const d=await r.json();obj.cert_id=d.cert_id;await putRecord('trx_certification',obj);}
       }
+      invalidateCache('trx_certification');
     } catch(e){console.warn('MySQL sync cert gagal:',e);}
     showToast(editCertId?'Sertifikasi berhasil diupdate':'Sertifikasi berhasil disimpan');
   }
@@ -2450,14 +2468,14 @@ async function saveTrx() {
 async function deleteTrx(id) {
   if(!confirm('Hapus data transaksi ini?')) return;
   await deleteRecord('trx_employee_program',id);
-  try { await fetch(`/api/transactions/${id}`,{method:'DELETE'}); } catch(e){console.warn('MySQL sync delete trx gagal:',e);}
+  try { await fetch(`/api/transactions/${id}`,{method:'DELETE'}); invalidateCache('trx_employee_program'); } catch(e){console.warn('MySQL sync delete trx gagal:',e);}
   showToast('Data dihapus');
   renderRekap(); renderDashboard();
 }
 async function deleteCert(id) {
   if(!confirm('Hapus sertifikasi ini?')) return;
   await deleteRecord('trx_certification',id);
-  try { await fetch(`/api/certifications/${id}`,{method:'DELETE'}); } catch(e){console.warn('MySQL sync delete cert gagal:',e);}
+  try { await fetch(`/api/certifications/${id}`,{method:'DELETE'}); invalidateCache('trx_certification'); } catch(e){console.warn('MySQL sync delete cert gagal:',e);}
   showToast('Sertifikasi dihapus');
   renderSertif(); renderDashboard();
 }
@@ -2625,6 +2643,7 @@ async function saveMaster() {
       } else {
         await fetch('/api/employees',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
       }
+      invalidateCache('mst_employee');
     } catch(e){ console.warn('Sync MySQL gagal (offline mode):',e); }
     showToast(masterEditKey?'Data karyawan diperbarui':'Karyawan berhasil ditambahkan');
 
@@ -2671,6 +2690,7 @@ async function saveMaster() {
         const r=await fetch('/api/programs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
         if(r.ok){const d=await r.json();obj.program_id=d.program_id;await putRecord('mst_program',obj);}
       }
+      invalidateCache('mst_program');
     } catch(e){console.warn('MySQL sync program gagal:',e);}
     showToast(masterEditKey?'Program berhasil diperbarui':'Program berhasil ditambahkan');
 
@@ -2692,6 +2712,7 @@ async function saveMaster() {
         const r=await fetch('/api/competencies',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
         if(r.ok){const d=await r.json();obj.competency_id=d.competency_id;await putRecord('mst_competency',obj);}
       }
+      invalidateCache('mst_competency');
     } catch(e){console.warn('MySQL sync competency gagal:',e);}
     showToast(masterEditKey?'Kompetensi berhasil diperbarui':'Kompetensi berhasil ditambahkan');
   }
