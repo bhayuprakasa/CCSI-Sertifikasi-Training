@@ -242,6 +242,15 @@ router.get('/reject-hrd/:token', async (req, res) => {
   res.send(approvalPage('rejected_hrd', 'Rejected_BODHR', req_));
 });
 
+router.patch('/:id', async (req, res) => {
+  const { training_date_start, training_date_end } = req.body;
+  await pool.query(
+    'UPDATE trx_training_request SET training_date_start = ?, training_date_end = ? WHERE request_id = ?',
+    [training_date_start || null, training_date_end || null, req.params.id]
+  );
+  res.json({ updated: true });
+});
+
 router.delete('/:id', async (req, res) => {
   const [old] = await pool.query('SELECT * FROM trx_training_request WHERE request_id = ?', [req.params.id]);
   const [oldParts] = await pool.query('SELECT participant_name FROM trx_training_request_participant WHERE request_id = ?', [req.params.id]);
