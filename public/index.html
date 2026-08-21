@@ -1579,8 +1579,8 @@ function rkRenderRows(data) {
   msgEl.innerHTML=`<div class="tn-success">✅ <strong>${data.length}</strong> permohonan pelatihan tercatat — Total biaya: <strong>${fmtRp(totalCost)}</strong></div>`;
   bodyEl.innerHTML=data.map((r,i)=>{
     const tglSubmit=rkFmtDate(r.submitted_at);
-    const tglMulai=rkFmtDate(r.training_date_start);
-    const tglSelesai=rkFmtDate(r.training_date_end);
+    const tglMulai=rkFmtDate(r.actual_date_start);
+    const tglSelesai=rkFmtDate(r.actual_date_end);
     const apvStatus=r.approval_status||'PendingBODDept';
     const apvMap={'Submitted_HR':{cls:'b-purple',icon:'📋',lbl:'Submitted by HR'},'PendingBODDept':{cls:'b-yellow',icon:'⏳',lbl:'Pending BOD Dept'},'PendingBODHR':{cls:'b-navy',icon:'⏳',lbl:'Pending BOD HR'},'Approved':{cls:'b-green',icon:'✅',lbl:'Disetujui'},'Rejected_BODDept':{cls:'b-red',icon:'❌',lbl:'Ditolak BOD Dept'},'Rejected_BODHR':{cls:'b-red',icon:'❌',lbl:'Ditolak BOD HR'}};
     const {cls:statusCls,icon:statusIcon,lbl:statusLbl}=apvMap[apvStatus]||{cls:'b-gray',icon:'',lbl:apvStatus};
@@ -1674,8 +1674,8 @@ function rkOpenDateModal(id){
   const r=rkAllData.find(x=>x.request_id===id);
   _rkDateModalId=id;
   const toInputDate=s=>s?((s+'').includes('T')?(s+'').split('T')[0]:(s+'')):'' ;
-  document.getElementById('rkDateStart').value=toInputDate(r?.training_date_start);
-  document.getElementById('rkDateEnd').value=toInputDate(r?.training_date_end);
+  document.getElementById('rkDateStart').value=toInputDate(r?.actual_date_start);
+  document.getElementById('rkDateEnd').value=toInputDate(r?.actual_date_end);
   document.getElementById('rkDateModal').classList.add('open');
 }
 function rkCloseDateModal(){document.getElementById('rkDateModal').classList.remove('open');_rkDateModalId=null;}
@@ -1687,7 +1687,7 @@ async function rkSaveDates(){
   const btn=document.getElementById('rkDateSaveBtn');
   btn.disabled=true;btn.textContent='⏳ Menyimpan...';
   try{
-    const res=await fetch(`/api/training-requests/${_rkDateModalId}/dates`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({training_date_start:start,training_date_end:end})});
+    const res=await fetch(`/api/training-requests/${_rkDateModalId}/dates`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({actual_date_start:start,actual_date_end:end})});
     if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||res.statusText);}
     showToast('Tanggal berhasil diperbarui');
     rkCloseDateModal();
