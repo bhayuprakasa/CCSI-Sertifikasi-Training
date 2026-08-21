@@ -451,9 +451,21 @@ async function prLoadApprovers() {
   sel.innerHTML = '<option value="">-- Memuat... --</option>';
   sel.disabled = true;
   try {
-    const res = await fetch('/api/employees?direktur=1');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const direksi = await res.json();
+    let direksi = [];
+    try {
+      const res = await fetch('/api/employees?direktur=1');
+      if (res.ok) direksi = await res.json();
+    } catch (_) {}
+    // Fallback ke IndexedDB jika API gagal atau kosong
+    if (!direksi.length) {
+      const db = await openIDB();
+      const emps = await idbGetAll(db, 'mst_employee');
+      direksi = emps.filter(e => {
+        const active = e.is_active !== 0 && e.is_active !== false;
+        const isBod = (e.department || '').toLowerCase().trim() === 'bod';
+        return active && (isBod || e.is_direktur);
+      });
+    }
     sel.disabled = false;
     if (!direksi.length) {
       sel.innerHTML = '<option value="">⚠ Tidak ada karyawan Direksi/BOD aktif</option>';
