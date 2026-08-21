@@ -364,6 +364,13 @@ select.filter:focus{border-color:var(--navy-lt)}
                 <span class="ms-clear-btn" onclick="rkClearMs('Dept')">Hapus pilihan</span>
               </div>
             </div>
+            <div class="ms-wrap">
+              <button class="ms-btn" id="rkMsBtnStatus" onclick="rkToggleMs('Status')">🔖 <span id="rkMsLblStatus">Semua Status</span> <span style="font-size:.65rem">▾</span></button>
+              <div class="ms-drop" id="rkMsDropStatus">
+                <div class="ms-opts" id="rkMsOptsStatus"></div>
+                <span class="ms-clear-btn" onclick="rkClearMs('Status')">Hapus pilihan</span>
+              </div>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -1531,7 +1538,16 @@ async function elRetry(idx) {
 // =====================
 // REKAP
 // =====================
-const rkMsState = { Tahun: new Set(), Dept: new Set() };
+const rkMsState = { Tahun: new Set(), Dept: new Set(), Status: new Set() };
+const RK_STATUS_LABELS = {
+  'Submitted':        'Submitted',
+  'Submitted_HR':     'Submitted by HR',
+  'PendingBODDept':   'Pending BOD Dept',
+  'PendingBODHR':     'Pending BOD HR',
+  'Approved':         'Disetujui',
+  'Rejected_BODDept': 'Ditolak BOD Dept',
+  'Rejected_BODHR':   'Ditolak BOD HR',
+};
 let rkAllData = [];
 const rkEscH = s => (s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const rkGetYear = d => d ? (d+'').split('T')[0].split('-')[0] : null;
@@ -1566,7 +1582,7 @@ function rkUpdateMsLbl(key) {
   const n = rkMsState[key].size;
   const btn = document.getElementById('rkMsBtn' + key);
   const lbl = document.getElementById('rkMsLbl' + key);
-  const def = { Tahun: 'Semua Tahun', Dept: 'Semua Dept' };
+  const def = { Tahun: 'Semua Tahun', Dept: 'Semua Dept', Status: 'Semua Status' };
   let cnt = btn.querySelector('.ms-count');
   if (n === 0) { lbl.textContent = def[key]; if (cnt) cnt.remove(); }
   else {
@@ -1576,9 +1592,9 @@ function rkUpdateMsLbl(key) {
   }
 }
 
-function rkBuildOpts(key, values) {
+function rkBuildOpts(key, values, labelMap) {
   document.getElementById('rkMsOpts' + key).innerHTML = values.map(v =>
-    `<label class="ms-opt"><input type="checkbox" value="${rkEscH(v)}" ${rkMsState[key].has(v)?'checked':''} onchange="rkOnMsChange('${key}',this)"> ${rkEscH(v)}</label>`
+    `<label class="ms-opt"><input type="checkbox" value="${rkEscH(v)}" ${rkMsState[key].has(v)?'checked':''} onchange="rkOnMsChange('${key}',this)"> ${rkEscH(labelMap ? (labelMap[v]||v) : v)}</label>`
   ).join('');
 }
 
@@ -1586,6 +1602,7 @@ function rkApplyFilter() {
   let data = rkAllData;
   if (rkMsState.Tahun.size > 0) data = data.filter(r => rkMsState.Tahun.has(rkGetYear(r.training_date_start)));
   if (rkMsState.Dept.size > 0) data = data.filter(r => rkMsState.Dept.has(r.department));
+  if (rkMsState.Status.size > 0) data = data.filter(r => rkMsState.Status.has(r.approval_status || 'PendingBODDept'));
   rkRenderRows(data);
 }
 
@@ -1724,8 +1741,11 @@ async function renderRekap() {
   try { rkAllData = await fetch('/api/training-requests').then(r=>r.json()); } catch { rkAllData=[]; }
   const years=[...new Set(rkAllData.map(r=>rkGetYear(r.training_date_start)).filter(Boolean))].sort().reverse();
   const depts=[...new Set(rkAllData.map(r=>r.department).filter(Boolean))].sort();
+  const rkStatusOrder=['Submitted','Submitted_HR','PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR'];
+  const statuses=[...new Set(rkAllData.map(r=>r.approval_status||'PendingBODDept'))].sort((a,b)=>rkStatusOrder.indexOf(a)-rkStatusOrder.indexOf(b));
   rkBuildOpts('Tahun', years);
   rkBuildOpts('Dept', depts);
+  rkBuildOpts('Status', statuses, RK_STATUS_LABELS);
   rkApplyFilter();
 }
 
