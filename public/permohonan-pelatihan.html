@@ -901,10 +901,17 @@ async function prSendApproval() {
     const sent = (res.results || []).filter(r => r.status === 'sent');
     const failed = (res.results || []).filter(r => r.status === 'failed');
     const skipped = res.skipped || [];
-    let msg = `Email terkirim ke ${sent.length} approver`;
-    if (skipped.length) msg += `, ${skipped.length} dilewati`;
+    const isSuccess = sent.length > 0 && failed.length === 0;
+    let msg = sent.length > 0
+      ? `Email terkirim ke ${sent.length} approver`
+      : 'Tidak ada email yang terkirim';
     if (failed.length) msg += `, ${failed.length} gagal`;
-    showToast(msg, failed.length === 0);
+    if (skipped.length) {
+      msg += `, ${skipped.length} dilewati`;
+      const reasons = [...new Set(skipped.map(s => s.reason).filter(Boolean))];
+      if (reasons.length) msg += ` — ${reasons.join('; ')}`;
+    }
+    showToast(msg, isSuccess);
     loadRekapData();
   } catch (e) {
     showToast(e.message, false);
