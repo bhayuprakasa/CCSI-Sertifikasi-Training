@@ -329,6 +329,7 @@ function approvalPage(state, status, req_) {
     not_found: {
       icon: '⚠️', color: '#e8a020', title: 'Link Tidak Valid',
       msg: 'Link persetujuan ini tidak valid atau sudah kadaluarsa.',
+      showBack: false,
     },
   };
   const c = configs[state] || configs.not_found;
