@@ -3,9 +3,28 @@ const router = express.Router();
 const crypto = require('crypto');
 const pool = require('../db');
 const { logAudit } = require('../middleware/auditLog');
-const { sendApprovalEmail, sendHrdApprovalEmail, isEmailConfigured } = require('../utils/mailer');
+const { sendApprovalEmail, sendHrdApprovalEmail, sendMultiApprovalEmail, isEmailConfigured } = require('../utils/mailer');
 
 const VALID_TRAINING_TYPE = ['Internal', 'Eksternal'];
+
+// Returns the best available base URL for building email links.
+// Priority: APP_URL env → request host (if not localhost) → server network IP → localhost fallback.
+function getAppUrl(req) {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, '');
+  const host = req.get('host') || '';
+  if (host && !host.startsWith('localhost') && !host.startsWith('127.0.0.1')) {
+    return `${req.protocol}://${host}`;
+  }
+  // Request came from localhost — use the server's actual network IP instead
+  const nets = require('os').networkInterfaces();
+  const ip = Object.values(nets).flat().find(n => n.family === 'IPv4' && !n.internal);
+  if (ip) {
+    console.warn('[getAppUrl] APP_URL not set — falling back to detected network IP:', ip.address,
+      '(set APP_URL in .env for a stable URL)');
+    return `http://${ip.address}:${process.env.PORT || 3000}`;
+  }
+  return `http://localhost:${process.env.PORT || 3000}`;
+}
 
 function validScore(v) {
   if (v == null) return true;
@@ -15,7 +34,7 @@ function validScore(v) {
 
 router.get('/', async (req, res) => {
   const [requests] = await pool.query(
-    'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, training_type, organizer, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status FROM trx_training_request ORDER BY request_id DESC'
+    'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, actual_date_start, actual_date_end, training_type, organizer, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status, approver_name, approver_email, approver_position FROM trx_training_request ORDER BY request_id DESC'
   );
   const [participants] = await pool.query('SELECT participant_id, request_id, participant_name FROM trx_training_request_participant ORDER BY participant_id');
   const result = requests.map(r => ({
@@ -61,8 +80,9 @@ router.post('/', async (req, res) => {
         eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan,
         coffee_break,
         score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total,
-        submitted_by, is_scheduled, approval_status, approval_token
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        submitted_by, is_scheduled, approval_status, approval_token,
+        approver_name, approver_email, approver_position
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         item.department, item.training_name, item.training_venue || null,
         item.training_date_start, item.training_date_end || item.training_date_start,
@@ -76,8 +96,9 @@ router.post('/', async (req, res) => {
         pa, ph, ma, mh, gt,
         item.submitted_by || null,
         item.is_scheduled != null ? (item.is_scheduled ? 1 : 0) : 0,
-        item.submitted_by_hr ? 'Submitted_HR' : 'PendingBODDept',
+        item.submitted_by_hr ? 'Submitted_HR' : 'Submitted',
         approvalToken,
+        item.approver1_name || null, item.approver1_email || null, item.approver1_position || null,
       ]
     );
 
@@ -99,28 +120,99 @@ router.post('/', async (req, res) => {
 
     await conn.commit();
 
-    // Kirim email approval ke approver yang dipilih (non-blocking) — dilewati jika submitted by HR
-    const approverEmail = item.approver1_email || process.env.APPROVAL_EMAIL;
-    if (!item.submitted_by_hr && approverEmail && isEmailConfigured()) {
-      sendApprovalEmail({
-        request: { ...item, cost_total: costTotal, score_grand_total: gt, request_id: requestId },
-        token: approvalToken,
-        participants: item.participants,
-        approver: {
-          name: item.approver1_name || '',
-          email: approverEmail,
-          position: item.approver1_position || '',
-        },
-      }).catch(err => console.error('[Mailer] Gagal kirim email approval:', err.message));
-    }
-
-    res.status(201).json({ request_id: requestId, ...item, cost_total: costTotal, approval_status: item.submitted_by_hr ? 'Submitted_HR' : 'PendingBODDept' });
+    res.status(201).json({ request_id: requestId, ...item, cost_total: costTotal, approval_status: item.submitted_by_hr ? 'Submitted_HR' : 'Submitted' });
   } catch (e) {
     await conn.rollback();
     throw e;
   } finally {
     conn.release();
   }
+});
+
+// ── Multi-Approval: kirim email ke beberapa approver sekaligus ───────────────
+router.post('/send-multi-approval', async (req, res) => {
+  const { request_ids } = req.body;
+  if (!Array.isArray(request_ids) || !request_ids.length) {
+    return res.status(400).json({ error: 'request_ids harus berupa array yang tidak kosong' });
+  }
+
+  if (!isEmailConfigured()) {
+    return res.status(503).json({ error: 'Konfigurasi email belum tersedia — hubungi admin' });
+  }
+
+  // Ambil data semua request yang dipilih
+  const placeholders = request_ids.map(() => '?').join(',');
+  const [requests] = await pool.query(
+    `SELECT r.request_id, r.department, r.training_name, r.training_date_start,
+            r.training_type, r.cost_total, r.is_scheduled, r.approval_status,
+            r.approval_token, r.approver_name, r.approver_email, r.approver_position
+     FROM trx_training_request r
+     WHERE r.request_id IN (${placeholders})`,
+    request_ids
+  );
+
+  if (!requests.length) {
+    return res.status(404).json({ error: 'Tidak ada data ditemukan' });
+  }
+
+  // Ambil peserta untuk semua request
+  const [allParticipants] = await pool.query(
+    `SELECT request_id, participant_name FROM trx_training_request_participant WHERE request_id IN (${placeholders})`,
+    request_ids
+  );
+
+  // Kelompokkan peserta per request
+  const participantMap = {};
+  for (const p of allParticipants) {
+    if (!participantMap[p.request_id]) participantMap[p.request_id] = [];
+    participantMap[p.request_id].push(p.participant_name);
+  }
+
+  // Kelompokkan request per approver email
+  const approverGroups = {};
+  const skipped = [];
+  for (const r of requests) {
+    if (!r.approver_email) {
+      skipped.push({ request_id: r.request_id, training_name: r.training_name, reason: 'Email approver tidak ditemukan' });
+      continue;
+    }
+    if (r.approval_status !== 'Submitted') {
+      skipped.push({ request_id: r.request_id, training_name: r.training_name, reason: `Status tidak valid untuk dikirim: ${r.approval_status}` });
+      continue;
+    }
+    const key = r.approver_email;
+    if (!approverGroups[key]) {
+      approverGroups[key] = {
+        approver: { name: r.approver_name, email: r.approver_email, position: r.approver_position },
+        requests: [],
+      };
+    }
+    approverGroups[key].requests.push({
+      ...r,
+      participants: participantMap[r.request_id] || [],
+    });
+  }
+
+  const appUrl = getAppUrl(req);
+  const results = [];
+
+  for (const [email, group] of Object.entries(approverGroups)) {
+    try {
+      await sendMultiApprovalEmail({ approver: group.approver, requests: group.requests, appUrl });
+      // Naikkan status ke PendingBODDept setelah email berhasil dikirim
+      const sentIds = group.requests.map(r => r.request_id);
+      const ph2 = sentIds.map(() => '?').join(',');
+      await pool.query(
+        `UPDATE trx_training_request SET approval_status = 'PendingBODDept' WHERE request_id IN (${ph2}) AND approval_status = 'Submitted'`,
+        sentIds
+      );
+      results.push({ approver_email: email, count: group.requests.length, status: 'sent' });
+    } catch (err) {
+      results.push({ approver_email: email, count: group.requests.length, status: 'failed', error: err.message });
+    }
+  }
+
+  res.json({ results, skipped });
 });
 
 // ── Layer 1: Direktur Departemen ─────────────────────────────────────────────
@@ -148,7 +240,13 @@ router.get('/approve/:token', async (req, res) => {
   // Ambil info Direktur HRD dari tabel config atau env
   let hrdApprover = null;
   try {
-    const [hrdRows] = await pool.query('SELECT * FROM cfg_approver_hrd ORDER BY id DESC LIMIT 1');
+    const [hrdRows] = await pool.query(`
+      SELECT c.id, c.employee_id, c.full_name, c.position, c.department, c.set_at,
+             COALESCE(e.email, c.email) AS email
+      FROM cfg_approver_hrd c
+      LEFT JOIN mst_employee e ON e.employee_id = c.employee_id
+      ORDER BY c.id DESC LIMIT 1
+    `);
     if (hrdRows.length && hrdRows[0].email) hrdApprover = hrdRows[0];
   } catch { /* tabel belum ada */ }
 
@@ -165,6 +263,7 @@ router.get('/approve/:token', async (req, res) => {
       'SELECT participant_name FROM trx_training_request_participant WHERE request_id = ?',
       [req_.request_id]
     );
+    const appUrl = getAppUrl(req);
     sendHrdApprovalEmail({
       request: req_,
       token:   hrdToken,
@@ -174,6 +273,7 @@ router.get('/approve/:token', async (req, res) => {
         email:    hrdApprover.email,
         position: hrdApprover.position || 'Direktur HRD',
       },
+      appUrl,
     }).catch(err => console.error('[Mailer] Gagal kirim email HRD:', err.message));
   }
 
@@ -189,7 +289,7 @@ router.get('/reject/:token', async (req, res) => {
   if (!rows.length) return res.status(404).send(approvalPage('not_found'));
 
   const req_ = rows[0];
-  if (req_.approval_status !== 'Pending') {
+  if (req_.approval_status !== 'PendingBODDept') {
     return res.send(approvalPage('already_done', req_.approval_status, req_));
   }
 
@@ -240,6 +340,29 @@ router.get('/reject-hrd/:token', async (req, res) => {
     ['Rejected_BODHR', req_.request_id]
   );
   res.send(approvalPage('rejected_hrd', 'Rejected_BODHR', req_));
+});
+
+router.patch('/:id/dates', async (req, res) => {
+  const { actual_date_start, actual_date_end } = req.body;
+  if (!actual_date_start || !actual_date_end) {
+    return res.status(400).json({ error: 'Tanggal mulai dan tanggal selesai wajib diisi' });
+  }
+  if (actual_date_end < actual_date_start) {
+    return res.status(400).json({ error: 'Tanggal selesai tidak boleh sebelum tanggal mulai' });
+  }
+  const [result] = await pool.query(
+    'UPDATE trx_training_request SET actual_date_start = ?, actual_date_end = ? WHERE request_id = ?',
+    [actual_date_start, actual_date_end, req.params.id]
+  );
+  if (!result.affectedRows) return res.status(404).json({ error: 'Data tidak ditemukan' });
+  await logAudit({
+    table_name: 'trx_training_request',
+    record_id: req.params.id,
+    operation: 'UPDATE',
+    new_data: { actual_date_start, actual_date_end },
+    changed_by: req.changedBy,
+  });
+  res.json({ updated: true, actual_date_start, actual_date_end });
 });
 
 router.delete('/:id', async (req, res) => {
@@ -298,6 +421,7 @@ function approvalPage(state, status, req_) {
     not_found: {
       icon: '⚠️', color: '#e8a020', title: 'Link Tidak Valid',
       msg: 'Link persetujuan ini tidak valid atau sudah kadaluarsa.',
+      showBack: false,
     },
   };
   const c = configs[state] || configs.not_found;

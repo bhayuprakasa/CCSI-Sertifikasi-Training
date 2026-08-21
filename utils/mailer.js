@@ -1,5 +1,40 @@
 const nodemailer = require('nodemailer');
 
+// ── Email settings cache ──────────────────────────────────────────────────────
+let _settingsCache = {};
+let _settingsCacheAt = 0;
+const SETTINGS_TTL = 5 * 60 * 1000; // 5 menit
+
+async function getEmailSettings(layer) {
+  const now = Date.now();
+  if (now - _settingsCacheAt < SETTINGS_TTL && _settingsCache[layer]) {
+    return _settingsCache[layer];
+  }
+  try {
+    const pool = require('../db');
+    const [rows] = await pool.query('SELECT * FROM cfg_email_settings WHERE layer = ?', [layer]);
+    if (rows.length) {
+      _settingsCache[layer] = rows[0];
+      _settingsCacheAt = now;
+      return rows[0];
+    }
+  } catch { /* tabel belum ada — pakai default */ }
+  return null;
+}
+
+function applySubjectTemplate(template, request) {
+  if (!template) return null;
+  return template
+    .replace(/\{training_name\}/g, request.training_name || '')
+    .replace(/\{department\}/g,    request.department    || '')
+    .replace(/\{request_id\}/g,    request.request_id    || '');
+}
+
+function parseCcList(ccStr) {
+  if (!ccStr) return [];
+  return ccStr.split(',').map(e => e.trim()).filter(Boolean);
+}
+
 // ── Email log (in-memory, max 200 entri) ─────────────────────────────────────
 const emailLog = [];
 function addLog(entry) {
@@ -34,9 +69,20 @@ async function getGraphToken() {
   return data.access_token;
 }
 
-async function sendViaGraph(toEmail, subject, html) {
+async function sendViaGraph(toEmail, subject, html, { senderName, ccEmails, replyTo } = {}) {
   const senderEmail = process.env.SMTP_USER;
   const token = await getGraphToken();
+
+  const ccRecipients = (ccEmails || []).map(addr => ({ emailAddress: { address: addr } }));
+
+  const message = {
+    subject,
+    body:         { contentType: 'HTML', content: html },
+    toRecipients: [{ emailAddress: { address: toEmail } }],
+    from:         { emailAddress: { address: senderEmail, name: senderName || 'CCSI Training' } },
+  };
+  if (ccRecipients.length) message.ccRecipients = ccRecipients;
+  if (replyTo) message.replyTo = [{ emailAddress: { address: replyTo } }];
 
   const resp = await fetch(
     `https://graph.microsoft.com/v1.0/users/${senderEmail}/sendMail`,
@@ -46,15 +92,7 @@ async function sendViaGraph(toEmail, subject, html) {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        message: {
-          subject,
-          body:         { contentType: 'HTML', content: html },
-          toRecipients: [{ emailAddress: { address: toEmail } }],
-          from:         { emailAddress: { address: senderEmail } },
-        },
-        saveToSentItems: false,
-      }),
+      body: JSON.stringify({ message, saveToSentItems: false }),
     }
   );
 
@@ -98,8 +136,8 @@ function row(icon, label, value, highlight) {
 }
 
 // ── Main send function ────────────────────────────────────────────────────────
-async function sendApprovalEmail({ request, token, participants, approver }) {
-  const appUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+async function sendApprovalEmail({ request, token, participants, approver, appUrl: appUrlOverride }) {
+  const appUrl = (appUrlOverride || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
   const approveUrl = `${appUrl}/api/training-requests/approve/${token}`;
   const rejectUrl  = `${appUrl}/api/training-requests/reject/${token}`;
 
@@ -273,7 +311,13 @@ async function sendApprovalEmail({ request, token, participants, approver }) {
 </body>
 </html>`;
 
-  const subject = `[Persetujuan Diperlukan] Pelatihan: ${request.training_name} — ${request.department}`;
+  const cfg = await getEmailSettings('dept');
+  const defaultSubject = `[Persetujuan Diperlukan] Pelatihan: ${request.training_name} — ${request.department}`;
+  const subject = applySubjectTemplate(cfg?.subject_template, request) || defaultSubject;
+  const ccEmails = parseCcList(cfg?.cc_emails);
+  const senderName = cfg?.sender_name || 'CCSI Training';
+  const replyTo  = cfg?.reply_to || null;
+
   const logBase = {
     to: toEmail,
     approver_name: approverName,
@@ -287,11 +331,13 @@ async function sendApprovalEmail({ request, token, participants, approver }) {
 
   try {
     if (useGraph) {
-      await sendViaGraph(toEmail, subject, html);
+      await sendViaGraph(toEmail, subject, html, { senderName, ccEmails, replyTo });
     } else {
       await transporter.sendMail({
-        from: process.env.SMTP_FROM || `"CCSI Training" <${process.env.SMTP_USER}>`,
-        to:   toEmail,
+        from:    process.env.SMTP_FROM || `"${senderName}" <${process.env.SMTP_USER}>`,
+        to:      toEmail,
+        cc:      ccEmails.join(', ') || undefined,
+        replyTo: replyTo || undefined,
         subject,
         html,
       });
@@ -304,8 +350,8 @@ async function sendApprovalEmail({ request, token, participants, approver }) {
 }
 
 // ── HRD Director approval email (layer 2) ────────────────────────────────────
-async function sendHrdApprovalEmail({ request, token, participants, approver }) {
-  const appUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+async function sendHrdApprovalEmail({ request, token, participants, approver, appUrl: appUrlOverride }) {
+  const appUrl = (appUrlOverride || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
   const approveUrl = `${appUrl}/api/training-requests/approve-hrd/${token}`;
   const rejectUrl  = `${appUrl}/api/training-requests/reject-hrd/${token}`;
 
@@ -479,7 +525,13 @@ async function sendHrdApprovalEmail({ request, token, participants, approver }) 
 </body>
 </html>`;
 
-  const subject = `[Persetujuan HRD] Pelatihan: ${request.training_name} — ${request.department}`;
+  const cfg = await getEmailSettings('hrd');
+  const defaultSubject = `[Persetujuan HRD] Pelatihan: ${request.training_name} — ${request.department}`;
+  const subject = applySubjectTemplate(cfg?.subject_template, request) || defaultSubject;
+  const ccEmails = parseCcList(cfg?.cc_emails);
+  const senderName = cfg?.sender_name || 'CCSI Training';
+  const replyTo  = cfg?.reply_to || null;
+
   const logBase = {
     to: toEmail,
     approver_name: approverName,
@@ -493,11 +545,175 @@ async function sendHrdApprovalEmail({ request, token, participants, approver }) 
 
   try {
     if (useGraph) {
-      await sendViaGraph(toEmail, subject, html);
+      await sendViaGraph(toEmail, subject, html, { senderName, ccEmails, replyTo });
     } else {
       await transporter.sendMail({
-        from: process.env.SMTP_FROM || `"CCSI Training" <${process.env.SMTP_USER}>`,
-        to:   toEmail,
+        from:    process.env.SMTP_FROM || `"${senderName}" <${process.env.SMTP_USER}>`,
+        to:      toEmail,
+        cc:      ccEmails.join(', ') || undefined,
+        replyTo: replyTo || undefined,
+        subject,
+        html,
+      });
+    }
+    addLog({ ...logBase, status: 'success', method: useGraph ? 'Graph API' : 'SMTP' });
+  } catch (err) {
+    addLog({ ...logBase, status: 'failed', error: err.message, method: useGraph ? 'Graph API' : 'SMTP' });
+    throw err;
+  }
+}
+
+// ── Multi-request approval email ─────────────────────────────────────────────
+async function sendMultiApprovalEmail({ approver, requests, appUrl: appUrlOverride }) {
+  const appUrl = (appUrlOverride || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const approverName = approver?.name || 'Bapak/Ibu';
+  const approverPos  = approver?.position || '';
+  const toEmail      = approver?.email;
+
+  // Collect unique departments
+  const depts = [...new Set(requests.map(r => r.department).filter(Boolean))];
+  const deptLabel = depts.length === 1 ? depts[0] : depts.join(', ');
+
+  const tableRows = requests.map(r => {
+    const approveUrl = `${appUrl}/api/training-requests/approve/${r.approval_token}`;
+    const rejectUrl  = `${appUrl}/api/training-requests/reject/${r.approval_token}`;
+    const targetDate = fmtDate(r.training_date_start);
+    const jadwal = r.is_scheduled ? 'Terjadwal' : 'Tidak Terjadwal';
+    const participants = (r.participants || []).join(', ');
+    const biaya = r.cost_total > 0 ? fmtRp(r.cost_total) : '-';
+
+    return `<tr>
+      <td style="padding:10px 12px;border:1px solid #dde3ec;font-size:12px;font-weight:600;color:#1e293b;vertical-align:top">${r.training_name}</td>
+      <td style="padding:10px 12px;border:1px solid #dde3ec;font-size:12px;color:#475569;vertical-align:top">${participants || '-'}</td>
+      <td style="padding:10px 12px;border:1px solid #dde3ec;font-size:12px;color:#475569;vertical-align:top;white-space:nowrap">${jadwal}</td>
+      <td style="padding:10px 12px;border:1px solid #dde3ec;font-size:12px;color:#475569;vertical-align:top;white-space:nowrap">${r.training_type || '-'}</td>
+      <td style="padding:10px 12px;border:1px solid #dde3ec;font-size:12px;color:#475569;vertical-align:top;white-space:nowrap">${targetDate}</td>
+      <td style="padding:10px 12px;border:1px solid #dde3ec;font-size:12px;color:#475569;vertical-align:top;white-space:nowrap">${biaya}</td>
+      <td style="padding:10px 12px;border:1px solid #dde3ec;text-align:center;vertical-align:top;white-space:nowrap">
+        <a href="${approveUrl}" style="display:inline-block;background:#00a86b;color:#fff;padding:5px 12px;border-radius:5px;text-decoration:none;font-size:11px;font-weight:700;margin-bottom:4px">✔ Setujui</a><br>
+        <a href="${rejectUrl}" style="display:inline-block;background:#d63031;color:#fff;padding:5px 12px;border-radius:5px;text-decoration:none;font-size:11px;font-weight:700">✖ Tolak</a>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f3f8;font-family:'Segoe UI',Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:700px;margin:28px auto;font-size:14px">
+<tr><td>
+
+  <!-- Header -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#1a3c6e;border-radius:12px 12px 0 0">
+    <tr>
+      <td width="56" style="padding:16px 0 16px 20px;vertical-align:middle">
+        <div style="background:#e8a020;border-radius:8px;width:40px;height:40px;text-align:center;line-height:40px;font-weight:800;font-size:10px;color:#12294d;letter-spacing:-.5px">CCSI</div>
+      </td>
+      <td style="padding:16px 20px 16px 12px;vertical-align:middle">
+        <div style="color:#ffffff;font-size:15px;font-weight:700;margin:0">Permohonan Persetujuan Pelatihan</div>
+        <div style="color:#a0b4d0;font-size:11px;margin-top:3px">PT Communication Cable Systems Indonesia</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Banner -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff8e6;border-left:4px solid #e8a020;border-right:1px solid #f0d080">
+    <tr><td style="padding:11px 18px;font-size:13px;color:#7a4f00;font-weight:600">
+      ⏳ &nbsp;Terdapat ${requests.length} pengajuan training yang membutuhkan persetujuan Anda.
+    </td></tr>
+  </table>
+
+  <!-- Body -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #dde3ec;border-top:none">
+  <tr><td style="padding:24px">
+
+    <p style="margin:0 0 16px;color:#1e293b;font-size:14px;line-height:1.8">
+      Dear Bapak/Ibu <strong>${approverName}</strong>,${approverPos ? `<br><span style="color:#64748b;font-size:12px">${approverPos}</span>` : ''}
+    </p>
+
+    <p style="margin:0 0 16px;color:#475569;font-size:13px;line-height:1.8">
+      Terdapat pengajuan training baru dari <strong>${deptLabel}</strong> yang membutuhkan persetujuan Bapak/Ibu.<br>
+      Detail pengajuan training dapat dilihat pada tabel di bawah ini.
+    </p>
+
+    <!-- Table -->
+    <div style="overflow-x:auto;margin-bottom:24px">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:580px">
+        <thead>
+          <tr style="background:#1a3c6e">
+            <th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Nama Pelatihan</th>
+            <th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Peserta</th>
+            <th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Terjadwal</th>
+            <th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Jenis</th>
+            <th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Target Pelaksanaan</th>
+            <th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Total Biaya</th>
+            <th style="padding:10px 12px;text-align:center;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin:0 0 20px;color:#475569;font-size:13px;line-height:1.8">
+      Mohon Bapak/Ibu dapat melakukan <strong>Approve</strong> atau <strong>Reject</strong> melalui tombol di masing-masing baris pada tabel di atas.
+    </p>
+
+    <p style="margin:0;color:#475569;font-size:13px;line-height:1.8">
+      Terima kasih atas perhatian dan tindak lanjutnya.<br><br>
+      <strong>Best Regards,</strong><br>
+      <strong>HR Department</strong><br>
+      PT Communication Cable Systems Indonesia
+    </p>
+
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
+
+    <p style="font-size:11px;color:#94a3b8;margin:0;text-align:center;line-height:1.8">
+      Email ini dikirim otomatis oleh sistem CCSI Training Dashboard.<br>
+      Jangan membalas email ini. Jika ada pertanyaan, hubungi HR secara langsung.
+    </p>
+
+  </td></tr></table>
+
+  <!-- Footer -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafd;border:1px solid #dde3ec;border-top:none;border-radius:0 0 12px 12px">
+    <tr><td style="padding:12px 24px;text-align:center">
+      <span style="font-size:11px;color:#94a3b8">Terima kasih, &nbsp;<strong>Sistem HR Otomatis — CCSI Training</strong></span>
+    </td></tr>
+  </table>
+
+</td></tr></table>
+</body>
+</html>`;
+
+  const cfg = await getEmailSettings('dept');
+  const defaultSubject = `[Persetujuan Diperlukan] ${requests.length} Pengajuan Pelatihan dari ${deptLabel}`;
+  const subject = defaultSubject;
+  const ccEmails = parseCcList(cfg?.cc_emails);
+  const senderName = cfg?.sender_name || 'CCSI Training';
+  const replyTo  = cfg?.reply_to || null;
+
+  const logBase = {
+    to: toEmail,
+    approver_name: approverName,
+    subject,
+    training_name: requests.map(r => r.training_name).join('; '),
+    department: deptLabel,
+    request_ids: requests.map(r => r.request_id),
+  };
+
+  const useGraph = !!(process.env.GRAPH_TENANT_ID && process.env.GRAPH_CLIENT_ID && process.env.GRAPH_CLIENT_SECRET);
+
+  try {
+    if (useGraph) {
+      await sendViaGraph(toEmail, subject, html, { senderName, ccEmails, replyTo });
+    } else {
+      await transporter.sendMail({
+        from:    process.env.SMTP_FROM || `"${senderName}" <${process.env.SMTP_USER}>`,
+        to:      toEmail,
+        cc:      ccEmails.join(', ') || undefined,
+        replyTo: replyTo || undefined,
         subject,
         html,
       });
@@ -515,4 +731,9 @@ function isEmailConfigured() {
   return hasSmtp || hasGraph;
 }
 
-module.exports = { sendApprovalEmail, sendHrdApprovalEmail, getEmailLog, isEmailConfigured };
+function invalidateEmailSettingsCache() {
+  _settingsCache = {};
+  _settingsCacheAt = 0;
+}
+
+module.exports = { sendApprovalEmail, sendHrdApprovalEmail, sendMultiApprovalEmail, getEmailLog, isEmailConfigured, invalidateEmailSettingsCache };

@@ -143,17 +143,17 @@ tbody td{padding:9px 8px;vertical-align:middle}
       <div class="section-title">Informasi Dasar</div>
       <div class="form-grid" style="margin-bottom:14px">
         <div class="form-group">
-          <label>Dept Head *</label>
-          <select id="pr_submitter" onchange="prOnSubmitterChange()">
-            <option value="">-- Pilih Dept Head --</option>
-          </select>
-          <div id="pr_submitter_info" style="display:none;margin-top:4px;font-size:.74rem;color:var(--navy);background:#e8eef7;border-radius:5px;padding:5px 9px"></div>
-        </div>
-        <div class="form-group">
           <label>Departemen / Divisi *</label>
-          <select id="pr_dept" onchange="prLoadPeserta()">
+          <select id="pr_dept" onchange="prOnDeptChange()">
             <option value="">-- Pilih Departemen --</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Dept Head *</label>
+          <select id="pr_submitter" onchange="prOnSubmitterChange()" disabled>
+            <option value="">-- Pilih Departemen dahulu --</option>
+          </select>
+          <div id="pr_submitter_info" style="display:none;margin-top:4px;font-size:.74rem;color:var(--navy);background:#e8eef7;border-radius:5px;padding:5px 9px"></div>
         </div>
         <div class="form-group">
           <label>Approver 1 (Direksi / BOD) *</label>
@@ -297,7 +297,7 @@ tbody td{padding:9px 8px;vertical-align:middle}
       <!-- SUBMIT -->
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
         <button class="btn-cancel" onclick="prReset()">Reset Form</button>
-        <button class="tn-submit" id="prSubmitBtn" onclick="prSubmit()">📤 Kirim Permohonan</button>
+        <button class="tn-submit" id="prSubmitBtn" onclick="prSubmit()">💾 Submit</button>
       </div>
     </div>
   </div>
@@ -307,7 +307,7 @@ tbody td{padding:9px 8px;vertical-align:middle}
     <div class="card">
       <div class="card-header">
         <span class="card-title">📋 Rekap Permohonan Pelatihan</span>
-
+        <button class="tn-submit" id="prSendApprovalBtn" onclick="prSendApproval()" style="display:none;padding:8px 18px;font-size:.83rem">📨 Kirim Approval (<span id="prSelectedCount">0</span> dipilih)</button>
       </div>
       <div class="card-body">
         <div id="prRecapMsg"></div>
@@ -327,10 +327,30 @@ tbody td{padding:9px 8px;vertical-align:middle}
               <span class="ms-clear-btn" onclick="prClearMs('Dept')">Hapus pilihan</span>
             </div>
           </div>
+          <div class="ms-wrap">
+            <button class="ms-btn" id="prMsBtnStatus" onclick="prToggleMs('Status')">🔖 <span id="prMsLblStatus">Semua Status</span> <span style="font-size:.65rem">▾</span></button>
+            <div class="ms-drop" id="prMsDropStatus">
+              <div class="ms-opts" id="prMsOptsStatus"></div>
+              <span class="ms-clear-btn" onclick="prClearMs('Status')">Hapus pilihan</span>
+            </div>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>Departemen</th><th class="wrap">Nama Pelatihan</th><th>Peserta</th><th>Terjadwal</th><th>Jenis</th><th class="wrap">Target Pelaksanaan</th><th class="wrap">Total Biaya</th><th>GT</th><th>Status</th></tr></thead>
+            <thead><tr>
+              <th style="width:36px;text-align:center"><input type="checkbox" id="prSelectAll" onchange="prToggleSelectAll(this)" title="Pilih semua" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)"></th>
+              <th>#</th>
+              <th>Departemen</th>
+              <th class="wrap">Nama Pelatihan</th>
+              <th>Peserta</th>
+              <th>Terjadwal</th>
+              <th>Jenis</th>
+              <th class="wrap">Target Pelaksanaan</th>
+              <th class="wrap">Total Biaya</th>
+              <th>GT</th>
+              <th class="wrap">Approver 1</th>
+              <th>Status</th>
+            </tr></thead>
             <tbody id="prRecapBody"></tbody>
           </table>
         </div>
@@ -431,7 +451,13 @@ async function prLoadDepts() {
 
 function openIDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('CCSI_Training_v2', 1);
+    const req = indexedDB.open('CCSI_Training_v2', 2);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      ['mst_employee','mst_competency','mst_program','trx_employee_program','trx_certification','trx_training_request'].forEach(s => {
+        if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { autoIncrement: true });
+      });
+    };
     req.onsuccess = e => resolve(e.target.result);
     req.onerror = () => reject(req.error);
   });
@@ -456,14 +482,17 @@ async function prLoadApprovers() {
       const res = await fetch('/api/employees?direktur=1');
       if (res.ok) direksi = await res.json();
     } catch (_) {}
-    // Fallback ke IndexedDB — filter berdasarkan nama department saja
+    // Fallback ke IndexedDB jika API gagal atau kosong
     if (!direksi.length) {
       const db = await openIDB();
       const emps = await idbGetAll(db, 'mst_employee');
       direksi = emps.filter(e => {
-        const dept = (e.department || '').toLowerCase();
         const active = e.is_active !== 0 && e.is_active !== false;
-        return active && (dept.includes('direksi') || dept.includes('bod'));
+        const dept = (e.department || '').toLowerCase().trim();
+        const pos  = (e.position  || '').toLowerCase().trim();
+        const isBod = dept === 'bod' || dept === 'direksi';
+        const isDirPos = pos.includes('direktur') || pos.includes('direksi') || pos.includes('president');
+        return active && (isBod || isDirPos || e.is_direktur);
       });
     }
     sel.disabled = false;
@@ -477,33 +506,44 @@ async function prLoadApprovers() {
       ).join('');
   } catch (err) {
     sel.disabled = false;
-    sel.innerHTML = '<option value="">⚠ Gagal memuat data karyawan</option>';
+    sel.innerHTML = '<option value="">⚠ Gagal memuat data — coba refresh halaman</option>';
     console.error('[Approver] Gagal memuat karyawan BOD:', err);
   }
 }
 
-async function prLoadDeptHeads() {
+async function prLoadDeptHeads(dept) {
   const sel = document.getElementById('pr_submitter');
   sel.innerHTML = '<option value="">-- Memuat... --</option>';
   sel.disabled = true;
+  if (!dept) {
+    sel.innerHTML = '<option value="">-- Pilih Departemen dahulu --</option>';
+    return;
+  }
   try {
     let deptHeads = [];
     try {
-      const res = await fetch('/api/employees?dept_head=1');
+      const res = await fetch(`/api/employees?dept_head=1&dept=${encodeURIComponent(dept)}`);
       if (res.ok) deptHeads = await res.json();
     } catch (_) {}
-    // Fallback ke IndexedDB
+    // Fallback ke IndexedDB — filter by dept
     if (!deptHeads.length) {
       const db = await openIDB();
       const emps = await idbGetAll(db, 'mst_employee');
       deptHeads = emps.filter(e => {
         const active = e.is_active !== 0 && e.is_active !== false;
-        return active && e.is_dept_head;
+        return active && e.is_dept_head && e.department === dept;
       });
+    }
+    // Fallback kedua: semua dept head tanpa filter dept
+    if (!deptHeads.length) {
+      try {
+        const res = await fetch('/api/employees?dept_head=1');
+        if (res.ok) deptHeads = await res.json();
+      } catch (_) {}
     }
     sel.disabled = false;
     if (!deptHeads.length) {
-      sel.innerHTML = '<option value="">⚠ Tidak ada karyawan bertanda Dept Head</option>';
+      sel.innerHTML = '<option value="">⚠ Tidak ada Dept Head di departemen ini</option>';
       return;
     }
     sel.innerHTML = '<option value="">-- Pilih Dept Head --</option>' +
@@ -515,6 +555,16 @@ async function prLoadDeptHeads() {
     sel.innerHTML = '<option value="">⚠ Gagal memuat data Dept Head</option>';
     console.error('[DeptHead] Gagal memuat:', err);
   }
+}
+
+async function prOnDeptChange() {
+  const dept = document.getElementById('pr_dept').value;
+  // Reset dept head
+  document.getElementById('pr_submitter').value = '';
+  document.getElementById('pr_submitter_info').style.display = 'none';
+  // Load dept head sesuai departemen, lalu load peserta
+  await prLoadDeptHeads(dept);
+  prLoadPeserta();
 }
 
 function prOnSubmitterChange() {
@@ -535,7 +585,11 @@ function prOnApproverChange() {
   if (!opt || !opt.value) { infoEl.style.display = 'none'; return; }
   const email = opt.dataset.email;
   const pos = opt.dataset.pos;
-  infoEl.textContent = `${opt.dataset.name} · ${pos || 'Direksi'} · ${email || '(email belum diisi)'}`;
+  if (!email) {
+    infoEl.innerHTML = `<span style="color:#c0392b">⚠ ${opt.dataset.name} · ${pos || 'Direksi'} · <strong>Email belum diisi</strong> — approval email tidak dapat dikirim. Hubungi HR untuk melengkapi data.</span>`;
+  } else {
+    infoEl.textContent = `${opt.dataset.name} · ${pos || 'Direksi'} · ${email}`;
+  }
   infoEl.style.display = 'block';
 }
 
@@ -578,13 +632,15 @@ async function prLoadPeserta() {
 
 function prReset(skipConfirm = false) {
   if (!skipConfirm && !confirm('Reset form? Data yang belum dikirim akan hilang.')) return;
-  document.querySelectorAll('#pr_submitter,#pr_name,#pr_venue,#pr_organizer,#pr_reason').forEach(el => el.value = '');
+  document.querySelectorAll('#pr_name,#pr_venue,#pr_organizer,#pr_reason').forEach(el => el.value = '');
   document.getElementById('pr_dept').value = '';
   document.getElementById('pr_target_month').value = '';
   document.getElementById('pr_type').value = '';
   document.getElementById('pr_approver1').value = '';
   document.getElementById('pr_approver1_info').style.display = 'none';
-  document.getElementById('pr_submitter').value = '';
+  const submitterSel = document.getElementById('pr_submitter');
+  submitterSel.innerHTML = '<option value="">-- Pilih Departemen dahulu --</option>';
+  submitterSel.disabled = true;
   document.getElementById('pr_submitter_info').style.display = 'none';
   document.querySelector('input[name="pr_scheduled"][value="0"]').checked = true;
   document.getElementById('pr_peserta').innerHTML = '<div class="peserta-empty">Pilih departemen terlebih dahulu</div>';
@@ -620,6 +676,7 @@ async function prSubmit() {
   const errors = [];
   if (!dept) errors.push('Departemen wajib dipilih');
   if (!approverSel.value) errors.push('Approver 1 (Direksi/BOD) wajib dipilih');
+  if (approverSel.value && !approverEmail) errors.push('Approver yang dipilih tidak memiliki email — email approval tidak dapat dikirim. Hubungi HR untuk melengkapi data karyawan.');
   if (!name) errors.push('Nama Pelatihan wajib diisi');
   if (!targetMonth) errors.push('Target Pelaksanaan wajib diisi');
   if (!type) errors.push('Jenis Training wajib dipilih');
@@ -666,18 +723,27 @@ async function prSubmit() {
 
   try {
     await api('/api/training-requests', { method: 'POST', body: JSON.stringify(body) });
-    showToast('Permohonan pelatihan berhasil dikirim!');
+    showToast('Permohonan berhasil disimpan! Pilih di tabel rekap untuk kirim approval.');
     prReset(true);
     loadRekapData();
   } catch (e) {
     showToast(e.message, false);
   } finally {
-    btn.disabled = false; btn.textContent = '📤 Kirim Permohonan';
+    btn.disabled = false; btn.textContent = '💾 Submit';
   }
 }
 
 // ── Multi-select filter ──────────────────────────────────────────
-const prMsState = { Tahun: new Set(), Dept: new Set() };
+const prMsState = { Tahun: new Set(), Dept: new Set(), Status: new Set() };
+const PR_STATUS_LABELS = {
+  'Submitted':        'Submitted',
+  'Submitted_HR':     'Submitted by HR',
+  'PendingBODDept':   'Pending BOD Dept',
+  'PendingBODHR':     'Pending BOD HR',
+  'Approved':         'Disetujui',
+  'Rejected_BODDept': 'Ditolak BOD Dept',
+  'Rejected_BODHR':   'Ditolak BOD HR',
+};
 let prAllData = [];
 const prEscH = s => (s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const prGetYear = d => d ? (d+'').split('T')[0].split('-')[0] : null;
@@ -712,7 +778,7 @@ function prUpdateMsLbl(key) {
   const n = prMsState[key].size;
   const btn = document.getElementById('prMsBtn' + key);
   const lbl = document.getElementById('prMsLbl' + key);
-  const def = { Tahun: 'Semua Tahun', Dept: 'Semua Dept' };
+  const def = { Tahun: 'Semua Tahun', Dept: 'Semua Dept', Status: 'Semua Status' };
   let cnt = btn.querySelector('.ms-count');
   if (n === 0) { lbl.textContent = def[key]; if (cnt) cnt.remove(); }
   else {
@@ -722,9 +788,9 @@ function prUpdateMsLbl(key) {
   }
 }
 
-function prBuildOpts(key, values) {
+function prBuildOpts(key, values, labelMap) {
   document.getElementById('prMsOpts' + key).innerHTML = values.map(v =>
-    `<label class="ms-opt"><input type="checkbox" value="${prEscH(v)}" ${prMsState[key].has(v)?'checked':''} onchange="prOnMsChange('${key}',this)"> ${prEscH(v)}</label>`
+    `<label class="ms-opt"><input type="checkbox" value="${prEscH(v)}" ${prMsState[key].has(v)?'checked':''} onchange="prOnMsChange('${key}',this)"> ${prEscH(labelMap ? (labelMap[v]||v) : v)}</label>`
   ).join('');
 }
 
@@ -732,8 +798,11 @@ async function loadRekapData() {
   try { prAllData = await api('/api/training-requests'); } catch { prAllData = []; }
   const years = [...new Set(prAllData.map(r => prGetYear(r.training_date_start)).filter(Boolean))].sort().reverse();
   const depts = [...new Set(prAllData.map(r => r.department).filter(Boolean))].sort();
+  const statusOrder = ['Submitted','Submitted_HR','PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR'];
+  const statuses = [...new Set(prAllData.map(r => r.approval_status || 'PendingBODDept'))].sort((a,b) => statusOrder.indexOf(a) - statusOrder.indexOf(b));
   prBuildOpts('Tahun', years);
   prBuildOpts('Dept', depts);
+  prBuildOpts('Status', statuses, PR_STATUS_LABELS);
   prApplyFilter();
 }
 
@@ -741,6 +810,7 @@ function prApplyFilter() {
   let data = prAllData;
   if (prMsState.Tahun.size > 0) data = data.filter(r => prMsState.Tahun.has(prGetYear(r.training_date_start)));
   if (prMsState.Dept.size > 0) data = data.filter(r => prMsState.Dept.has(r.department));
+  if (prMsState.Status.size > 0) data = data.filter(r => prMsState.Status.has(r.approval_status || 'PendingBODDept'));
   renderRecap(data);
 }
 
@@ -750,7 +820,8 @@ function renderRecap(data) {
 
   if (!data.length) {
     msgEl.innerHTML = '';
-    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="11">Belum ada data yang sesuai filter</td></tr>';
+    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="12">Belum ada data yang sesuai filter</td></tr>';
+    prUpdateSelectionUI();
     return;
   }
 
@@ -761,6 +832,7 @@ function renderRecap(data) {
     const tgl = fmtMonthYear(r.training_date_start);
     const apvStatus = r.approval_status || 'Submitted';
     const apvMap = {
+      'Submitted':       { cls:'b-gray',   icon:'💾', label:'Submitted' },
       'Submitted_HR':    { cls:'b-purple', icon:'📋', label:'Submitted by HR' },
       'PendingBODDept':  { cls:'b-yellow', icon:'⏳', label:'Pending BOD Dept' },
       'PendingBODHR':    { cls:'b-navy',   icon:'⏳', label:'Pending BOD HR' },
@@ -772,7 +844,14 @@ function renderRecap(data) {
     const jadwalBadge = r.is_scheduled == null ? '<span class="badge b-gray">-</span>'
       : r.is_scheduled ? '<span class="badge b-green">Terjadwal</span>'
       : '<span class="badge b-yellow">Tidak Terjadwal</span>';
+    const canSelect = apvStatus === 'Submitted';
+    const approver1 = r.approver_name ? `<span style="font-size:.75rem;color:var(--text2)">${r.approver_name}</span>` : '<span style="color:var(--text3);font-size:.75rem">—</span>';
     return `<tr>
+      <td style="text-align:center">
+        ${canSelect
+          ? `<input type="checkbox" class="pr-row-cb" data-id="${r.request_id}" onchange="prUpdateSelectionUI()" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">`
+          : '<span style="color:var(--text3);font-size:.7rem">—</span>'}
+      </td>
       <td style="color:var(--text3)">${i+1}</td>
       <td><strong>${r.department}</strong></td>
       <td>${r.training_name}</td>
@@ -782,9 +861,58 @@ function renderRecap(data) {
       <td style="white-space:nowrap;font-size:.78rem">${tgl}</td>
       <td style="white-space:nowrap">${fmtRp(r.cost_total)}</td>
       <td style="text-align:center;font-weight:600;color:${r.score_grand_total>=32?'var(--green)':r.score_grand_total>0?'var(--red)':'var(--text3)'}">${r.score_grand_total||'-'} ${r.score_grand_total?(r.score_grand_total>=32?'✅':'❌'):''}</td>
+      <td>${approver1}</td>
       <td><span class="badge ${apvCls}">${apvIcon} ${apvLabel}</span></td>
     </tr>`;
   }).join('');
+
+  prUpdateSelectionUI();
+}
+
+function prUpdateSelectionUI() {
+  const cbs = [...document.querySelectorAll('.pr-row-cb')];
+  const checked = cbs.filter(c => c.checked);
+  const n = checked.length;
+  const countEl = document.getElementById('prSelectedCount');
+  const btn = document.getElementById('prSendApprovalBtn');
+  const selAll = document.getElementById('prSelectAll');
+  if (countEl) countEl.textContent = n;
+  if (btn) btn.style.display = n > 0 ? '' : 'none';
+  if (selAll) {
+    selAll.checked = cbs.length > 0 && checked.length === cbs.length;
+    selAll.indeterminate = checked.length > 0 && checked.length < cbs.length;
+  }
+}
+
+function prToggleSelectAll(masterCb) {
+  document.querySelectorAll('.pr-row-cb').forEach(cb => { cb.checked = masterCb.checked; });
+  prUpdateSelectionUI();
+}
+
+async function prSendApproval() {
+  const checked = [...document.querySelectorAll('.pr-row-cb:checked')];
+  if (!checked.length) { showToast('Pilih minimal 1 permohonan', false); return; }
+  const ids = checked.map(c => parseInt(c.dataset.id));
+  if (!confirm(`Kirim approval email untuk ${ids.length} permohonan yang dipilih?`)) return;
+  const btn = document.getElementById('prSendApprovalBtn');
+  btn.disabled = true; btn.textContent = '⏳ Mengirim...';
+  try {
+    const res = await api('/api/training-requests/send-multi-approval', { method: 'POST', body: JSON.stringify({ request_ids: ids }) });
+    const sent = (res.results || []).filter(r => r.status === 'sent');
+    const failed = (res.results || []).filter(r => r.status === 'failed');
+    const skipped = res.skipped || [];
+    let msg = `Email terkirim ke ${sent.length} approver`;
+    if (skipped.length) msg += `, ${skipped.length} dilewati`;
+    if (failed.length) msg += `, ${failed.length} gagal`;
+    showToast(msg, failed.length === 0);
+    loadRekapData();
+  } catch (e) {
+    showToast(e.message, false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '📨 Kirim Approval (<span id="prSelectedCount">0</span> dipilih)';
+    prUpdateSelectionUI();
+  }
 }
 
 async function prDelete(id) {
@@ -802,7 +930,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pr_target_month').min = minMonth;
   prLoadDepts();
   prLoadApprovers();
-  prLoadDeptHeads();
   loadRekapData();
 });
 </script>

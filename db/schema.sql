@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS mst_employee (
   full_name          VARCHAR(100)  NOT NULL,
   department         VARCHAR(50)   NOT NULL,
   position           VARCHAR(50)   NOT NULL,
-  site               ENUM('HO Jakarta','KIEC Cilegon','KBS Cilegon') NOT NULL,
+  site               ENUM('HO Jakarta','Cilegon') NOT NULL,
   email              VARCHAR(100)  NULL,
   employment_status  ENUM('PKWTT','PKWT') NOT NULL DEFAULT 'PKWTT',
   join_date          DATE          NULL,
@@ -146,6 +146,8 @@ CREATE TABLE IF NOT EXISTS trx_training_request (
   training_venue       VARCHAR(200)  NULL,
   training_date_start  DATE          NOT NULL,
   training_date_end    DATE          NULL,
+  actual_date_start    DATE          NULL DEFAULT NULL,
+  actual_date_end      DATE          NULL DEFAULT NULL,
   training_type        ENUM('Internal','Eksternal') NOT NULL,
   organizer            VARCHAR(100)  NULL,
   training_reason      TEXT          NULL,
@@ -177,10 +179,13 @@ CREATE TABLE IF NOT EXISTS trx_training_request (
   submitted_by         VARCHAR(100)  NULL,
   submitted_at         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   is_scheduled         TINYINT(1)    NOT NULL DEFAULT 0,
-  approval_status      ENUM('PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR','Submitted_HR')
-                       NOT NULL DEFAULT 'Pending',
+  approval_status      ENUM('Submitted','PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR','Submitted_HR')
+                       NOT NULL DEFAULT 'Submitted',
   approval_token       VARCHAR(64)   NULL UNIQUE,
-  approval_hrd_token   VARCHAR(64)   NULL UNIQUE
+  approval_hrd_token   VARCHAR(64)   NULL UNIQUE,
+  approver_name        VARCHAR(100)  NULL,
+  approver_email       VARCHAR(150)  NULL,
+  approver_position    VARCHAR(100)  NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS trx_training_request_participant (
