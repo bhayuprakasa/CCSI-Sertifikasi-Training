@@ -327,6 +327,13 @@ tbody td{padding:9px 8px;vertical-align:middle}
               <span class="ms-clear-btn" onclick="prClearMs('Dept')">Hapus pilihan</span>
             </div>
           </div>
+          <div class="ms-wrap">
+            <button class="ms-btn" id="prMsBtnStatus" onclick="prToggleMs('Status')">🔖 <span id="prMsLblStatus">Semua Status</span> <span style="font-size:.65rem">▾</span></button>
+            <div class="ms-drop" id="prMsDropStatus">
+              <div class="ms-opts" id="prMsOptsStatus"></div>
+              <span class="ms-clear-btn" onclick="prClearMs('Status')">Hapus pilihan</span>
+            </div>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -727,7 +734,16 @@ async function prSubmit() {
 }
 
 // ── Multi-select filter ──────────────────────────────────────────
-const prMsState = { Tahun: new Set(), Dept: new Set() };
+const prMsState = { Tahun: new Set(), Dept: new Set(), Status: new Set() };
+const PR_STATUS_LABELS = {
+  'Submitted':        'Submitted',
+  'Submitted_HR':     'Submitted by HR',
+  'PendingBODDept':   'Pending BOD Dept',
+  'PendingBODHR':     'Pending BOD HR',
+  'Approved':         'Disetujui',
+  'Rejected_BODDept': 'Ditolak BOD Dept',
+  'Rejected_BODHR':   'Ditolak BOD HR',
+};
 let prAllData = [];
 const prEscH = s => (s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const prGetYear = d => d ? (d+'').split('T')[0].split('-')[0] : null;
@@ -762,7 +778,7 @@ function prUpdateMsLbl(key) {
   const n = prMsState[key].size;
   const btn = document.getElementById('prMsBtn' + key);
   const lbl = document.getElementById('prMsLbl' + key);
-  const def = { Tahun: 'Semua Tahun', Dept: 'Semua Dept' };
+  const def = { Tahun: 'Semua Tahun', Dept: 'Semua Dept', Status: 'Semua Status' };
   let cnt = btn.querySelector('.ms-count');
   if (n === 0) { lbl.textContent = def[key]; if (cnt) cnt.remove(); }
   else {
@@ -772,9 +788,9 @@ function prUpdateMsLbl(key) {
   }
 }
 
-function prBuildOpts(key, values) {
+function prBuildOpts(key, values, labelMap) {
   document.getElementById('prMsOpts' + key).innerHTML = values.map(v =>
-    `<label class="ms-opt"><input type="checkbox" value="${prEscH(v)}" ${prMsState[key].has(v)?'checked':''} onchange="prOnMsChange('${key}',this)"> ${prEscH(v)}</label>`
+    `<label class="ms-opt"><input type="checkbox" value="${prEscH(v)}" ${prMsState[key].has(v)?'checked':''} onchange="prOnMsChange('${key}',this)"> ${prEscH(labelMap ? (labelMap[v]||v) : v)}</label>`
   ).join('');
 }
 
@@ -782,8 +798,11 @@ async function loadRekapData() {
   try { prAllData = await api('/api/training-requests'); } catch { prAllData = []; }
   const years = [...new Set(prAllData.map(r => prGetYear(r.training_date_start)).filter(Boolean))].sort().reverse();
   const depts = [...new Set(prAllData.map(r => r.department).filter(Boolean))].sort();
+  const statusOrder = ['Submitted','Submitted_HR','PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR'];
+  const statuses = [...new Set(prAllData.map(r => r.approval_status || 'PendingBODDept'))].sort((a,b) => statusOrder.indexOf(a) - statusOrder.indexOf(b));
   prBuildOpts('Tahun', years);
   prBuildOpts('Dept', depts);
+  prBuildOpts('Status', statuses, PR_STATUS_LABELS);
   prApplyFilter();
 }
 
@@ -791,6 +810,7 @@ function prApplyFilter() {
   let data = prAllData;
   if (prMsState.Tahun.size > 0) data = data.filter(r => prMsState.Tahun.has(prGetYear(r.training_date_start)));
   if (prMsState.Dept.size > 0) data = data.filter(r => prMsState.Dept.has(r.department));
+  if (prMsState.Status.size > 0) data = data.filter(r => prMsState.Status.has(r.approval_status || 'PendingBODDept'));
   renderRecap(data);
 }
 
