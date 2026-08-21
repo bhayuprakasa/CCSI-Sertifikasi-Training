@@ -12,7 +12,15 @@ router.get('/', async (req, res) => {
   if (direktur === '1') {
     try {
       const [rows] = await pool.query(
-        `SELECT ${BOD_COLS} FROM mst_employee WHERE is_active = 1 AND LOWER(TRIM(department)) = 'bod' ORDER BY full_name`
+        `SELECT ${BOD_COLS} FROM mst_employee
+         WHERE is_active = 1
+           AND (
+             LOWER(TRIM(department)) IN ('bod','direksi')
+             OR LOWER(TRIM(position)) LIKE '%direktur%'
+             OR LOWER(TRIM(position)) LIKE '%direksi%'
+             OR LOWER(TRIM(position)) LIKE '%president%'
+           )
+         ORDER BY full_name`
       );
       return res.json(rows);
     } catch (e) {

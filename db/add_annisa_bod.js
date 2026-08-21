@@ -22,9 +22,9 @@ async function run() {
 
     await conn.query(
       `INSERT INTO mst_employee
-        (employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_direktur)
+        (employee_id, full_name, department, position, site, email, employment_status, join_date, is_active, is_dept_head)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ['CC011', 'Annisa', 'BOD', 'Direktur', 'HO Jakarta', null, 'PKWTT', '2020-01-01', 1, 1]
+      ['CC011', 'Annisa', 'BOD', 'Direktur', 'HO Jakarta', null, 'PKWTT', '2020-01-01', 1, 0]
     );
 
     console.log('✅ Annisa (CC011) dept BOD berhasil ditambahkan ke MySQL.');
