@@ -799,7 +799,7 @@ async function loadRekapData() {
   const years = [...new Set(prAllData.map(r => prGetYear(r.training_date_start)).filter(Boolean))].sort().reverse();
   const depts = [...new Set(prAllData.map(r => r.department).filter(Boolean))].sort();
   const statusOrder = ['Submitted','Submitted_HR','PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR'];
-  const statuses = [...new Set(prAllData.map(r => r.approval_status || 'PendingBODDept'))].sort((a,b) => statusOrder.indexOf(a) - statusOrder.indexOf(b));
+  const statuses = [...new Set(prAllData.map(r => r.approval_status || 'Submitted'))].sort((a,b) => statusOrder.indexOf(a) - statusOrder.indexOf(b));
   prBuildOpts('Tahun', years);
   prBuildOpts('Dept', depts);
   prBuildOpts('Status', statuses, PR_STATUS_LABELS);
@@ -810,7 +810,7 @@ function prApplyFilter() {
   let data = prAllData;
   if (prMsState.Tahun.size > 0) data = data.filter(r => prMsState.Tahun.has(prGetYear(r.training_date_start)));
   if (prMsState.Dept.size > 0) data = data.filter(r => prMsState.Dept.has(r.department));
-  if (prMsState.Status.size > 0) data = data.filter(r => prMsState.Status.has(r.approval_status || 'PendingBODDept'));
+  if (prMsState.Status.size > 0) data = data.filter(r => prMsState.Status.has(r.approval_status || 'Submitted'));
   renderRecap(data);
 }
 
