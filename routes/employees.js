@@ -12,17 +12,16 @@ router.get('/', async (req, res) => {
   if (direktur === '1') {
     try {
       const [rows] = await pool.query(
-        `SELECT ${BOD_COLS} FROM mst_employee
-         WHERE is_active = 1
-           AND (
-             LOWER(TRIM(department)) IN ('bod','direksi')
-             OR LOWER(TRIM(position)) LIKE '%direktur%'
-             OR LOWER(TRIM(position)) LIKE '%direksi%'
-             OR LOWER(TRIM(position)) LIKE '%president%'
-           )
-         ORDER BY full_name`
+        `SELECT ${BOD_COLS} FROM mst_employee WHERE is_active = 1 ORDER BY full_name`
       );
-      return res.json(rows);
+      const BOD_DEPTS = ['bod', 'direksi'];
+      const BOD_POS   = ['direktur', 'direksi', 'president'];
+      const filtered = rows.filter(r => {
+        const dept = (r.department || '').toLowerCase().trim();
+        const pos  = (r.position  || '').toLowerCase().trim();
+        return BOD_DEPTS.some(d => dept.includes(d)) || BOD_POS.some(p => pos.includes(p));
+      });
+      return res.json(filtered);
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
