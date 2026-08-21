@@ -46,6 +46,34 @@ pool.getConnection()
     } catch (e) {
       console.error('⚠️  Migrasi cfg_email_settings gagal:', e.message);
     }
+
+    // Auto-migrate: pastikan approval_status ENUM menyertakan 'Submitted'
+    try {
+      const [colRows] = await connection.query(`
+        SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'trx_training_request'
+          AND COLUMN_NAME = 'approval_status'
+      `);
+      if (colRows.length > 0 && !colRows[0].COLUMN_TYPE.includes("'Submitted'")) {
+        await connection.query(`
+          ALTER TABLE trx_training_request
+            MODIFY COLUMN approval_status
+              ENUM('Submitted','PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR','Submitted_HR')
+              NOT NULL DEFAULT 'Submitted'
+        `);
+        // Perbaiki record lama yang tersimpan sebagai string kosong akibat ENUM tidak valid
+        await connection.query(`
+          UPDATE trx_training_request
+          SET approval_status = 'Submitted'
+          WHERE approval_status = ''
+        `);
+        console.log('✅ Migrasi approval_status: nilai Submitted ditambahkan dan record diperbaiki.');
+      }
+    } catch (e) {
+      console.error('⚠️  Migrasi approval_status gagal:', e.message);
+    }
+
     connection.release();
   })
   .catch(err => {
