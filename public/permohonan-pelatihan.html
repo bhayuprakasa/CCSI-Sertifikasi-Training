@@ -103,28 +103,6 @@ tbody td{padding:9px 8px;vertical-align:middle}
 .tn-gt-result{margin-top:6px;font-size:.82rem;font-weight:600}
 .tn-gt-result.accepted{color:var(--green)}
 .tn-gt-result.refused{color:var(--red)}
-/* Modal */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:center;justify-content:center;padding:16px}
-.modal-overlay.open{display:flex}
-.modal{background:var(--surface);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-width:680px;width:100%;max-height:90vh;overflow-y:auto}
-.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1}
-.modal-header h3{font-size:.95rem;font-weight:700;color:var(--navy)}
-.modal-close{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text3);line-height:1;padding:2px 6px}
-.modal-close:hover{color:var(--text)}
-.modal-body{padding:20px}
-.detail-section{margin-bottom:16px}
-.detail-section-title{font-size:.75rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
-.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.detail-grid .full{grid-column:1/-1}
-.detail-item label{display:block;font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px}
-.detail-item span{font-size:.83rem;color:var(--text)}
-.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
-.btn-primary{padding:8px 20px;border-radius:7px;border:none;background:var(--navy);color:#fff;cursor:pointer;font-family:var(--font);font-size:.83rem;font-weight:600}
-.btn-primary:hover{background:var(--navy-dk)}
-.btn-view{color:var(--navy);border-color:#c8d9f0;background:#e8eef7}
-.btn-view:hover{background:#d6e4f5}
-.btn-date{color:var(--green);border-color:#a7e8cc;background:var(--green-lt)}
-.btn-date:hover{background:#c2f0dd}
 .doc-id{font-size:.72rem;color:var(--text3);font-weight:400}
 /* Peserta checkboxes */
 .peserta-box{background:#f8fafd;border:1px solid var(--border);border-radius:8px;padding:10px 14px;max-height:240px;overflow-y:auto}
@@ -352,51 +330,11 @@ tbody td{padding:9px 8px;vertical-align:middle}
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>Departemen</th><th class="wrap">Nama Pelatihan</th><th>Peserta</th><th>Jenis</th><th class="wrap">Penyelenggara</th><th class="wrap">Tanggal Submit</th><th class="wrap">Tanggal Mulai</th><th class="wrap">Tanggal Selesai</th><th class="wrap">Total Biaya</th><th>GT</th><th>Status</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>#</th><th>Departemen</th><th class="wrap">Nama Pelatihan</th><th>Peserta</th><th>Terjadwal</th><th>Jenis</th><th class="wrap">Target Pelaksanaan</th><th class="wrap">Total Biaya</th><th>GT</th><th>Status</th></tr></thead>
             <tbody id="prRecapBody"></tbody>
           </table>
         </div>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- Detail View Modal -->
-<div class="modal-overlay" id="detailModal" onclick="if(event.target===this)closeDetailModal()">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="detailModalTitle">Detail Permohonan Pelatihan</h3>
-      <button class="modal-close" onclick="closeDetailModal()">✕</button>
-    </div>
-    <div class="modal-body" id="detailModalBody"></div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeDetailModal()">Tutup</button>
-    </div>
-  </div>
-</div>
-
-<!-- Update Tanggal Modal -->
-<div class="modal-overlay" id="dateModal" onclick="if(event.target===this)closeDateModal()">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-header">
-      <h3>Update Tanggal Pelatihan</h3>
-      <button class="modal-close" onclick="closeDateModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-grid" style="grid-template-columns:1fr">
-        <div class="form-group">
-          <label>Tanggal Mulai *</label>
-          <input type="date" id="dateModalStart">
-        </div>
-        <div class="form-group">
-          <label>Tanggal Selesai *</label>
-          <input type="date" id="dateModalEnd">
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeDateModal()">Batal</button>
-      <button class="btn-primary" id="dateModalSaveBtn" onclick="saveDates()">💾 Simpan</button>
     </div>
   </div>
 </div>
@@ -843,21 +781,13 @@ function prApplyFilter() {
   renderRecap(data);
 }
 
-function fmtDate(dateStr) {
-  if (!dateStr) return '-';
-  const d = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
-  const parts = d.split('-');
-  if (parts.length < 3) return d;
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
-}
-
 function renderRecap(data) {
   const msgEl = document.getElementById('prRecapMsg');
   const bodyEl = document.getElementById('prRecapBody');
 
   if (!data.length) {
     msgEl.innerHTML = '';
-    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="13">Belum ada data yang sesuai filter</td></tr>';
+    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="11">Belum ada data yang sesuai filter</td></tr>';
     return;
   }
 
@@ -865,9 +795,7 @@ function renderRecap(data) {
   msgEl.innerHTML = `<div class="tn-success">✅ <strong>${data.length}</strong> permohonan pelatihan tercatat — Total biaya: <strong>${fmtRp(totalCost)}</strong></div>`;
 
   bodyEl.innerHTML = data.map((r, i) => {
-    const tglSubmit = fmtDate(r.submitted_at);
-    const tglMulai = r.training_date_start ? fmtDate(r.training_date_start) : '<span style="color:var(--text3)">-</span>';
-    const tglSelesai = r.training_date_end ? fmtDate(r.training_date_end) : '<span style="color:var(--text3)">-</span>';
+    const tgl = fmtMonthYear(r.training_date_start);
     const apvStatus = r.approval_status || 'PendingBODDept';
     const apvMap = {
       'Submitted_HR':    { cls:'b-purple', icon:'📋', label:'Submitted by HR' },
@@ -878,153 +806,22 @@ function renderRecap(data) {
       'Rejected_BODHR':  { cls:'b-red',    icon:'❌', label:'Ditolak BOD HR' },
     };
     const { cls: apvCls, icon: apvIcon, label: apvLabel } = apvMap[apvStatus] || { cls:'b-gray', icon:'', label: apvStatus };
-    const rid = r.request_id;
+    const jadwalBadge = r.is_scheduled == null ? '<span class="badge b-gray">-</span>'
+      : r.is_scheduled ? '<span class="badge b-green">Terjadwal</span>'
+      : '<span class="badge b-yellow">Tidak Terjadwal</span>';
     return `<tr>
       <td style="color:var(--text3)">${i+1}</td>
-      <td><strong>${prEscH(r.department)}</strong></td>
-      <td>${prEscH(r.training_name)}</td>
-      <td style="font-size:.78rem">${(r.participants||[]).map(p => `<div>• ${prEscH(p)}</div>`).join('')}</td>
-      <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${prEscH(r.training_type)}</span></td>
-      <td style="font-size:.78rem;color:var(--text2)">${r.organizer ? prEscH(r.organizer) : '-'}</td>
-      <td style="white-space:nowrap;font-size:.78rem">${tglSubmit}</td>
-      <td style="white-space:nowrap;font-size:.78rem">${tglMulai}</td>
-      <td style="white-space:nowrap;font-size:.78rem">${tglSelesai}</td>
+      <td><strong>${r.department}</strong></td>
+      <td>${r.training_name}</td>
+      <td style="font-size:.78rem">${(r.participants||[]).map(p => `<div>• ${p}</div>`).join('')}</td>
+      <td>${jadwalBadge}</td>
+      <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${r.training_type}</span></td>
+      <td style="white-space:nowrap;font-size:.78rem">${tgl}</td>
       <td style="white-space:nowrap">${fmtRp(r.cost_total)}</td>
       <td style="text-align:center;font-weight:600;color:${r.score_grand_total>=32?'var(--green)':r.score_grand_total>0?'var(--red)':'var(--text3)'}">${r.score_grand_total||'-'} ${r.score_grand_total?(r.score_grand_total>=32?'✅':'❌'):''}</td>
       <td><span class="badge ${apvCls}">${apvIcon} ${apvLabel}</span></td>
-      <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn-sm btn-view" onclick="prViewDetail(${rid})">👁 Detail</button>
-        <button class="btn-sm btn-date" onclick="prOpenDateModal(${rid})">📅 Tanggal</button>
-        <button class="btn-sm btn-del" onclick="prDelete(${rid})">Hapus</button>
-      </td>
     </tr>`;
   }).join('');
-}
-
-// ── Detail Modal ──────────────────────────────────────────────────
-function prViewDetail(id) {
-  const r = prAllData.find(x => x.request_id === id);
-  if (!r) return;
-  const fmtRpVal = n => (!n || n == 0) ? 'Rp 0' : 'Rp ' + Number(n).toLocaleString('id-ID');
-  const apvMap = {
-    'Submitted_HR': 'Submitted by HR', 'PendingBODDept': 'Pending BOD Dept',
-    'PendingBODHR': 'Pending BOD HR', 'Approved': 'Disetujui',
-    'Rejected_BODDept': 'Ditolak BOD Dept', 'Rejected_BODHR': 'Ditolak BOD HR',
-  };
-  const yesNo = v => v ? 'Ya' : 'Tidak';
-  const esc = s => prEscH(s || '-');
-
-  document.getElementById('detailModalTitle').textContent = `Detail: ${r.training_name}`;
-  document.getElementById('detailModalBody').innerHTML = `
-    <div class="detail-section">
-      <div class="detail-section-title">Informasi Dasar</div>
-      <div class="detail-grid">
-        <div class="detail-item"><label>Departemen</label><span>${esc(r.department)}</span></div>
-        <div class="detail-item"><label>Dept Head / Pengaju</label><span>${esc(r.submitted_by)}</span></div>
-        <div class="detail-item full"><label>Nama Pelatihan</label><span>${esc(r.training_name)}</span></div>
-        <div class="detail-item full"><label>Tempat Pelatihan</label><span>${esc(r.training_venue)}</span></div>
-        <div class="detail-item"><label>Jenis</label><span>${esc(r.training_type)}</span></div>
-        <div class="detail-item"><label>Penyelenggara</label><span>${esc(r.organizer)}</span></div>
-        <div class="detail-item"><label>Rencana</label><span>${r.is_scheduled ? 'Terjadwal' : 'Tidak Terjadwal'}</span></div>
-        <div class="detail-item full"><label>Alasan Pelatihan</label><span>${esc(r.training_reason)}</span></div>
-      </div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-section-title">Tanggal</div>
-      <div class="detail-grid">
-        <div class="detail-item"><label>Tanggal Submit</label><span>${fmtDate(r.submitted_at)}</span></div>
-        <div class="detail-item"></div>
-        <div class="detail-item"><label>Tanggal Mulai</label><span>${r.training_date_start ? fmtDate(r.training_date_start) : '-'}</span></div>
-        <div class="detail-item"><label>Tanggal Selesai</label><span>${r.training_date_end ? fmtDate(r.training_date_end) : '-'}</span></div>
-      </div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-section-title">Peserta</div>
-      <div>${(r.participants||[]).map(p => `<div style="padding:3px 0;font-size:.83rem">• ${esc(p)}</div>`).join('') || '-'}</div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-section-title">Rincian Biaya</div>
-      <div class="detail-grid">
-        <div class="detail-item"><label>Training Fee</label><span>${fmtRpVal(r.cost_training_fee)}</span></div>
-        <div class="detail-item"><label>Akomodasi</label><span>${fmtRpVal(r.cost_akomodasi)}</span></div>
-        <div class="detail-item"><label>Transport</label><span>${fmtRpVal(r.cost_transport)}</span></div>
-        <div class="detail-item"><label>Makan</label><span>${fmtRpVal(r.cost_makan)}</span></div>
-        <div class="detail-item"><label>Snack</label><span>${fmtRpVal(r.cost_snack)}</span></div>
-        <div class="detail-item"><label>Emergency Cash</label><span>${fmtRpVal(r.cost_emergency)}</span></div>
-        <div class="detail-item full" style="padding-top:6px;border-top:1px solid var(--border);margin-top:4px"><label>Total Biaya</label><span style="font-weight:700;color:var(--navy)">${fmtRp(r.cost_total)}</span></div>
-      </div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-section-title">Peralatan & Penilaian</div>
-      <div class="detail-grid">
-        <div class="detail-item"><label>Proyektor</label><span>${r.eq_proyektor||0} unit</span></div>
-        <div class="detail-item"><label>Laptop</label><span>${r.eq_laptop||0} unit</span></div>
-        <div class="detail-item"><label>Kabel HDMI</label><span>${r.eq_kabel_hdmi||0} pcs</span></div>
-        <div class="detail-item"><label>Pointer</label><span>${r.eq_pointer||0} pcs</span></div>
-        <div class="detail-item"><label>Kertas Flip Chart</label><span>${r.eq_flipchart||0} roll</span></div>
-        <div class="detail-item"><label>Note Book</label><span>${r.eq_notebook||0} pcs</span></div>
-        <div class="detail-item"><label>Ruangan</label><span>${r.eq_ruangan||0} unit</span></div>
-        <div class="detail-item"><label>Colokan Listrik</label><span>${r.eq_colokan||0} pcs</span></div>
-        <div class="detail-item"><label>Coffee Break</label><span>${yesNo(r.coffee_break)}</span></div>
-        <div class="detail-item"><label>Grand Total (GT)</label><span style="font-weight:700">${r.score_grand_total||'-'}</span></div>
-      </div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-section-title">Approval</div>
-      <div class="detail-grid">
-        <div class="detail-item"><label>Status</label><span>${apvMap[r.approval_status] || r.approval_status || '-'}</span></div>
-        <div class="detail-item"><label>Approver</label><span>${esc(r.approver_name)}</span></div>
-        <div class="detail-item"><label>Jabatan Approver</label><span>${esc(r.approver_position)}</span></div>
-        <div class="detail-item"><label>Email Approver</label><span>${esc(r.approver_email)}</span></div>
-      </div>
-    </div>`;
-  document.getElementById('detailModal').classList.add('open');
-}
-
-function closeDetailModal() {
-  document.getElementById('detailModal').classList.remove('open');
-}
-
-// ── Update Tanggal Modal ──────────────────────────────────────────
-let _dateModalId = null;
-
-function prOpenDateModal(id) {
-  const r = prAllData.find(x => x.request_id === id);
-  _dateModalId = id;
-  const toInputDate = s => {
-    if (!s) return '';
-    return s.includes('T') ? s.split('T')[0] : s;
-  };
-  document.getElementById('dateModalStart').value = toInputDate(r?.training_date_start);
-  document.getElementById('dateModalEnd').value = toInputDate(r?.training_date_end);
-  document.getElementById('dateModal').classList.add('open');
-}
-
-function closeDateModal() {
-  document.getElementById('dateModal').classList.remove('open');
-  _dateModalId = null;
-}
-
-async function saveDates() {
-  const start = document.getElementById('dateModalStart').value;
-  const end = document.getElementById('dateModalEnd').value;
-  if (!start || !end) { showToast('Tanggal mulai dan selesai wajib diisi', false); return; }
-  if (end < start) { showToast('Tanggal selesai tidak boleh sebelum tanggal mulai', false); return; }
-  const btn = document.getElementById('dateModalSaveBtn');
-  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
-  try {
-    await api(`/api/training-requests/${_dateModalId}/dates`, {
-      method: 'PATCH',
-      body: JSON.stringify({ training_date_start: start, training_date_end: end }),
-    });
-    showToast('Tanggal berhasil diperbarui');
-    closeDateModal();
-    loadRekapData();
-  } catch (e) {
-    showToast(e.message, false);
-  } finally {
-    btn.disabled = false; btn.textContent = '💾 Simpan';
-  }
 }
 
 async function prDelete(id) {
