@@ -2635,17 +2635,22 @@ async function saveMaster() {
       is_active:parseInt(document.getElementById('m_active').value),
       is_dept_head:parseInt(document.getElementById('m_dept_head').value)
     };
-    await putRecord('mst_employee',obj);
-    // Sync ke MySQL API agar muncul di halaman lain (permohonan pelatihan, dll)
+    // MySQL DULU — IDB hanya diupdate kalau MySQL berhasil agar tidak terjadi data stale
     try {
+      let res;
       if(masterEditKey){
-        await fetch(`/api/employees/${encodeURIComponent(masterEditKey)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+        res = await fetch(`/api/employees/${encodeURIComponent(masterEditKey)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
       } else {
-        await fetch('/api/employees',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+        res = await fetch('/api/employees',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
       }
+      if(!res.ok){ const err=await res.json().catch(()=>({})); throw new Error(err.error||`HTTP ${res.status}`); }
+      await putRecord('mst_employee',obj);
       invalidateCache('mst_employee');
-    } catch(e){ console.warn('Sync MySQL gagal (offline mode):',e); }
-    showToast(masterEditKey?'Data karyawan diperbarui':'Karyawan berhasil ditambahkan');
+      showToast(masterEditKey?'Data karyawan diperbarui':'Karyawan berhasil ditambahkan');
+    } catch(e){
+      showToast('Gagal menyimpan: '+e.message+' — periksa koneksi dan coba lagi',false);
+      return;
+    }
 
   } else if(masterMode==='program'){
     // Jika nama disabled (terkunci), ambil nilai asli dari DB
