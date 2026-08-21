@@ -16,11 +16,9 @@ router.get('/', async (req, res) => {
          WHERE is_active = 1
            AND (
              LOWER(TRIM(department)) IN ('bod','direksi')
-             OR LOWER(TRIM(department)) LIKE '%bod%'
-             OR LOWER(TRIM(department)) LIKE '%direksi%'
-             OR LOWER(TRIM(\`position\`)) LIKE '%direktur%'
-             OR LOWER(TRIM(\`position\`)) LIKE '%direksi%'
-             OR LOWER(TRIM(\`position\`)) LIKE '%president%'
+             OR LOWER(TRIM(position)) LIKE '%direktur%'
+             OR LOWER(TRIM(position)) LIKE '%direksi%'
+             OR LOWER(TRIM(position)) LIKE '%president%'
            )
          ORDER BY full_name`
       );
