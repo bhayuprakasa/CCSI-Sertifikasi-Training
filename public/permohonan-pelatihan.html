@@ -830,7 +830,7 @@ function renderRecap(data) {
 
   bodyEl.innerHTML = data.map((r, i) => {
     const tgl = fmtMonthYear(r.training_date_start);
-    const apvStatus = r.approval_status || 'PendingBODDept';
+    const apvStatus = r.approval_status || 'Submitted';
     const apvMap = {
       'Submitted':       { cls:'b-gray',   icon:'💾', label:'Submitted' },
       'Submitted_HR':    { cls:'b-purple', icon:'📋', label:'Submitted by HR' },
