@@ -146,6 +146,8 @@ CREATE TABLE IF NOT EXISTS trx_training_request (
   training_venue       VARCHAR(200)  NULL,
   training_date_start  DATE          NOT NULL,
   training_date_end    DATE          NULL,
+  actual_date_start    DATE          NULL DEFAULT NULL,
+  actual_date_end      DATE          NULL DEFAULT NULL,
   training_type        ENUM('Internal','Eksternal') NOT NULL,
   organizer            VARCHAR(100)  NULL,
   training_reason      TEXT          NULL,
