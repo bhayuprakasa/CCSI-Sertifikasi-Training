@@ -1565,7 +1565,7 @@ function rkApplyFilter() {
   rkRenderRows(data);
 }
 
-function rkFmtDate(s){if(!s)return'-';const d=(s+'').includes('T')?(s+'').split('T')[0]:(s+'');const p=d.split('-');return p.length<3?d:`${p[2]}/${p[1]}/${p[0]}`;}
+function rkFmtDate(s){if(!s)return'-';const d=(s+'').split('T')[0].split(' ')[0];const p=d.split('-');return p.length<3?d:`${p[2]}/${p[1]}/${p[0]}`;}
 
 function rkRenderRows(data) {
   const msgEl=document.getElementById('rekapMsg');
