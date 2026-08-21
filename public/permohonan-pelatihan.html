@@ -297,7 +297,7 @@ tbody td{padding:9px 8px;vertical-align:middle}
       <!-- SUBMIT -->
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
         <button class="btn-cancel" onclick="prReset()">Reset Form</button>
-        <button class="tn-submit" id="prSubmitBtn" onclick="prSubmit()">📤 Kirim Permohonan</button>
+        <button class="tn-submit" id="prSubmitBtn" onclick="prSubmit()">💾 Submit</button>
       </div>
     </div>
   </div>
@@ -307,7 +307,7 @@ tbody td{padding:9px 8px;vertical-align:middle}
     <div class="card">
       <div class="card-header">
         <span class="card-title">📋 Rekap Permohonan Pelatihan</span>
-
+        <button class="tn-submit" id="prSendApprovalBtn" onclick="prSendApproval()" style="display:none;padding:8px 18px;font-size:.83rem">📨 Kirim Approval (<span id="prSelectedCount">0</span> dipilih)</button>
       </div>
       <div class="card-body">
         <div id="prRecapMsg"></div>
@@ -330,7 +330,20 @@ tbody td{padding:9px 8px;vertical-align:middle}
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>Departemen</th><th class="wrap">Nama Pelatihan</th><th>Peserta</th><th>Terjadwal</th><th>Jenis</th><th class="wrap">Target Pelaksanaan</th><th class="wrap">Total Biaya</th><th>GT</th><th>Status</th></tr></thead>
+            <thead><tr>
+              <th style="width:36px;text-align:center"><input type="checkbox" id="prSelectAll" onchange="prToggleSelectAll(this)" title="Pilih semua" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)"></th>
+              <th>#</th>
+              <th>Departemen</th>
+              <th class="wrap">Nama Pelatihan</th>
+              <th>Peserta</th>
+              <th>Terjadwal</th>
+              <th>Jenis</th>
+              <th class="wrap">Target Pelaksanaan</th>
+              <th class="wrap">Total Biaya</th>
+              <th>GT</th>
+              <th class="wrap">Approver 1</th>
+              <th>Status</th>
+            </tr></thead>
             <tbody id="prRecapBody"></tbody>
           </table>
         </div>
@@ -703,13 +716,13 @@ async function prSubmit() {
 
   try {
     await api('/api/training-requests', { method: 'POST', body: JSON.stringify(body) });
-    showToast('Permohonan pelatihan berhasil dikirim!');
+    showToast('Permohonan berhasil disimpan! Pilih di tabel rekap untuk kirim approval.');
     prReset(true);
     loadRekapData();
   } catch (e) {
     showToast(e.message, false);
   } finally {
-    btn.disabled = false; btn.textContent = '📤 Kirim Permohonan';
+    btn.disabled = false; btn.textContent = '💾 Submit';
   }
 }
 
@@ -787,7 +800,8 @@ function renderRecap(data) {
 
   if (!data.length) {
     msgEl.innerHTML = '';
-    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="11">Belum ada data yang sesuai filter</td></tr>';
+    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="12">Belum ada data yang sesuai filter</td></tr>';
+    prUpdateSelectionUI();
     return;
   }
 
@@ -809,7 +823,14 @@ function renderRecap(data) {
     const jadwalBadge = r.is_scheduled == null ? '<span class="badge b-gray">-</span>'
       : r.is_scheduled ? '<span class="badge b-green">Terjadwal</span>'
       : '<span class="badge b-yellow">Tidak Terjadwal</span>';
+    const canSelect = apvStatus === 'PendingBODDept';
+    const approver1 = r.approver_name ? `<span style="font-size:.75rem;color:var(--text2)">${r.approver_name}</span>` : '<span style="color:var(--text3);font-size:.75rem">—</span>';
     return `<tr>
+      <td style="text-align:center">
+        ${canSelect
+          ? `<input type="checkbox" class="pr-row-cb" data-id="${r.request_id}" onchange="prUpdateSelectionUI()" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">`
+          : '<span style="color:var(--text3);font-size:.7rem">—</span>'}
+      </td>
       <td style="color:var(--text3)">${i+1}</td>
       <td><strong>${r.department}</strong></td>
       <td>${r.training_name}</td>
@@ -819,9 +840,58 @@ function renderRecap(data) {
       <td style="white-space:nowrap;font-size:.78rem">${tgl}</td>
       <td style="white-space:nowrap">${fmtRp(r.cost_total)}</td>
       <td style="text-align:center;font-weight:600;color:${r.score_grand_total>=32?'var(--green)':r.score_grand_total>0?'var(--red)':'var(--text3)'}">${r.score_grand_total||'-'} ${r.score_grand_total?(r.score_grand_total>=32?'✅':'❌'):''}</td>
+      <td>${approver1}</td>
       <td><span class="badge ${apvCls}">${apvIcon} ${apvLabel}</span></td>
     </tr>`;
   }).join('');
+
+  prUpdateSelectionUI();
+}
+
+function prUpdateSelectionUI() {
+  const cbs = [...document.querySelectorAll('.pr-row-cb')];
+  const checked = cbs.filter(c => c.checked);
+  const n = checked.length;
+  const countEl = document.getElementById('prSelectedCount');
+  const btn = document.getElementById('prSendApprovalBtn');
+  const selAll = document.getElementById('prSelectAll');
+  if (countEl) countEl.textContent = n;
+  if (btn) btn.style.display = n > 0 ? '' : 'none';
+  if (selAll) {
+    selAll.checked = cbs.length > 0 && checked.length === cbs.length;
+    selAll.indeterminate = checked.length > 0 && checked.length < cbs.length;
+  }
+}
+
+function prToggleSelectAll(masterCb) {
+  document.querySelectorAll('.pr-row-cb').forEach(cb => { cb.checked = masterCb.checked; });
+  prUpdateSelectionUI();
+}
+
+async function prSendApproval() {
+  const checked = [...document.querySelectorAll('.pr-row-cb:checked')];
+  if (!checked.length) { showToast('Pilih minimal 1 permohonan', false); return; }
+  const ids = checked.map(c => parseInt(c.dataset.id));
+  if (!confirm(`Kirim approval email untuk ${ids.length} permohonan yang dipilih?`)) return;
+  const btn = document.getElementById('prSendApprovalBtn');
+  btn.disabled = true; btn.textContent = '⏳ Mengirim...';
+  try {
+    const res = await api('/api/training-requests/send-multi-approval', { method: 'POST', body: JSON.stringify({ request_ids: ids }) });
+    const sent = (res.results || []).filter(r => r.status === 'sent');
+    const failed = (res.results || []).filter(r => r.status === 'failed');
+    const skipped = res.skipped || [];
+    let msg = `Email terkirim ke ${sent.length} approver`;
+    if (skipped.length) msg += `, ${skipped.length} dilewati`;
+    if (failed.length) msg += `, ${failed.length} gagal`;
+    showToast(msg, failed.length === 0);
+    loadRekapData();
+  } catch (e) {
+    showToast(e.message, false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '📨 Kirim Approval (<span id="prSelectedCount">0</span> dipilih)';
+    prUpdateSelectionUI();
+  }
 }
 
 async function prDelete(id) {
