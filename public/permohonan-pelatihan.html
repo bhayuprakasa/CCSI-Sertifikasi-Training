@@ -812,6 +812,7 @@ function renderRecap(data) {
     const tgl = fmtMonthYear(r.training_date_start);
     const apvStatus = r.approval_status || 'PendingBODDept';
     const apvMap = {
+      'Submitted':       { cls:'b-gray',   icon:'💾', label:'Submitted' },
       'Submitted_HR':    { cls:'b-purple', icon:'📋', label:'Submitted by HR' },
       'PendingBODDept':  { cls:'b-yellow', icon:'⏳', label:'Pending BOD Dept' },
       'PendingBODHR':    { cls:'b-navy',   icon:'⏳', label:'Pending BOD HR' },
@@ -823,7 +824,7 @@ function renderRecap(data) {
     const jadwalBadge = r.is_scheduled == null ? '<span class="badge b-gray">-</span>'
       : r.is_scheduled ? '<span class="badge b-green">Terjadwal</span>'
       : '<span class="badge b-yellow">Tidak Terjadwal</span>';
-    const canSelect = apvStatus === 'PendingBODDept';
+    const canSelect = apvStatus === 'Submitted';
     const approver1 = r.approver_name ? `<span style="font-size:.75rem;color:var(--text2)">${r.approver_name}</span>` : '<span style="color:var(--text3);font-size:.75rem">—</span>';
     return `<tr>
       <td style="text-align:center">

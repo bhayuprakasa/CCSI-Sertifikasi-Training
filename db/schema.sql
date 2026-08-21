@@ -179,8 +179,8 @@ CREATE TABLE IF NOT EXISTS trx_training_request (
   submitted_by         VARCHAR(100)  NULL,
   submitted_at         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   is_scheduled         TINYINT(1)    NOT NULL DEFAULT 0,
-  approval_status      ENUM('PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR','Submitted_HR')
-                       NOT NULL DEFAULT 'PendingBODDept',
+  approval_status      ENUM('Submitted','PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR','Submitted_HR')
+                       NOT NULL DEFAULT 'Submitted',
   approval_token       VARCHAR(64)   NULL UNIQUE,
   approval_hrd_token   VARCHAR(64)   NULL UNIQUE,
   approver_name        VARCHAR(100)  NULL,

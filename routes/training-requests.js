@@ -96,7 +96,7 @@ router.post('/', async (req, res) => {
         pa, ph, ma, mh, gt,
         item.submitted_by || null,
         item.is_scheduled != null ? (item.is_scheduled ? 1 : 0) : 0,
-        item.submitted_by_hr ? 'Submitted_HR' : 'PendingBODDept',
+        item.submitted_by_hr ? 'Submitted_HR' : 'Submitted',
         approvalToken,
         item.approver1_name || null, item.approver1_email || null, item.approver1_position || null,
       ]
@@ -120,7 +120,7 @@ router.post('/', async (req, res) => {
 
     await conn.commit();
 
-    res.status(201).json({ request_id: requestId, ...item, cost_total: costTotal, approval_status: item.submitted_by_hr ? 'Submitted_HR' : 'PendingBODDept' });
+    res.status(201).json({ request_id: requestId, ...item, cost_total: costTotal, approval_status: item.submitted_by_hr ? 'Submitted_HR' : 'Submitted' });
   } catch (e) {
     await conn.rollback();
     throw e;
@@ -176,8 +176,8 @@ router.post('/send-multi-approval', async (req, res) => {
       skipped.push({ request_id: r.request_id, training_name: r.training_name, reason: 'Email approver tidak ditemukan' });
       continue;
     }
-    if (r.approval_status !== 'PendingBODDept') {
-      skipped.push({ request_id: r.request_id, training_name: r.training_name, reason: `Status sudah: ${r.approval_status}` });
+    if (r.approval_status !== 'Submitted') {
+      skipped.push({ request_id: r.request_id, training_name: r.training_name, reason: `Status tidak valid untuk dikirim: ${r.approval_status}` });
       continue;
     }
     const key = r.approver_email;
@@ -199,6 +199,13 @@ router.post('/send-multi-approval', async (req, res) => {
   for (const [email, group] of Object.entries(approverGroups)) {
     try {
       await sendMultiApprovalEmail({ approver: group.approver, requests: group.requests, appUrl });
+      // Naikkan status ke PendingBODDept setelah email berhasil dikirim
+      const sentIds = group.requests.map(r => r.request_id);
+      const ph2 = sentIds.map(() => '?').join(',');
+      await pool.query(
+        `UPDATE trx_training_request SET approval_status = 'PendingBODDept' WHERE request_id IN (${ph2}) AND approval_status = 'Submitted'`,
+        sentIds
+      );
       results.push({ approver_email: email, count: group.requests.length, status: 'sent' });
     } catch (err) {
       results.push({ approver_email: email, count: group.requests.length, status: 'failed', error: err.message });
