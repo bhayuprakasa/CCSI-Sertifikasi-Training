@@ -2733,8 +2733,32 @@ async function syncEmployeesToServer() {
   btn.disabled = true;
   btn.textContent = '⟳ Menyinkronkan...';
   try {
-    const emps = await idbGetAll('mst_employee');
-    if (!emps.length) { showToast('Tidak ada data karyawan di IndexedDB untuk di-sync', false); return; }
+    let emps = await idbGetAll('mst_employee');
+    if (!emps.length) {
+      // IndexedDB kosong — coba tarik data dari server ke IndexedDB
+      btn.textContent = '⟳ Mengambil data dari server...';
+      try {
+        const res = await fetch('/api/employees');
+        if (res.ok) {
+          const serverEmps = await res.json();
+          if (!serverEmps.length) {
+            showToast('Tidak ada data karyawan di server maupun IndexedDB', false);
+            return;
+          }
+          for (const emp of serverEmps) await putRecord('mst_employee', emp);
+          invalidateCache('mst_employee');
+          emps = serverEmps;
+          showToast(`${emps.length} data karyawan berhasil dipulihkan dari server ke IndexedDB`, true);
+          return;
+        } else {
+          showToast('IndexedDB kosong dan server tidak dapat dijangkau', false);
+          return;
+        }
+      } catch (e) {
+        showToast('IndexedDB kosong dan gagal terhubung ke server: ' + e.message, false);
+        return;
+      }
+    }
 
     // GET daftar server — opsional, tidak gagal total jika MySQL error
     let serverIds = new Set();
