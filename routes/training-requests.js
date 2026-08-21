@@ -273,6 +273,29 @@ router.get('/reject-hrd/:token', async (req, res) => {
   res.send(approvalPage('rejected_hrd', 'Rejected_BODHR', req_));
 });
 
+router.patch('/:id/dates', async (req, res) => {
+  const { training_date_start, training_date_end } = req.body;
+  if (!training_date_start || !training_date_end) {
+    return res.status(400).json({ error: 'Tanggal mulai dan tanggal selesai wajib diisi' });
+  }
+  if (training_date_end < training_date_start) {
+    return res.status(400).json({ error: 'Tanggal selesai tidak boleh sebelum tanggal mulai' });
+  }
+  const [result] = await pool.query(
+    'UPDATE trx_training_request SET training_date_start = ?, training_date_end = ? WHERE request_id = ?',
+    [training_date_start, training_date_end, req.params.id]
+  );
+  if (!result.affectedRows) return res.status(404).json({ error: 'Data tidak ditemukan' });
+  await logAudit({
+    table_name: 'trx_training_request',
+    record_id: req.params.id,
+    operation: 'UPDATE',
+    new_data: { training_date_start, training_date_end },
+    changed_by: req.changedBy,
+  });
+  res.json({ updated: true, training_date_start, training_date_end });
+});
+
 router.delete('/:id', async (req, res) => {
   const [old] = await pool.query('SELECT * FROM trx_training_request WHERE request_id = ?', [req.params.id]);
   const [oldParts] = await pool.query('SELECT participant_name FROM trx_training_request_participant WHERE request_id = ?', [req.params.id]);
