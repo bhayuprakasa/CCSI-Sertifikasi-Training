@@ -5,12 +5,17 @@
 // ── IndexedDB helper (shared, dipakai semua halaman) ─────────────────────────
 window.ccsiIdb = (function () {
   const DB_NAME = 'CCSI_Training_v2', DB_VER = 1;
+  const STORES = ['mst_employee','mst_competency','mst_program','trx_employee_program','trx_certification'];
   let _db = null;
 
   function open() {
     if (_db) return Promise.resolve(_db);
     return new Promise((res, rej) => {
       const req = indexedDB.open(DB_NAME, DB_VER);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        STORES.forEach(s => { if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { autoIncrement: true }); });
+      };
       req.onsuccess = e => { _db = e.target.result; res(_db); };
       req.onerror  = e => rej(e);
       req.onblocked = () => rej(new Error('IDB blocked'));
