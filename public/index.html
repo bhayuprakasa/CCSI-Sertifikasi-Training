@@ -50,11 +50,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .kpi.warn .kpi-value{color:var(--red)}.kpi.ok .kpi-value{color:var(--green)}.kpi.info .kpi-value{color:var(--yellow)}
 /* TABLE */
 .table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:.81rem}
-thead th{background:#f8fafd;color:var(--text2);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
+table{width:100%;min-width:1200px;border-collapse:collapse;font-size:.81rem}
+thead th{background:#f8fafd;color:var(--text2);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:9px 10px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
 tbody tr{border-bottom:1px solid #f0f3f6;transition:background .1s}
 tbody tr:hover{background:#f8fafd}
-tbody td{padding:10px 12px;vertical-align:middle}
+tbody td{padding:10px 10px;vertical-align:middle}
 .empty-row td{text-align:center;color:var(--text3);padding:28px;font-size:.83rem}
 /* BADGES */
 .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;white-space:nowrap}
@@ -852,6 +852,30 @@ select.filter:focus{border-color:var(--navy-lt)}
       <button class="btn-cancel" onclick="closeModal('modalPermHR')">Batal</button>
       <button class="btn-save" id="mphSaveBtn" onclick="mphSave()" style="background:var(--purple)">📋 Simpan Permohonan</button>
     </div>
+  </div>
+</div>
+
+<!-- Detail Modal Rekap -->
+<div class="modal-overlay" id="rkDetailModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header"><span class="modal-title" id="rkDetailTitle">Detail Pelatihan</span><button class="modal-close" onclick="document.getElementById('rkDetailModal').classList.remove('open')">✕</button></div>
+    <div class="modal-body" id="rkDetailBody"></div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="document.getElementById('rkDetailModal').classList.remove('open')">Tutup</button></div>
+  </div>
+</div>
+
+<!-- Tanggal Modal Rekap -->
+<div class="modal-overlay" id="rkDateModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header"><span class="modal-title">📅 Edit Tanggal Pelatihan</span><button class="modal-close" onclick="document.getElementById('rkDateModal').classList.remove('open')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="rkDateId">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><label style="font-size:.78rem;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">Tanggal Mulai</label><input type="date" id="rkDateStart" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:var(--font);font-size:.83rem"></div>
+        <div><label style="font-size:.78rem;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">Tanggal Selesai</label><input type="date" id="rkDateEnd" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:var(--font);font-size:.83rem"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="document.getElementById('rkDateModal').classList.remove('open')">Batal</button><button class="btn-save" onclick="rkSaveDate()">💾 Simpan</button></div>
   </div>
 </div>
 
@@ -1712,6 +1736,54 @@ async function rekapDelete(id) {
     showToast('Data dihapus');
     renderRekap();
   } catch { showToast('Gagal menghapus',false); }
+}
+
+function rkViewDetail(id) {
+  const r = rkAllData.find(x => x.request_id === id);
+  if (!r) return;
+  const esc = s => (s||'-').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const fmtRpVal = n => (!n||n==0)?'Rp 0':'Rp '+Number(n).toLocaleString('id-ID');
+  const apvMap = {'Submitted_HR':'Submitted by HR','PendingBODDept':'Pending BOD Dept','PendingBODHR':'Pending BOD HR','Approved':'Disetujui','Rejected_BODDept':'Ditolak BOD Dept','Rejected_BODHR':'Ditolak BOD HR'};
+  document.getElementById('rkDetailTitle').textContent = `Detail: ${r.training_name}`;
+  document.getElementById('rkDetailBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.83rem">
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Departemen</div><div>${esc(r.department)}</div></div>
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Pengaju</div><div>${esc(r.submitted_by)}</div></div>
+      <div style="grid-column:1/-1"><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Nama Pelatihan</div><div>${esc(r.training_name)}</div></div>
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Jenis</div><div>${esc(r.training_type)}</div></div>
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Penyelenggara</div><div>${esc(r.organizer)}</div></div>
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal Mulai</div><div>${rkFmtDate(r.training_date_start)}</div></div>
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal Selesai</div><div>${rkFmtDate(r.training_date_end)}</div></div>
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Total Biaya</div><div>${fmtRpVal(r.cost_total)}</div></div>
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Status</div><div>${apvMap[r.approval_status]||r.approval_status||'-'}</div></div>
+      <div style="grid-column:1/-1"><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Peserta</div><div>${(r.participants||[]).map(p=>`• ${p}`).join('<br>')||'-'}</div></div>
+    </div>`;
+  document.getElementById('rkDetailModal').classList.add('open');
+}
+
+function rkOpenDateModal(id) {
+  const r = rkAllData.find(x => x.request_id === id);
+  if (!r) return;
+  document.getElementById('rkDateId').value = id;
+  document.getElementById('rkDateStart').value = r.training_date_start ? (r.training_date_start+'').split('T')[0] : '';
+  document.getElementById('rkDateEnd').value = r.training_date_end ? (r.training_date_end+'').split('T')[0] : '';
+  document.getElementById('rkDateModal').classList.add('open');
+}
+
+async function rkSaveDate() {
+  const id = document.getElementById('rkDateId').value;
+  const start = document.getElementById('rkDateStart').value;
+  const end = document.getElementById('rkDateEnd').value;
+  try {
+    await fetch(`/api/training-requests/${id}`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({training_date_start: start||null, training_date_end: end||null})
+    });
+    showToast('Tanggal disimpan');
+    document.getElementById('rkDateModal').classList.remove('open');
+    renderRekap();
+  } catch { showToast('Gagal menyimpan',false); }
 }
 
 // =====================
