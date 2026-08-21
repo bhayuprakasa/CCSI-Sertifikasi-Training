@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS mst_employee (
   full_name     VARCHAR(100)  NOT NULL,
   department    VARCHAR(50)   NOT NULL,
   position      VARCHAR(50)   NOT NULL,
-  site          ENUM('HO Jakarta','KIEC Cilegon','KBS Cilegon') NOT NULL,
+  site          ENUM('HO Jakarta','Cilegon') NOT NULL,
   employment_status ENUM('PKWTT','PKWT') NOT NULL DEFAULT 'PKWTT',
   join_date     DATE          NULL,
   is_active     TINYINT(1)    NOT NULL DEFAULT 1
@@ -90,16 +90,16 @@ INSERT INTO mst_employee (employee_id, full_name, department, position, site, em
 ('CC000','Direktur HRD','BOD','Direktur HRD','HO Jakarta','PKWTT','2015-01-01',1,0);
 
 INSERT INTO mst_employee (employee_id, full_name, department, position, site, employment_status, join_date, is_active) VALUES
-('CC001','Budi Santoso','Produksi','Operator Produksi','KIEC Cilegon','PKWTT','2019-03-01',1),
+('CC001','Budi Santoso','Produksi','Operator Produksi','Cilegon','PKWTT','2019-03-01',1),
 ('CC002','Siti Rahayu','HR & GA','Staff HR','HO Jakarta','PKWTT','2020-07-15',1),
-('CC003','Ahmad Fauzi','Maintenance','Teknisi Mesin','KBS Cilegon','PKWTT','2018-11-01',1),
+('CC003','Ahmad Fauzi','Maintenance','Teknisi Mesin','Cilegon','PKWTT','2018-11-01',1),
 ('CC004','Dewi Kurniawati','Finance','Staff Finance','HO Jakarta','PKWTT','2021-02-01',1),
-('CC005','Rudi Hermawan','QC/QA','Supervisor QC','KIEC Cilegon','PKWTT','2017-06-01',1),
-('CC006','Eko Prasetyo','Produksi','Operator Extrusi','KBS Cilegon','PKWT','2024-01-15',1),
+('CC005','Rudi Hermawan','QC/QA','Supervisor QC','Cilegon','PKWTT','2017-06-01',1),
+('CC006','Eko Prasetyo','Produksi','Operator Extrusi','Cilegon','PKWT','2024-01-15',1),
 ('CC007','Maya Indrawati','IT','Staff IT','HO Jakarta','PKWTT','2022-03-01',1),
-('CC008','Hendra Wijaya','Produksi','Kepala Produksi','KIEC Cilegon','PKWTT','2015-08-01',1),
+('CC008','Hendra Wijaya','Produksi','Kepala Produksi','Cilegon','PKWTT','2015-08-01',1),
 ('CC009','Rina Marliani','Purchasing','Staff Purchasing','HO Jakarta','PKWTT','2023-05-01',1),
-('CC010','Teguh Setiawan','Engineering','Teknisi Listrik','KBS Cilegon','PKWTT','2019-09-01',1);
+('CC010','Teguh Setiawan','Engineering','Teknisi Listrik','Cilegon','PKWTT','2019-09-01',1);
 
 INSERT INTO mst_competency (competency_name, competency_type, category) VALUES
 ('K3 Umum','Safety','K3'),

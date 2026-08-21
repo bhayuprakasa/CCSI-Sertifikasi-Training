@@ -1,22 +1,104 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config();
+const fs = require('fs');
+const crypto = require('crypto');
+const { exec } = require('child_process');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const { requireApiKey } = require('./middleware/auth');
+const { requireApiKey, sessionToken, SESSION_COOKIE, ONE_DAY_MS } = require('./middleware/auth');
+const pool = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const publicDir = path.join(__dirname, 'public');
 
-// CORS — izinkan semua origin; keamanan dijamin oleh X-API-Key middleware
+// Build CORS allowlist from APP_URL + optional CORS_ORIGINS env var.
+// localhost variants are always included so local/dev access works without .env.
+const ALLOWED_ORIGINS = [
+  process.env.APP_URL,
+  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()) : []),
+  `http://localhost:${process.env.PORT || 3000}`,
+  `http://127.0.0.1:${process.env.PORT || 3000}`,
+].filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin: (origin, cb) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error(`Origin ${origin} not allowed by CORS`));
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'X-API-Key', 'X-Changed-By'],
+  credentials: true,
 }));
 
+// ── GitHub Webhook — raw body required for HMAC verification ─────────────────
+// Registered BEFORE express.json() so the body is not consumed first.
+app.post('/webhook/github', express.raw({ type: 'application/json' }), (req, res) => {
+  const secret = process.env.GITHUB_WEBHOOK_SECRET;
+  if (!secret) return res.status(500).json({ error: 'GITHUB_WEBHOOK_SECRET not configured' });
+
+  const sig = req.headers['x-hub-signature-256'];
+  if (!sig) return res.status(401).json({ error: 'Missing signature' });
+
+  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(req.body).digest('hex');
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+  } catch {
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+
+  const event = req.headers['x-github-event'];
+  const payload = JSON.parse(req.body.toString());
+
+  if (event !== 'push' || payload.ref !== 'refs/heads/main') {
+    return res.json({ ok: true, action: 'ignored' });
+  }
+
+  res.json({ ok: true, message: 'Deploy dimulai, cek log server...' });
+
+  exec('git pull origin main', { cwd: __dirname }, (err, stdout) => {
+    if (err) { console.error('[Webhook] git pull error:', err.message); return; }
+    console.log('[Webhook] git pull:', stdout.trim());
+    exec('npm install --omit=dev', { cwd: __dirname }, (err2) => {
+      if (err2) { console.error('[Webhook] npm install error:', err2.message); return; }
+      console.log('[Webhook] npm install selesai. Restart via PM2...');
+      setTimeout(() => process.exit(0), 500);
+    });
+  });
+});
+
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// ── HTML serving dengan session cookie ───────────────────────────────────────
+// Browser membuka halaman → server set httpOnly cookie berisi signed session token.
+// API_KEY tidak pernah dikirim atau terekspos ke browser sama sekali.
+// Hanya file .html yang diintersep; asset lain (JS/CSS/gambar) lewat express.static.
+const isSecure = process.env.APP_URL?.startsWith('https://') ?? false;
+
+app.use((req, res, next) => {
+  const file = req.path === '/' ? 'index.html' : path.basename(req.path);
+  if (!file.endsWith('.html')) return next();
+
+  const filePath = path.join(publicDir, file);
+  if (!fs.existsSync(filePath)) return next();
+
+  res.cookie(SESSION_COOKIE, sessionToken(), {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: isSecure,
+    maxAge: 2 * ONE_DAY_MS,
+  });
+
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(filePath);
+});
+
+app.use(express.static(publicDir, { index: false }));
 
 // API key auth — applied before all /api routes
 app.use('/api', requireApiKey);
@@ -33,62 +115,14 @@ app.use('/api/audit-log', require('./routes/audit-log'));
 app.use('/api/approval-workflow', require('./routes/approval-workflow'));
 app.use('/api/email-log', require('./routes/email-log'));
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 // Health check — cek koneksi MySQL tanpa auth
 app.get('/api/health', async (req, res) => {
   try {
-    const pool = require('./db');
     await pool.query('SELECT 1');
     res.json({ status: 'ok', db: 'connected' });
   } catch (e) {
     res.status(503).json({ status: 'error', db: 'disconnected', detail: e.message });
   }
-});
-
-// ── Auto-pull dari GitHub setiap 5 menit ────────────────────────────────────
-const { exec } = require('child_process');
-const AUTO_PULL_INTERVAL = 5 * 60 * 1000; // 5 menit
-
-function autoPull() {
-  const cwd = __dirname;
-  exec('git fetch origin main 2>&1 && git rev-parse HEAD && git rev-parse origin/main', { cwd }, (err, stdout) => {
-    if (err) { console.warn('[AutoPull] fetch error:', err.message); return; }
-
-    const lines = stdout.trim().split('\n');
-    const local  = lines[lines.length - 2];
-    const remote = lines[lines.length - 1];
-
-    if (local === remote) return; // tidak ada perubahan baru
-
-    console.log('[AutoPull] Commit baru terdeteksi, menjalankan git pull...');
-    // Stash perubahan lokal agar pull tidak gagal karena konflik file
-    exec('git stash', { cwd }, () => {
-    exec('git pull origin main', { cwd }, (err2, out2) => {
-      if (err2) { console.error('[AutoPull] git pull error:', err2.message); return; }
-      console.log('[AutoPull] git pull:', out2.trim());
-
-      exec('npm install --omit=dev', { cwd }, () => {
-        console.log('[AutoPull] npm install selesai. Restart server...');
-        setTimeout(() => process.exit(0), 500);
-      });
-    });
-    }); // end git stash
-  });
-}
-
-setInterval(autoPull, AUTO_PULL_INTERVAL);
-
-// Endpoint manual trigger deploy (opsional, butuh secret)
-app.post('/deploy', (req, res) => {
-  const secret = req.headers['x-deploy-secret'];
-  if (!secret || secret !== process.env.DEPLOY_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  res.json({ ok: true, message: 'Deploy dimulai, cek log server...' });
-  setTimeout(autoPull, 500);
 });
 
 // Global error handler — catches async throws from route handlers

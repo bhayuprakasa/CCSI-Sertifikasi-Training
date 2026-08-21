@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -13,7 +14,9 @@ jobs:
       - name: Pull latest code
         run: |
           cd C:\www\ccsi-app
-          git pull origin main
+          git fetch origin main
+          git merge --abort 2>$null; $true
+          git reset --hard origin/main
 
       - name: Install dependencies
         run: |
@@ -56,7 +59,7 @@ jobs:
         run: |
           Write-Host "Deploy gagal, melakukan rollback..."
           cd C:\www\ccsi-app
-          git revert HEAD --no-edit
+          git reset --hard HEAD~1
           C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd restart ccsi-training
           Write-Host "Rollback selesai"
         shell: powershell

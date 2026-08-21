@@ -367,7 +367,7 @@ select.filter:focus{border-color:var(--navy-lt)}
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>#</th><th>Departemen</th><th>Nama Pelatihan</th><th>Peserta</th><th>Jenis</th><th>Penyelenggara</th><th>Tanggal</th><th>Total Biaya</th><th>GT</th><th>Status</th><th>Aksi</th></tr></thead>
+              <thead><tr><th>#</th><th>Departemen</th><th>Nama Pelatihan</th><th>Peserta</th><th>Jenis</th><th>Penyelenggara</th><th class="wrap">Tanggal Submit</th><th class="wrap">Tanggal Mulai</th><th class="wrap">Tanggal Selesai</th><th>Total Biaya</th><th>GT</th><th>Status</th><th>Aksi</th></tr></thead>
               <tbody id="rekapBody"></tbody>
             </table>
           </div>
@@ -513,7 +513,7 @@ select.filter:focus{border-color:var(--navy-lt)}
     <div class="card">
       <div class="card-header"><span class="card-title">👥 Master Karyawan</span><div style="display:flex;gap:6px"><button class="btn-sm" id="btnSyncEmp" onclick="syncEmployeesToServer()" style="background:#e8f0fe;border:1px solid #c5d4f5;color:#1a56c4;font-size:.75rem">⟳ Sync ke Server</button><button class="btn-sm btn-edit" onclick="openMasterModal('employee')">+ Tambah</button></div></div>
       <div class="card-body"><div class="table-wrap"><table>
-        <thead><tr><th>NIK</th><th>Nama</th><th>Dept</th><th>Site</th><th>Jabatan</th><th>Email</th><th>Status</th><th>Penggunaan</th><th>Aksi</th></tr></thead>
+        <thead><tr><th>NIK</th><th>Nama</th><th>Dept</th><th>Site</th><th>Jabatan</th><th>Dept Head</th><th>Email</th><th>Status</th><th>Penggunaan</th><th>Aksi</th></tr></thead>
         <tbody id="empBody"></tbody>
       </table></div></div>
     </div>
@@ -577,6 +577,95 @@ select.filter:focus{border-color:var(--navy-lt)}
       </div>
     </div>
 
+    <!-- ── Setup Email Settings ────────────────────────────────────────────── -->
+    <div class="card" style="margin-bottom:14px" id="esCard">
+      <div class="card-header" style="cursor:pointer;user-select:none" onclick="esToggle()">
+        <span class="card-title">✉️ Konfigurasi Email Approval</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="esBadge" style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:.72rem;font-weight:700;background:#e8eef7;color:var(--navy)">Memuat...</span>
+          <span id="esChevron" style="font-size:.72rem;color:var(--text3);transition:transform .2s">▼</span>
+        </div>
+      </div>
+      <div id="esBody" style="display:none">
+        <div class="card-body" style="padding:14px 18px">
+
+          <div style="background:#e8f4fd;border:1px solid #b8d4f0;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#0c2a52;margin-bottom:16px;line-height:1.6">
+            ℹ️ Konfigurasi berlaku untuk kedua layer approval. Placeholder subject: <code>{training_name}</code>, <code>{department}</code>, <code>{request_id}</code>.<br>
+            <strong>Sender email</strong> tidak bisa diubah di sini — diambil dari variabel <code>SMTP_USER</code> / <code>GRAPH_CLIENT</code> di server.
+          </div>
+
+          <!-- Tabs layer -->
+          <div style="display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:16px">
+            <div id="esTab-dept" onclick="esShowLayer('dept')"
+              style="padding:6px 16px;font-size:.82rem;font-weight:600;cursor:pointer;border-radius:6px 6px 0 0;border-bottom:2px solid var(--navy);margin-bottom:-2px;color:var(--navy);background:rgba(26,60,110,.06)">
+              📋 Direksi Departemen
+            </div>
+            <div id="esTab-hrd" onclick="esShowLayer('hrd')"
+              style="padding:6px 16px;font-size:.82rem;font-weight:500;cursor:pointer;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text2)">
+              🏢 Direktur HRD
+            </div>
+          </div>
+
+          <!-- Layer: Dept -->
+          <div id="esPanel-dept">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div class="form-group">
+                <label>Nama Pengirim (Sender Name)</label>
+                <input type="text" id="es-dept-sender_name" placeholder="Contoh: CCSI Training System">
+              </div>
+              <div class="form-group">
+                <label>Reply-To (opsional)</label>
+                <input type="email" id="es-dept-reply_to" placeholder="Contoh: training@ccsi.co.id">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>CC (opsional — pisahkan dengan koma)</label>
+                <input type="text" id="es-dept-cc_emails" placeholder="Contoh: hr@ccsi.co.id, manager@ccsi.co.id">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>Template Subject Email</label>
+                <input type="text" id="es-dept-subject_template"
+                  placeholder="[Persetujuan Diperlukan] Pelatihan: {training_name} — {department}">
+                <div style="font-size:.72rem;color:var(--text3);margin-top:3px" id="es-dept-preview"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn-sm btn-edit" onclick="esSave('dept')" id="esBtnDept">💾 Simpan</button>
+              <span id="esMsg-dept" style="font-size:.78rem;display:none"></span>
+            </div>
+          </div>
+
+          <!-- Layer: HRD -->
+          <div id="esPanel-hrd" style="display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div class="form-group">
+                <label>Nama Pengirim (Sender Name)</label>
+                <input type="text" id="es-hrd-sender_name" placeholder="Contoh: CCSI Training System">
+              </div>
+              <div class="form-group">
+                <label>Reply-To (opsional)</label>
+                <input type="email" id="es-hrd-reply_to" placeholder="Contoh: training@ccsi.co.id">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>CC (opsional — pisahkan dengan koma)</label>
+                <input type="text" id="es-hrd-cc_emails" placeholder="Contoh: hr@ccsi.co.id, manager@ccsi.co.id">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>Template Subject Email</label>
+                <input type="text" id="es-hrd-subject_template"
+                  placeholder="[Persetujuan HRD] Pelatihan: {training_name} — {department}">
+                <div style="font-size:.72rem;color:var(--text3);margin-top:3px" id="es-hrd-preview"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn-sm btn-edit" onclick="esSave('hrd')" id="esBtnHrd">💾 Simpan</button>
+              <span id="esMsg-hrd" style="font-size:.78rem;display:none"></span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header">
         <span class="card-title">📧 Log Pengiriman Email Approval</span>
@@ -601,6 +690,34 @@ select.filter:focus{border-color:var(--navy-lt)}
           </table>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETAIL PERMOHONAN -->
+<div class="modal-overlay" id="rkDetailModal" onclick="if(event.target===this)document.getElementById('rkDetailModal').classList.remove('open')">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header"><span class="modal-title" id="rkDetailTitle">Detail Permohonan Pelatihan</span><button class="modal-close" onclick="document.getElementById('rkDetailModal').classList.remove('open')">✕</button></div>
+    <div class="modal-body" id="rkDetailBody"></div>
+    <div class="modal-footer" style="display:flex;justify-content:flex-end;padding:12px 20px;border-top:1px solid var(--border)">
+      <button class="btn-cancel" onclick="document.getElementById('rkDetailModal').classList.remove('open')">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UPDATE TANGGAL -->
+<div class="modal-overlay" id="rkDateModal" onclick="if(event.target===this)rkCloseDateModal()">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header"><span class="modal-title">Update Tanggal Pelatihan</span><button class="modal-close" onclick="rkCloseDateModal()">✕</button></div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="form-group"><label>Tanggal Mulai *</label><input type="date" id="rkDateStart"></div>
+        <div class="form-group"><label>Tanggal Selesai *</label><input type="date" id="rkDateEnd"></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--border)">
+      <button class="btn-cancel" onclick="rkCloseDateModal()">Batal</button>
+      <button id="rkDateSaveBtn" style="padding:8px 20px;border-radius:7px;border:none;background:var(--navy);color:#fff;cursor:pointer;font-family:var(--font);font-size:.83rem;font-weight:600" onclick="rkSaveDates()">💾 Simpan</button>
     </div>
   </div>
 </div>
@@ -817,10 +934,26 @@ const _API_MAP = {
   'mst_program': '/api/programs',
   'mst_competency': '/api/competencies'
 };
+const _apiCache = {};
+const _CACHE_TTL = 30000; // 30 detik
 function getAll(store) {
   const ep = _API_MAP[store];
   if (!ep) return idbGetAll(store);
-  return fetch(ep).then(r => r.ok ? r.json() : Promise.reject(new Error('API error'))).catch(() => idbGetAll(store));
+  const now = Date.now();
+  const cached = _apiCache[store];
+  if (cached && now - cached.ts < _CACHE_TTL) return Promise.resolve(cached.data);
+  const pending = _apiCache[store + '_pending'];
+  if (pending) return pending;
+  const req = fetch(ep)
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('API error')))
+    .then(data => { _apiCache[store] = { data, ts: Date.now() }; delete _apiCache[store + '_pending']; return data; })
+    .catch(() => { delete _apiCache[store + '_pending']; return idbGetAll(store); });
+  _apiCache[store + '_pending'] = req;
+  return req;
+}
+function invalidateCache(store) {
+  delete _apiCache[store];
+  delete _apiCache[store + '_pending'];
 }
 function putRecord(store, obj) {
   return new Promise((res, rej) => {
@@ -992,7 +1125,7 @@ const tabRenderers = {
   kompetensi: renderKompetensi,
   evaluasi: renderEvaluasi,
   master: renderMaster,
-  emaillog: () => { renderEmailLog(); elLoadCurrentApprover(); }
+  emaillog: () => { renderEmailLog(); elLoadCurrentApprover(); esLoad(); }
 };
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -1065,6 +1198,102 @@ async function renderDashboard() {
 // =====================
 // LOG EMAIL TAB
 // =====================
+
+// ── Email Settings ────────────────────────────────────────────────────────────
+let esOpen = false, esLayer = 'dept';
+
+function esToggle() {
+  esOpen = !esOpen;
+  document.getElementById('esBody').style.display = esOpen ? 'block' : 'none';
+  document.getElementById('esChevron').style.transform = esOpen ? 'rotate(180deg)' : '';
+  if (esOpen) esLoad();
+}
+
+function esShowLayer(layer) {
+  esLayer = layer;
+  ['dept','hrd'].forEach(l => {
+    const active = l === layer;
+    document.getElementById('esPanel-' + l).style.display = active ? 'block' : 'none';
+    const tab = document.getElementById('esTab-' + l);
+    tab.style.fontWeight    = active ? '600' : '500';
+    tab.style.color         = active ? 'var(--navy)' : 'var(--text2)';
+    tab.style.borderBottom  = active ? '2px solid var(--navy)' : '2px solid transparent';
+    tab.style.background    = active ? 'rgba(26,60,110,.06)' : '';
+  });
+}
+
+function esUpdatePreview(layer) {
+  const tpl = document.getElementById(`es-${layer}-subject_template`).value;
+  const prev = document.getElementById(`es-${layer}-preview`);
+  if (!tpl) { prev.textContent = ''; return; }
+  const sample = tpl
+    .replace(/{training_name}/g, 'Pelatihan K3')
+    .replace(/{department}/g, 'Dept. Teknik')
+    .replace(/{request_id}/g, '42');
+  prev.innerHTML = `Preview: <em style="color:var(--navy)">${sample}</em>`;
+}
+
+async function esLoad() {
+  const badge = document.getElementById('esBadge');
+  try {
+    const resp = await fetch('/api/email-log/email-settings');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    let configured = 0;
+    ['dept','hrd'].forEach(layer => {
+      const cfg = data[layer] || {};
+      ['sender_name','reply_to','cc_emails','subject_template'].forEach(f => {
+        const el = document.getElementById(`es-${layer}-${f}`);
+        if (el) el.value = cfg[f] || '';
+      });
+      if (cfg.sender_name || cfg.cc_emails || cfg.subject_template) configured++;
+      esUpdatePreview(layer);
+    });
+    ['dept','hrd'].forEach(layer => {
+      const el = document.getElementById(`es-${layer}-subject_template`);
+      if (el) el.addEventListener('input', () => esUpdatePreview(layer));
+    });
+    badge.textContent = configured === 2 ? '✅ Terkonfigurasi' : configured === 1 ? '⚠️ Sebagian' : 'Belum diatur';
+    badge.style.background = configured === 2 ? '#e6f7f1' : configured === 1 ? '#fff8e6' : '#e8eef7';
+    badge.style.color      = configured === 2 ? '#007a50' : configured === 1 ? '#b7760a' : 'var(--navy)';
+  } catch (e) {
+    badge.textContent = '⚠️ Error';
+  }
+}
+
+async function esSave(layer) {
+  const btn = document.getElementById(layer === 'dept' ? 'esBtnDept' : 'esBtnHrd');
+  const msg = document.getElementById(`esMsg-${layer}`);
+  const body = {
+    layer,
+    sender_name:      document.getElementById(`es-${layer}-sender_name`).value.trim(),
+    reply_to:         document.getElementById(`es-${layer}-reply_to`).value.trim(),
+    cc_emails:        document.getElementById(`es-${layer}-cc_emails`).value.trim(),
+    subject_template: document.getElementById(`es-${layer}-subject_template`).value.trim(),
+  };
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  msg.style.display = 'none';
+  try {
+    const resp = await fetch('/api/email-log/email-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result.error || 'Gagal menyimpan');
+    msg.textContent = '✅ Tersimpan';
+    msg.style.color = 'var(--green)';
+    msg.style.display = 'inline';
+    await esLoad();
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+  } catch (e) {
+    msg.textContent = '❌ ' + e.message;
+    msg.style.color = 'var(--red)';
+    msg.style.display = 'inline';
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Simpan';
+  }
+}
 
 // ── Setup Approver HRD ──────────────────────────────────────────────────────
 let elEmpData = [], elSelectedEmp = null, elSetupOpen = false, elDropOpen = false;
@@ -1232,6 +1461,10 @@ async function renderEmailLog() {
       throw new Error(`HTTP ${resp.status} bukan JSON — ${text.substring(0, 100)}`);
     }
     elData = await resp.json();
+    if (!Array.isArray(elData)) {
+      const msg = elData && elData.error ? elData.error : JSON.stringify(elData).substring(0, 120);
+      throw new Error(`Respons tidak valid dari server: ${msg}`);
+    }
     const ok  = elData.filter(d => d.status === 'success').length;
     const err = elData.filter(d => d.status === 'failed').length;
     statsEl.innerHTML = `
@@ -1356,7 +1589,7 @@ function rkApplyFilter() {
   rkRenderRows(data);
 }
 
-const rkFmtDate = d => d ? (d+'').split('T')[0].split('-').reverse().join('/') : '-';
+function rkFmtDate(s){if(!s)return'-';const d=(s+'').split('T')[0].split(' ')[0];const p=d.split('-');return p.length<3?d:`${p[2]}/${p[1]}/${p[0]}`;}
 
 function rkRenderRows(data) {
   const msgEl=document.getElementById('rekapMsg');
@@ -1369,6 +1602,9 @@ function rkRenderRows(data) {
   const totalCost=data.reduce((a,b)=>a+Number(b.cost_total||0),0);
   msgEl.innerHTML=`<div class="tn-success">✅ <strong>${data.length}</strong> permohonan pelatihan tercatat — Total biaya: <strong>${fmtRp(totalCost)}</strong></div>`;
   bodyEl.innerHTML=data.map((r,i)=>{
+    const tglSubmit=rkFmtDate(r.submitted_at);
+    const tglMulai=rkFmtDate(r.actual_date_start);
+    const tglSelesai=rkFmtDate(r.actual_date_end);
     const apvStatus=r.approval_status||'PendingBODDept';
     const apvMap={'Submitted_HR':{cls:'b-purple',icon:'📋',lbl:'Submitted by HR'},'PendingBODDept':{cls:'b-yellow',icon:'⏳',lbl:'Pending BOD Dept'},'PendingBODHR':{cls:'b-navy',icon:'⏳',lbl:'Pending BOD HR'},'Approved':{cls:'b-green',icon:'✅',lbl:'Disetujui'},'Rejected_BODDept':{cls:'b-red',icon:'❌',lbl:'Ditolak BOD Dept'},'Rejected_BODHR':{cls:'b-red',icon:'❌',lbl:'Ditolak BOD HR'}};
     const {cls:statusCls,icon:statusIcon,lbl:statusLbl}=apvMap[apvStatus]||{cls:'b-gray',icon:'',lbl:apvStatus};
@@ -1376,26 +1612,112 @@ function rkRenderRows(data) {
     const rid=r.request_id;
     return `<tr>
       <td style="color:var(--text3)">${i+1}</td>
-      <td><strong>${r.department}</strong></td>
-      <td>${r.training_name}</td>
-      <td style="font-size:.78rem">${(r.participants||[]).map(p=>`<div>• ${p}</div>`).join('')||'-'}</td>
-      <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${r.training_type||'-'}</span></td>
-      <td style="color:var(--text2);font-size:.78rem">${r.organizer||'-'}</td>
-      <td style="white-space:nowrap;font-size:.78rem">${rkFmtDate(r.submitted_at)}</td>
-      <td style="white-space:nowrap;font-size:.78rem">${rkFmtDate(r.training_date_start)}</td>
-      <td style="white-space:nowrap;font-size:.78rem">${rkFmtDate(r.training_date_end)}</td>
+      <td><strong>${rkEscH(r.department)}</strong></td>
+      <td>${rkEscH(r.training_name)}</td>
+      <td style="font-size:.78rem">${(r.participants||[]).map(p=>`<div>• ${rkEscH(p)}</div>`).join('')||'-'}</td>
+      <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${rkEscH(r.training_type||'-')}</span></td>
+      <td style="color:var(--text2);font-size:.78rem">${rkEscH(r.organizer||'-')}</td>
+      <td style="white-space:nowrap;font-size:.78rem">${tglSubmit}</td>
+      <td style="white-space:nowrap;font-size:.78rem">${tglMulai}</td>
+      <td style="white-space:nowrap;font-size:.78rem">${tglSelesai}</td>
       <td style="white-space:nowrap">${fmtRp(r.cost_total)}</td>
       <td style="text-align:center;font-weight:600;color:${gt>=32?'var(--green)':gt>0?'var(--red)':'var(--text3)'}">${gt||'-'} ${gt?(gt>=32?'✅':'❌'):''}</td>
       <td><span class="badge ${statusCls}">${statusIcon} ${statusLbl}</span></td>
-      <td style="white-space:nowrap">
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <button class="btn-sm btn-view" onclick="rkViewDetail(${rid})">👁 Detail</button>
-          <button class="btn-sm btn-edit" onclick="rkOpenDateModal(${rid})">📅 Tanggal</button>
-          <button class="btn-sm btn-del" onclick="rekapDelete(${rid})">Hapus</button>
-        </div>
+      <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn-sm" style="color:var(--navy);border-color:#c8d9f0;background:#e8eef7" onclick="rkViewDetail(${rid})">👁 Detail</button>
+        <button class="btn-sm" style="color:#007a50;border-color:#a7e8cc;background:var(--green-lt)" onclick="rkOpenDateModal(${rid})">📅 Tanggal</button>
+        <button class="btn-sm btn-del" onclick="rekapDelete(${rid})">Hapus</button>
       </td>
     </tr>`;
   }).join('');
+}
+
+function rkViewDetail(id){
+  const r=rkAllData.find(x=>x.request_id===id);
+  if(!r)return;
+  const fmtRpVal=n=>(!n||n==0)?'Rp 0':'Rp '+Number(n).toLocaleString('id-ID');
+  const apvMap={'Submitted_HR':'Submitted by HR','PendingBODDept':'Pending BOD Dept','PendingBODHR':'Pending BOD HR','Approved':'Disetujui','Rejected_BODDept':'Ditolak BOD Dept','Rejected_BODHR':'Ditolak BOD HR'};
+  const esc=s=>rkEscH(s||'-');
+  const yesNo=v=>v?'Ya':'Tidak';
+  const el=document.getElementById('rkDetailModal');
+  document.getElementById('rkDetailTitle').textContent=`Detail: ${r.training_name}`;
+  document.getElementById('rkDetailBody').innerHTML=`
+    <div style="margin-bottom:14px">
+      <div style="font-size:.72rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)">Informasi Dasar</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Departemen</div><div style="font-size:.83rem">${esc(r.department)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Dept Head / Pengaju</div><div style="font-size:.83rem">${esc(r.submitted_by)}</div></div>
+        <div style="grid-column:1/-1"><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Nama Pelatihan</div><div style="font-size:.83rem">${esc(r.training_name)}</div></div>
+        <div style="grid-column:1/-1"><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tempat Pelatihan</div><div style="font-size:.83rem">${esc(r.training_venue)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Jenis</div><div style="font-size:.83rem">${esc(r.training_type)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Penyelenggara</div><div style="font-size:.83rem">${esc(r.organizer)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Rencana</div><div style="font-size:.83rem">${r.is_scheduled?'Terjadwal':'Tidak Terjadwal'}</div></div>
+        <div style="grid-column:1/-1"><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Alasan Pelatihan</div><div style="font-size:.83rem">${esc(r.training_reason)}</div></div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:.72rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)">Tanggal</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal Submit</div><div style="font-size:.83rem">${rkFmtDate(r.submitted_at)}</div></div>
+        <div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal Mulai</div><div style="font-size:.83rem">${rkFmtDate(r.training_date_start)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal Selesai</div><div style="font-size:.83rem">${rkFmtDate(r.training_date_end)}</div></div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:.72rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)">Peserta</div>
+      <div>${(r.participants||[]).map(p=>`<div style="padding:3px 0;font-size:.83rem">• ${esc(p)}</div>`).join('')||'-'}</div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:.72rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)">Rincian Biaya</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Training Fee</div><div style="font-size:.83rem">${fmtRpVal(r.cost_training_fee)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Akomodasi</div><div style="font-size:.83rem">${fmtRpVal(r.cost_akomodasi)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Transport</div><div style="font-size:.83rem">${fmtRpVal(r.cost_transport)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Makan</div><div style="font-size:.83rem">${fmtRpVal(r.cost_makan)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Snack</div><div style="font-size:.83rem">${fmtRpVal(r.cost_snack)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Emergency Cash</div><div style="font-size:.83rem">${fmtRpVal(r.cost_emergency)}</div></div>
+        <div style="grid-column:1/-1;padding-top:6px;border-top:1px solid var(--border);margin-top:4px"><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Total Biaya</div><div style="font-size:.88rem;font-weight:700;color:var(--navy)">${fmtRp(r.cost_total)}</div></div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:.72rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)">Approval</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Status</div><div style="font-size:.83rem">${apvMap[r.approval_status]||r.approval_status||'-'}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Approver</div><div style="font-size:.83rem">${esc(r.approver_name)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Jabatan</div><div style="font-size:.83rem">${esc(r.approver_position)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Email Approver</div><div style="font-size:.83rem">${esc(r.approver_email)}</div></div>
+        <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Grand Total (GT)</div><div style="font-size:.88rem;font-weight:700">${r.score_grand_total||'-'}</div></div>
+      </div>
+    </div>`;
+  el.classList.add('open');
+}
+
+let _rkDateModalId=null;
+function rkOpenDateModal(id){
+  const r=rkAllData.find(x=>x.request_id===id);
+  _rkDateModalId=id;
+  const toInputDate=s=>s?((s+'').includes('T')?(s+'').split('T')[0]:(s+'')):'' ;
+  document.getElementById('rkDateStart').value=toInputDate(r?.actual_date_start);
+  document.getElementById('rkDateEnd').value=toInputDate(r?.actual_date_end);
+  document.getElementById('rkDateModal').classList.add('open');
+}
+function rkCloseDateModal(){document.getElementById('rkDateModal').classList.remove('open');_rkDateModalId=null;}
+async function rkSaveDates(){
+  const start=document.getElementById('rkDateStart').value;
+  const end=document.getElementById('rkDateEnd').value;
+  if(!start||!end){showToast('Tanggal mulai dan selesai wajib diisi',false);return;}
+  if(end<start){showToast('Tanggal selesai tidak boleh sebelum tanggal mulai',false);return;}
+  const btn=document.getElementById('rkDateSaveBtn');
+  btn.disabled=true;btn.textContent='⏳ Menyimpan...';
+  try{
+    const res=await fetch(`/api/training-requests/${_rkDateModalId}/dates`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({actual_date_start:start,actual_date_end:end})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||res.statusText);}
+    showToast('Tanggal berhasil diperbarui');
+    rkCloseDateModal();
+    renderRekap();
+  }catch(e){showToast(e.message,false);}
+  finally{btn.disabled=false;btn.textContent='💾 Simpan';}
 }
 
 async function renderRekap() {
@@ -1956,6 +2278,7 @@ async function renderMaster() {
       <td>${e.department}</td>
       <td><span class="badge b-navy" style="font-size:.68rem">${e.site}</span></td>
       <td style="color:var(--text2);font-size:.8rem">${e.position}</td>
+      <td style="text-align:center">${e.is_dept_head?'<span class="badge b-green" style="font-size:.68rem">Ya</span>':'<span style="color:var(--text3);font-size:.8rem">-</span>'}</td>
       <td style="font-size:.78rem;color:var(--text2)">${e.email?`<a href="mailto:${e.email}" style="color:var(--navy-lt);text-decoration:none">${e.email}</a>`:'-'}</td>
       <td><span class="badge ${e.is_active?'b-green':'b-gray'}">${e.is_active?'Aktif':'Nonaktif'}</span></td>
       <td style="white-space:nowrap;position:relative">
@@ -2304,6 +2627,7 @@ async function saveTrx() {
         const r=await fetch('/api/transactions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
         if(r.ok){const d=await r.json();obj.trx_id=d.trx_id;await putRecord('trx_employee_program',obj);}
       }
+      invalidateCache('trx_employee_program');
     } catch(e){console.warn('MySQL sync trx gagal:',e);}
     showToast(editTrxId?'Data berhasil diupdate':'Data berhasil disimpan');
   } else {
@@ -2330,6 +2654,7 @@ async function saveTrx() {
         const r=await fetch('/api/certifications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
         if(r.ok){const d=await r.json();obj.cert_id=d.cert_id;await putRecord('trx_certification',obj);}
       }
+      invalidateCache('trx_certification');
     } catch(e){console.warn('MySQL sync cert gagal:',e);}
     showToast(editCertId?'Sertifikasi berhasil diupdate':'Sertifikasi berhasil disimpan');
   }
@@ -2340,14 +2665,14 @@ async function saveTrx() {
 async function deleteTrx(id) {
   if(!confirm('Hapus data transaksi ini?')) return;
   await deleteRecord('trx_employee_program',id);
-  try { await fetch(`/api/transactions/${id}`,{method:'DELETE'}); } catch(e){console.warn('MySQL sync delete trx gagal:',e);}
+  try { await fetch(`/api/transactions/${id}`,{method:'DELETE'}); invalidateCache('trx_employee_program'); } catch(e){console.warn('MySQL sync delete trx gagal:',e);}
   showToast('Data dihapus');
   renderRekap(); renderDashboard();
 }
 async function deleteCert(id) {
   if(!confirm('Hapus sertifikasi ini?')) return;
   await deleteRecord('trx_certification',id);
-  try { await fetch(`/api/certifications/${id}`,{method:'DELETE'}); } catch(e){console.warn('MySQL sync delete cert gagal:',e);}
+  try { await fetch(`/api/certifications/${id}`,{method:'DELETE'}); invalidateCache('trx_certification'); } catch(e){console.warn('MySQL sync delete cert gagal:',e);}
   showToast('Sertifikasi dihapus');
   renderSertif(); renderDashboard();
 }
@@ -2507,16 +2832,22 @@ async function saveMaster() {
       is_active:parseInt(document.getElementById('m_active').value),
       is_dept_head:parseInt(document.getElementById('m_dept_head').value)
     };
-    await putRecord('mst_employee',obj);
-    // Sync ke MySQL API agar muncul di halaman lain (permohonan pelatihan, dll)
+    // MySQL DULU — IDB hanya diupdate kalau MySQL berhasil agar tidak terjadi data stale
     try {
+      let res;
       if(masterEditKey){
-        await fetch(`/api/employees/${encodeURIComponent(masterEditKey)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+        res = await fetch(`/api/employees/${encodeURIComponent(masterEditKey)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
       } else {
-        await fetch('/api/employees',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+        res = await fetch('/api/employees',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
       }
-    } catch(e){ console.warn('Sync MySQL gagal (offline mode):',e); }
-    showToast(masterEditKey?'Data karyawan diperbarui':'Karyawan berhasil ditambahkan');
+      if(!res.ok){ const err=await res.json().catch(()=>({})); throw new Error(err.error||`HTTP ${res.status}`); }
+      await putRecord('mst_employee',obj);
+      invalidateCache('mst_employee');
+      showToast(masterEditKey?'Data karyawan diperbarui':'Karyawan berhasil ditambahkan');
+    } catch(e){
+      showToast('Gagal menyimpan: '+e.message+' — periksa koneksi dan coba lagi',false);
+      return;
+    }
 
   } else if(masterMode==='program'){
     // Jika nama disabled (terkunci), ambil nilai asli dari DB
@@ -2561,6 +2892,7 @@ async function saveMaster() {
         const r=await fetch('/api/programs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
         if(r.ok){const d=await r.json();obj.program_id=d.program_id;await putRecord('mst_program',obj);}
       }
+      invalidateCache('mst_program');
     } catch(e){console.warn('MySQL sync program gagal:',e);}
     showToast(masterEditKey?'Program berhasil diperbarui':'Program berhasil ditambahkan');
 
@@ -2582,6 +2914,7 @@ async function saveMaster() {
         const r=await fetch('/api/competencies',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
         if(r.ok){const d=await r.json();obj.competency_id=d.competency_id;await putRecord('mst_competency',obj);}
       }
+      invalidateCache('mst_competency');
     } catch(e){console.warn('MySQL sync competency gagal:',e);}
     showToast(masterEditKey?'Kompetensi berhasil diperbarui':'Kompetensi berhasil ditambahkan');
   }
@@ -2597,8 +2930,32 @@ async function syncEmployeesToServer() {
   btn.disabled = true;
   btn.textContent = '⟳ Menyinkronkan...';
   try {
-    const emps = await idbGetAll('mst_employee');
-    if (!emps.length) { showToast('Tidak ada data karyawan di IndexedDB untuk di-sync', false); return; }
+    let emps = await idbGetAll('mst_employee');
+    if (!emps.length) {
+      // IndexedDB kosong — coba tarik data dari server ke IndexedDB
+      btn.textContent = '⟳ Mengambil data dari server...';
+      try {
+        const res = await fetch('/api/employees');
+        if (res.ok) {
+          const serverEmps = await res.json();
+          if (!serverEmps.length) {
+            showToast('Tidak ada data karyawan di server maupun IndexedDB', false);
+            return;
+          }
+          for (const emp of serverEmps) await putRecord('mst_employee', emp);
+          invalidateCache('mst_employee');
+          emps = serverEmps;
+          showToast(`${emps.length} data karyawan berhasil dipulihkan dari server ke IndexedDB`, true);
+          return;
+        } else {
+          showToast('IndexedDB kosong dan server tidak dapat dijangkau', false);
+          return;
+        }
+      } catch (e) {
+        showToast('IndexedDB kosong dan gagal terhubung ke server: ' + e.message, false);
+        return;
+      }
+    }
 
     // GET daftar server — opsional, tidak gagal total jika MySQL error
     let serverIds = new Set();
@@ -2611,6 +2968,7 @@ async function syncEmployeesToServer() {
     } catch (_) {}
 
     let added = 0, updated = 0, failed = 0;
+    const errors = [];
     for (const emp of emps) {
       try {
         if (serverIds.has(emp.employee_id)) {
@@ -2619,7 +2977,12 @@ async function syncEmployeesToServer() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(emp)
           });
-          if (r.ok) updated++; else failed++;
+          if (r.ok) {
+            updated++;
+          } else {
+            failed++;
+            try { const body = await r.json(); errors.push(`PUT ${emp.employee_id} [${r.status}]: ${body.error||JSON.stringify(body)}`); } catch { errors.push(`PUT ${emp.employee_id} [${r.status}]`); }
+          }
         } else {
           // POST dulu; jika 409/500 (mungkin sudah ada), fallback ke PUT
           const r = await fetch('/api/employees', {
@@ -2635,15 +2998,22 @@ async function syncEmployeesToServer() {
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify(emp)
             });
-            if (r2.ok) updated++; else failed++;
+            if (r2.ok) {
+              updated++;
+            } else {
+              failed++;
+              try { const body = await r2.json(); errors.push(`PUT ${emp.employee_id} [${r2.status}]: ${body.error||JSON.stringify(body)}`); } catch { errors.push(`PUT ${emp.employee_id} [${r2.status}]`); }
+            }
           } else {
             failed++;
+            try { const body = await r.json(); errors.push(`POST ${emp.employee_id} [${r.status}]: ${body.error||JSON.stringify(body)}`); } catch { errors.push(`POST ${emp.employee_id} [${r.status}]`); }
           }
         }
-      } catch { failed++; }
+      } catch(e) { failed++; errors.push(`${emp.employee_id}: ${e.message}`); }
     }
     const msg = `Sync selesai: ${added} ditambah, ${updated} diperbarui${failed ? ', ' + failed + ' gagal' : ''}`;
     showToast(msg, failed === 0);
+    if (errors.length) console.error('[Sync Karyawan] Detail error:\n' + errors.join('\n'));
   } catch (e) {
     showToast('Sync gagal: ' + e.message, false);
   } finally {

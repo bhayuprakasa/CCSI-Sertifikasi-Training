@@ -1,16 +1,21 @@
-// Wrapper global fetch — tambah X-API-Key dan X-Changed-By otomatis ke semua request /api/*
+// Wrapper global fetch — tambah X-Changed-By otomatis ke semua request /api/*
+// Auth ditangani server via httpOnly session cookie; frontend tidak memegang API key.
 // File ini di-load di semua halaman sebelum script lain.
 
 // ── IndexedDB helper (shared, dipakai semua halaman) ─────────────────────────
-// Buka DB yang sama dengan index.html tanpa upgrade agar tidak konflik.
 window.ccsiIdb = (function () {
-  const DB_NAME = 'CCSI_Training_v2', DB_VER = 1;
+  const DB_NAME = 'CCSI_Training_v2', DB_VER = 2;
+  const STORES = ['mst_employee','mst_competency','mst_program','trx_employee_program','trx_certification','trx_training_request'];
   let _db = null;
 
   function open() {
     if (_db) return Promise.resolve(_db);
     return new Promise((res, rej) => {
       const req = indexedDB.open(DB_NAME, DB_VER);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        STORES.forEach(s => { if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { autoIncrement: true }); });
+      };
       req.onsuccess = e => { _db = e.target.result; res(_db); };
       req.onerror  = e => rej(e);
       req.onblocked = () => rej(new Error('IDB blocked'));
@@ -39,17 +44,14 @@ window.loadEmployeesWithFallback = async function () {
       if (api.length > 0) return api;
     }
   } catch (_) {}
-  // Fallback: baca dari IndexedDB
   const idb = await window.ccsiIdb.getAll('mst_employee').catch(() => []);
   return idb;
 };
 
 (function () {
-  const API_KEY = 'fe3eb92d6397054ea317d6fc0ec6d73569de2667865cb380b849394569894755';
   const USER_STORAGE_KEY = 'ccsi_current_user';
 
   // ── Inisialisasi sesi user ────────────────────────────────────────────────────
-  // Minta nama user satu kali per sesi browser; simpan di sessionStorage
   function getCurrentUser() {
     let user = sessionStorage.getItem(USER_STORAGE_KEY);
     if (!user) {
@@ -60,23 +62,18 @@ window.loadEmployeesWithFallback = async function () {
     return user;
   }
 
-  // Panggil sekali agar prompt muncul saat halaman pertama dibuka
   getCurrentUser();
 
-  // ── Patch window.fetch ────────────────────────────────────────────────────────
   const _fetch = window.fetch.bind(window);
 
+  // ── Patch window.fetch ────────────────────────────────────────────────────────
   window.fetch = function (url, options = {}) {
-    // Hanya tambahkan header ke request /api/...
     const urlStr = typeof url === 'string' ? url : (url.url || '');
     if (!urlStr.startsWith('/api/')) {
       return _fetch(url, options);
     }
 
-    // Approval link routes (GET /api/training-requests/approve/*) tidak butuh API key
-    // tapi tidak ada harm mengirimnya juga — server mengizinkan kedua cara
     const headers = new Headers(options.headers || {});
-    headers.set('X-API-Key', API_KEY);
     headers.set('X-Changed-By', sessionStorage.getItem(USER_STORAGE_KEY) || 'unknown');
 
     return _fetch(url, { ...options, headers });
