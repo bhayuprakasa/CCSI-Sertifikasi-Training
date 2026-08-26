@@ -882,17 +882,21 @@ select.filter:focus{border-color:var(--navy-lt)}
 <div class="modal-overlay" id="rkEditModal" onclick="if(event.target===this)rkCloseEditModal()">
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <span class="modal-title">✏️ Edit Penyelenggara, Peserta & Kompetensi</span>
+      <span class="modal-title">✏️ Edit Penyelenggara, Instruktur, Peserta & Kompetensi</span>
       <button class="modal-close" onclick="rkCloseEditModal()">✕</button>
     </div>
     <div class="modal-body">
       <div style="background:var(--purple-lt);border:1px solid #c39bd3;border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--purple);margin-bottom:16px;display:flex;align-items:center;gap:8px">
-        <span>ℹ️</span><span>Perubahan penyelenggara, peserta, dan kompetensi akan langsung disimpan ke database.</span>
+        <span>ℹ️</span><span>Perubahan penyelenggara, instruktur, peserta, dan kompetensi akan langsung disimpan ke database.</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="form-group">
           <label>Penyelenggara</label>
           <input type="text" id="rkEditOrganizer" placeholder="Nama penyelenggara / lembaga">
+        </div>
+        <div class="form-group">
+          <label>Instruktur <span style="font-size:.7rem;font-weight:400;color:var(--text3)">(diisi oleh HR)</span></label>
+          <input type="text" id="rkEditInstruktur" placeholder="Nama instruktur / trainer">
         </div>
         <div class="form-group">
           <label>Kompetensi <span style="font-size:.7rem;font-weight:400;color:var(--text3)">(diisi oleh HR)</span></label>
@@ -1647,7 +1651,7 @@ function rkRenderRows(data) {
   const bodyEl=document.getElementById('rekapBody');
   if(!data.length){
     msgEl.innerHTML='';
-    bodyEl.innerHTML='<tr class="empty-row"><td colspan="15">Belum ada data yang sesuai filter</td></tr>';
+    bodyEl.innerHTML='<tr class="empty-row"><td colspan="16">Belum ada data yang sesuai filter</td></tr>';
     return;
   }
   const totalCost=data.reduce((a,b)=>a+Number(b.cost_total||0),0);
@@ -1665,6 +1669,7 @@ function rkRenderRows(data) {
     const ptHtml=pts.slice(0,2).map(p=>`<div>• ${rkEscH(p)}</div>`).join('')+(pts.length>2?`<div style="color:var(--text3)">+${pts.length-2} lainnya</div>`:'');
     const truncStyle='max-width:130px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis';
     const kompTrunc=r.kompetensi?`<span style="font-size:.75rem;color:var(--text2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:120px" title="${rkEscH(r.kompetensi)}">${rkEscH(r.kompetensi)}</span>`:`<span style="color:var(--text3);font-size:.75rem">—</span>`;
+    const instrTrunc=r.instruktur?`<span style="font-size:.75rem;color:var(--text2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:110px;display:block" title="${rkEscH(r.instruktur)}">${rkEscH(r.instruktur)}</span>`:`<span style="color:var(--text3);font-size:.75rem">—</span>`;
     return `<tr>
       <td style="color:var(--text3)">${i+1}</td>
       <td><strong>${rkEscH(r.department)}</strong></td>
@@ -1673,6 +1678,7 @@ function rkRenderRows(data) {
       <td style="font-size:.78rem">${ptHtml||'-'}</td>
       <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${rkEscH(r.training_type||'-')}</span></td>
       <td style="color:var(--text2);font-size:.78rem;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="${rkEscH(r.organizer||'-')}">${rkEscH(r.organizer||'-')}</td>
+      <td>${instrTrunc}</td>
       <td>${kompTrunc}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tglSubmit}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tglMulai}</td>
@@ -1881,6 +1887,7 @@ function rkEditSyncSelectAll() {
 async function rkSaveEdit() {
   if (!_rkEditId) return;
   const organizer = document.getElementById('rkEditOrganizer').value.trim();
+  const instruktur = document.getElementById('rkEditInstruktur').value.trim();
   const kompetensi = document.getElementById('rkEditKompetensi').value.trim();
   const participants = [...document.querySelectorAll('#rkEditPesertaList input[name="rkEditPesertaCheck"]:checked')]
     .map(i => i.value).filter(Boolean);
@@ -1891,7 +1898,7 @@ async function rkSaveEdit() {
     const res = await fetch(`/api/training-requests/${_rkEditId}/organizer-participants`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ organizer, participants, kompetensi }),
+      body: JSON.stringify({ organizer, instruktur: instruktur || null, participants, kompetensi }),
     });
     if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || res.statusText); }
     showToast('Data berhasil diperbarui');
@@ -1946,6 +1953,7 @@ function rkViewDetail(id) {
       <div style="grid-column:1/-1"><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Nama Pelatihan</div><div>${esc(r.training_name)}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Jenis</div><div>${esc(r.training_type)}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Penyelenggara</div><div>${esc(r.organizer)}</div></div>
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Instruktur</div><div>${r.instruktur ? esc(r.instruktur) : '<span style="color:var(--text3)">—</span>'}</div></div>
       <div style="grid-column:1/-1"><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Kompetensi</div><div>${r.kompetensi ? esc(r.kompetensi) : '<span style="color:var(--text3)">—</span>'}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal Mulai</div><div>${rkFmtDate(r.training_date_start)}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal Selesai</div><div>${rkFmtDate(r.training_date_end)}</div></div>
