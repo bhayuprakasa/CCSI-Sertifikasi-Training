@@ -14,7 +14,7 @@ jobs:
       - name: Pull latest code
         shell: powershell
         run: |
-          cd C:\www\ccsi-app
+          cd C:\Users\Administrator\CCSI-Sertifikasi-Training
           git fetch origin main
           git merge --abort 2>$null; $true
           git reset --hard origin/main
@@ -23,14 +23,14 @@ jobs:
       - name: Install dependencies
         shell: powershell
         run: |
-          cd C:\www\ccsi-app
+          cd C:\Users\Administrator\CCSI-Sertifikasi-Training
           npm install --production
           Write-Host "Dependencies berhasil diinstall"
 
       - name: Syntax check
         shell: powershell
         run: |
-          cd C:\www\ccsi-app
+          cd C:\Users\Administrator\CCSI-Sertifikasi-Training
           node --check server.js
           Write-Host "Syntax check OK"
         continue-on-error: false
@@ -74,7 +74,7 @@ jobs:
         shell: powershell
         run: |
           Write-Host "Deploy gagal, melakukan rollback..."
-          cd C:\www\ccsi-app
+          cd C:\Users\Administrator\CCSI-Sertifikasi-Training
           git reset --hard HEAD~1
           C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd restart ccsi-training
           Write-Host "Rollback selesai ke: $(git rev-parse --short HEAD)"
