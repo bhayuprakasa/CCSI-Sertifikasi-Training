@@ -36,7 +36,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .form-group label{font-size:.76rem;font-weight:600;color:var(--text2)}
 .form-group input,.form-group select,.form-group textarea{padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:.83rem;font-family:var(--font);color:var(--text);outline:none;transition:border .15s}
 .form-group input:focus,.form-group select:focus{border-color:var(--navy-lt)}
-.form-group input:disabled{background:#f5f7fa;color:var(--text3)}
+.form-group input:disabled,.form-group select:disabled{background:#f5f7fa;color:var(--text3)}
 .checkbox-group{display:flex;align-items:center;gap:8px;padding:8px 0}
 .checkbox-group input[type="checkbox"]{width:16px;height:16px;cursor:pointer}
 .checkbox-group label{margin:0;font-size:.83rem}
@@ -100,9 +100,17 @@ tbody td{padding:10px 12px;vertical-align:middle}
       <div>
         <div class="section-title">📝 Form Pendaftaran Sertifikasi</div>
         <div class="form-grid" style="margin-bottom:14px">
+          <div class="form-group full">
+            <label>Nama Pelatihan *</label>
+            <select id="cert_training" onchange="onTrainingSelect()">
+              <option value="">-- Pilih Nama Pelatihan --</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid" style="margin-bottom:14px">
           <div class="form-group">
             <label>Departemen *</label>
-            <select id="cert_dept" onchange="loadEmployees()">
+            <select id="cert_dept" onchange="loadEmployees()" disabled>
               <option value="">-- Pilih Departemen --</option>
             </select>
           </div>
@@ -211,18 +219,36 @@ function showToast(msg, ok=true) {
 }
 
 let allEmployees = [];
+let allTrainingRequests = [];
+let allAttendance = [];
 let selectedEmployee = null;
+let selectedTraining = null;
 let allCompetencies = [];
 
 async function initPage() {
   try {
-    const [emps, comps] = await Promise.all([
+    const [emps, comps, requests, attendance] = await Promise.all([
       window.loadEmployeesWithFallback(),
       api('/api/competencies'),
+      api('/api/training-requests'),
+      api('/api/training-attendance'),
     ]);
 
     allEmployees = emps.filter(e => e.is_active == null || e.is_active == 1);
     allCompetencies = comps;
+    allAttendance = attendance;
+
+    allTrainingRequests = requests.filter(r =>
+      r.approval_status === 'Approved' || r.approval_status === 'Submitted_HR'
+    );
+
+    const trainingSel = document.getElementById('cert_training');
+    allTrainingRequests.forEach(r => {
+      const o = document.createElement('option');
+      o.value = r.request_id;
+      o.textContent = r.training_name;
+      trainingSel.appendChild(o);
+    });
 
     const depts = [...new Set(allEmployees.map(e => e.department))].sort();
     const sel = document.getElementById('cert_dept');
@@ -241,9 +267,34 @@ async function initPage() {
   }
 }
 
+function onTrainingSelect() {
+  const trainingId = parseInt(document.getElementById('cert_training').value);
+  selectedTraining = allTrainingRequests.find(r => r.request_id === trainingId) || null;
+
+  const deptSel = document.getElementById('cert_dept');
+  const empSearch = document.getElementById('cert_emp_search');
+
+  if (selectedTraining) {
+    document.getElementById('cert_issuing_body').value = selectedTraining.organizer || '';
+    document.getElementById('cert_type').value = selectedTraining.training_type || 'Eksternal';
+    deptSel.disabled = false;
+  } else {
+    document.getElementById('cert_issuing_body').value = '';
+    document.getElementById('cert_type').value = 'Eksternal';
+    deptSel.disabled = true;
+  }
+
+  deptSel.value = '';
+  empSearch.value = '';
+  empSearch.disabled = true;
+  selectedEmployee = null;
+  hideEmpList();
+}
+
 function loadEmployees() {
   const dept = document.getElementById('cert_dept').value;
   const search = document.getElementById('cert_emp_search');
+  if (!selectedTraining) { search.disabled = true; search.value = ''; selectedEmployee = null; hideEmpList(); return; }
   search.disabled = !dept;
   search.value = '';
   selectedEmployee = null;
@@ -254,7 +305,7 @@ function loadEmployees() {
 function filterEmployees() { renderEmpList(); }
 
 function showEmpList() {
-  if (!document.getElementById('cert_dept').value) return;
+  if (!document.getElementById('cert_dept').value || !selectedTraining) return;
   renderEmpList();
 }
 
@@ -262,11 +313,35 @@ function hideEmpList() {
   document.getElementById('cert_emp_list').classList.remove('show');
 }
 
+function getAttendedEmployees() {
+  if (!selectedTraining) return [];
+  const trainingName = selectedTraining.training_name;
+  const seen = new Set();
+  const result = [];
+  allAttendance
+    .filter(a => a.training_title === trainingName)
+    .forEach(a => {
+      (a.participants || []).forEach(p => {
+        if (!seen.has(p.employee_id)) {
+          seen.add(p.employee_id);
+          const rec = allEmployees.find(e => e.employee_id === p.employee_id);
+          result.push({
+            employee_id: p.employee_id,
+            full_name: p.employee_name,
+            department: rec?.department || '',
+          });
+        }
+      });
+    });
+  return result;
+}
+
 function renderEmpList() {
   const dept = document.getElementById('cert_dept').value;
   const q = document.getElementById('cert_emp_search').value.toLowerCase();
-  const filtered = allEmployees
-    .filter(e => e.department === dept)
+  const empPool = getAttendedEmployees();
+  const filtered = empPool
+    .filter(e => !dept || e.department === dept)
     .filter(e => !q || e.full_name.toLowerCase().includes(q) || e.employee_id.toLowerCase().includes(q));
 
   const list = document.getElementById('cert_emp_list');
@@ -306,7 +381,9 @@ function toggleExpiryDate() {
 
 function resetCertForm() {
   if (!confirm('Reset form? Data yang belum disimpan akan hilang.')) return;
+  document.getElementById('cert_training').value = '';
   document.getElementById('cert_dept').value = '';
+  document.getElementById('cert_dept').disabled = true;
   document.getElementById('cert_emp_search').value = '';
   document.getElementById('cert_emp_search').disabled = true;
   document.getElementById('cert_number').value = '';
@@ -322,6 +399,7 @@ function resetCertForm() {
   document.getElementById('cert_lifetime').checked = false;
   toggleExpiryDate();
   selectedEmployee = null;
+  selectedTraining = null;
   hideEmpList();
 }
 
