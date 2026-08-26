@@ -429,10 +429,12 @@ function approvalPage(state, status, req_) {
     rejected_dept: {
       icon: '❌', color: '#d63031', title: 'Ditolak oleh Direktur Departemen',
       msg: `Permohonan pelatihan <strong>${req_?.training_name}</strong> dari departemen <strong>${req_?.department}</strong> telah <strong style="color:#d63031">ditolak oleh Direktur Departemen</strong>.`,
+      showBack: false,
     },
     rejected_hrd: {
       icon: '❌', color: '#d63031', title: 'Ditolak oleh Direktur HRD',
       msg: `Permohonan pelatihan <strong>${req_?.training_name}</strong> dari departemen <strong>${req_?.department}</strong> telah <strong style="color:#d63031">ditolak oleh Direktur HRD</strong>.`,
+      showBack: false,
     },
     already_done: {
       icon: alreadyIcon, color: alreadyColor, title: 'Sudah Diproses',
