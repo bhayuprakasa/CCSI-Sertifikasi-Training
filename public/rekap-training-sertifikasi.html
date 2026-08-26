@@ -36,7 +36,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .form-group label{font-size:.76rem;font-weight:600;color:var(--text2)}
 .form-group input,.form-group select,.form-group textarea{padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:.83rem;font-family:var(--font);color:var(--text);outline:none;transition:border .15s}
 .form-group input:focus,.form-group select:focus{border-color:var(--navy-lt)}
-.form-group input:disabled,.form-group select:disabled{background:#f5f7fa;color:var(--text3)}
+.form-group input:disabled,.form-group select:disabled,.form-group input[readonly]{background:#f5f7fa;color:var(--text2);cursor:default}
 .checkbox-group{display:flex;align-items:center;gap:8px;padding:8px 0}
 .checkbox-group input[type="checkbox"]{width:16px;height:16px;cursor:pointer}
 .checkbox-group label{margin:0;font-size:.83rem}
@@ -250,10 +250,6 @@ async function initPage() {
       trainingSel.appendChild(o);
     });
 
-    const depts = [...new Set(allEmployees.map(e => e.department))].sort();
-    const sel = document.getElementById('cert_dept');
-    depts.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
-
     const compSel = document.getElementById('cert_competency');
     allCompetencies.forEach(c => {
       const o = document.createElement('option');
@@ -267,20 +263,36 @@ async function initPage() {
   }
 }
 
+function buildDeptOptions(deptSel, depts) {
+  deptSel.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+  depts.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; deptSel.appendChild(o); });
+}
+
 function onTrainingSelect() {
   const trainingId = parseInt(document.getElementById('cert_training').value);
   selectedTraining = allTrainingRequests.find(r => r.request_id === trainingId) || null;
 
   const deptSel = document.getElementById('cert_dept');
   const empSearch = document.getElementById('cert_emp_search');
+  const certType = document.getElementById('cert_type');
+  const certIssuingBody = document.getElementById('cert_issuing_body');
 
   if (selectedTraining) {
-    document.getElementById('cert_issuing_body').value = selectedTraining.organizer || '';
-    document.getElementById('cert_type').value = selectedTraining.training_type || 'Eksternal';
+    certIssuingBody.value = selectedTraining.organizer || '';
+    certIssuingBody.readOnly = true;
+    certType.value = selectedTraining.training_type || 'Eksternal';
+    certType.disabled = true;
+
+    const attendedEmps = getAttendedEmployees();
+    const depts = [...new Set(attendedEmps.map(e => e.department).filter(Boolean))].sort();
+    buildDeptOptions(deptSel, depts);
     deptSel.disabled = false;
   } else {
-    document.getElementById('cert_issuing_body').value = '';
-    document.getElementById('cert_type').value = 'Eksternal';
+    certIssuingBody.value = '';
+    certIssuingBody.readOnly = false;
+    certType.value = 'Eksternal';
+    certType.disabled = false;
+    buildDeptOptions(deptSel, []);
     deptSel.disabled = true;
   }
 
@@ -393,8 +405,11 @@ function resetCertForm() {
   document.getElementById('cert_card_date').value = '';
   document.getElementById('cert_competency').value = '';
   document.getElementById('cert_method').value = 'Offline';
-  document.getElementById('cert_type').value = 'Eksternal';
-  document.getElementById('cert_issuing_body').value = '';
+  const certType = document.getElementById('cert_type');
+  certType.value = 'Eksternal'; certType.disabled = false;
+  const certIssuingBody = document.getElementById('cert_issuing_body');
+  certIssuingBody.value = ''; certIssuingBody.readOnly = false;
+  buildDeptOptions(document.getElementById('cert_dept'), []);
   document.getElementById('cert_location').value = '';
   document.getElementById('cert_lifetime').checked = false;
   toggleExpiryDate();
