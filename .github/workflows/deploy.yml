@@ -16,7 +16,7 @@ jobs:
         run: |
           cd C:\Users\Administrator\CCSI-Sertifikasi-Training
           git fetch origin main
-          git merge --abort 2>$null; $true
+          if (Test-Path "C:\Users\Administrator\CCSI-Sertifikasi-Training\.git\MERGE_HEAD") { git merge --abort }
           git reset --hard origin/main
           Write-Host "Kode berhasil diupdate ke commit: $(git rev-parse --short HEAD)"
 
