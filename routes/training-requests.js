@@ -168,12 +168,32 @@ router.post('/send-multi-approval', async (req, res) => {
     participantMap[p.request_id].push(p.participant_name);
   }
 
+  // Jika approver_email kosong, coba lookup dari mst_employee berdasarkan approver_name
+  for (const r of requests) {
+    if (!r.approver_email && r.approver_name) {
+      try {
+        const [empRows] = await pool.query(
+          'SELECT email FROM mst_employee WHERE full_name = ? AND email IS NOT NULL AND email != \'\' LIMIT 1',
+          [r.approver_name]
+        );
+        if (empRows.length && empRows[0].email) {
+          r.approver_email = empRows[0].email;
+          // Simpan ke record agar tidak perlu lookup ulang di masa depan
+          await pool.query(
+            'UPDATE trx_training_request SET approver_email = ? WHERE request_id = ? AND (approver_email IS NULL OR approver_email = \'\')',
+            [empRows[0].email, r.request_id]
+          );
+        }
+      } catch { /* abaikan jika tabel tidak ada */ }
+    }
+  }
+
   // Kelompokkan request per approver email
   const approverGroups = {};
   const skipped = [];
   for (const r of requests) {
     if (!r.approver_email) {
-      skipped.push({ request_id: r.request_id, training_name: r.training_name, reason: 'Email approver tidak ditemukan' });
+      skipped.push({ request_id: r.request_id, training_name: r.training_name, reason: 'Email approver tidak ditemukan — tambahkan email di data karyawan' });
       continue;
     }
     if (r.approval_status !== 'Submitted') {
