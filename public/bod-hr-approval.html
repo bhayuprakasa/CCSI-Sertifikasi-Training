@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<script src="/js/api-client.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Approval BOD HR — CCSI</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a3c6e;--navy-dk:#12294d;--navy-lt:#2a5298;
+  --accent:#e8a020;--accent-lt:#fef3dc;
+  --red:#d63031;--red-lt:#ffeaea;
+  --green:#00a86b;--green-lt:#e6f7f1;
+  --yellow:#f39c12;--yellow-lt:#fff8e6;
+  --purple:#6c3483;--purple-lt:#f4ecf7;
+  --bg:#f0f3f8;--surface:#fff;--border:#dde3ec;
+  --text:#1e293b;--text2:#64748b;--text3:#94a3b8;
+  --font:'Segoe UI',system-ui,Arial,sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--navy);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo-box{width:34px;height:34px;background:var(--accent);border-radius:6px;display:grid;place-items:center;font-weight:800;font-size:.8rem;color:var(--navy-dk)}
+.header-title{font-size:.95rem;font-weight:700;line-height:1.2}
+.header-sub{font-size:.68rem;opacity:.7}
+.header-right{display:flex;gap:6px;align-items:center}
+.btn-h{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:5px 12px;font-size:.78rem;cursor:pointer;font-family:var(--font);transition:background .15s}
+.btn-h:hover{background:rgba(255,255,255,.22)}
+.page{max-width:1200px;margin:0 auto;padding:20px 16px}
+.card{background:var(--surface);border-radius:10px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:16px}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card-title{font-size:.88rem;font-weight:700;color:var(--navy)}
+.card-body{padding:18px}
+.table-wrap{overflow-x:auto}
+table{width:100%;min-width:900px;border-collapse:collapse;font-size:.81rem}
+thead th{background:#f8fafd;color:var(--text2);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:9px 10px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
+thead th.wrap{white-space:normal;min-width:90px}
+tbody tr{border-bottom:1px solid #f0f3f6;transition:background .1s}
+tbody tr:hover{background:#f8fafd}
+tbody td{padding:10px 10px;vertical-align:middle}
+.empty-row td{text-align:center;color:var(--text3);padding:32px;font-size:.85rem}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;white-space:nowrap}
+.b-green{background:var(--green-lt);color:#007a50}.b-red{background:var(--red-lt);color:var(--red)}
+.b-yellow{background:var(--yellow-lt);color:#b7760a}.b-navy{background:#e8eef7;color:var(--navy)}
+.b-gray{background:#f1f5f9;color:var(--text2)}.b-purple{background:var(--purple-lt);color:var(--purple)}
+.btn-sm{padding:3px 9px;border-radius:5px;font-size:.73rem;cursor:pointer;border:1px solid;font-family:var(--font);font-weight:500;transition:all .12s}
+.btn-approve{color:#007a50;border-color:#a7e8cc;background:var(--green-lt)}
+.btn-approve:hover{background:#b2ebd6}
+.btn-reject{color:var(--red);border-color:#fcd4d4;background:var(--red-lt)}
+.btn-reject:hover{background:#ffc5c5}
+.btn-detail{color:var(--navy);border-color:var(--border);background:#f8fafd}
+.btn-detail:hover{background:#e8eef7}
+.filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.filter-bar-lbl{font-size:.75rem;font-weight:600;color:var(--text2);white-space:nowrap}
+.ms-wrap{position:relative;display:inline-block}
+.ms-btn{padding:5px 12px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;font-family:var(--font);background:var(--surface);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:border-color .15s}
+.ms-btn:hover,.ms-btn.active{border-color:var(--navy-lt);color:var(--navy)}
+.ms-drop{position:absolute;top:calc(100% + 4px);left:0;min-width:190px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;display:none;overflow:hidden}
+.ms-drop.open{display:block}
+.ms-opts{max-height:220px;overflow-y:auto}
+.ms-opt{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:.82rem;border-bottom:1px solid #f0f3f6;transition:background .1s}
+.ms-opt:last-child{border-bottom:none}
+.ms-opt:hover{background:#f8fafd}
+.ms-opt input[type="checkbox"]{width:14px;height:14px;accent-color:var(--navy);cursor:pointer;flex-shrink:0}
+.ms-clear-btn{display:block;padding:6px 12px;font-size:.75rem;color:var(--navy-lt);cursor:pointer;border-top:1px solid var(--border);text-align:center;background:#f8fafd}
+.ms-clear-btn:hover{background:#e8eef7;color:var(--navy)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,25,50,.45);z-index:300;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:12px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);margin:16px}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-size:.95rem;font-weight:700;color:var(--navy)}
+.modal-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text3);line-height:1}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:20px}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:.82rem}
+.dl dt{font-weight:600;color:var(--text2);white-space:nowrap}
+.dl dd{color:var(--text)}
+.section-sep{grid-column:1/-1;border-top:1px solid var(--border);margin:6px 0}
+.toast{position:fixed;bottom:20px;right:20px;background:#1e293b;color:#fff;padding:10px 18px;border-radius:8px;font-size:.83rem;z-index:999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.info-banner{background:#e8f4fd;border:1px solid #b8d4f0;border-radius:10px;padding:12px 16px;font-size:.83rem;color:#0c2a52;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.stat-row{display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.stat-chip{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:.82rem}
+.stat-chip strong{font-size:1.3rem;display:block;color:var(--navy);line-height:1.1;margin-bottom:2px}
+.btn-confirm-approve{padding:8px 20px;border-radius:7px;border:none;background:var(--green);color:#fff;cursor:pointer;font-family:var(--font);font-size:.85rem;font-weight:600}
+.btn-confirm-approve:hover{background:#008a58}
+.btn-confirm-reject{padding:8px 20px;border-radius:7px;border:none;background:var(--red);color:#fff;cursor:pointer;font-family:var(--font);font-size:.85rem;font-weight:600}
+.btn-confirm-reject:hover{background:#b52929}
+.btn-cancel{padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:#f8fafd;color:var(--text2);cursor:pointer;font-family:var(--font);font-size:.83rem}
+@media(max-width:600px){.header{padding:0 12px}}
+@media print{.header,.filter-bar,.btn-sm,.toast{display:none!important}.card{box-shadow:none;border:1px solid #ccc}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo-box">CC</div>
+    <div>
+      <div class="header-title">Approval BOD HR</div>
+      <div class="header-sub">PT Communication Cable Systems Indonesia</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn-h" onclick="loadData()">↻ Refresh</button>
+    <button class="btn-h" onclick="window.close()">✕ Tutup</button>
+  </div>
+</header>
+
+<div class="page">
+  <div class="info-banner">
+    🏢 <div>Halaman ini menampilkan permohonan pelatihan yang <strong>menunggu persetujuan Direktur HRD (BOD HR)</strong>. Permohonan di sini telah disetujui oleh Direksi Departemen dan siap untuk keputusan akhir.</div>
+  </div>
+
+  <div class="stat-row" id="statRow">
+    <div class="stat-chip"><strong id="statPending">—</strong>Menunggu Approval</div>
+    <div class="stat-chip"><strong id="statTotal">—</strong>Total Permohonan</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">⏳ Permohonan Pending BOD HR</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="pendingCount" style="font-size:.78rem;color:var(--text3)"></span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="mainMsg"></div>
+      <div class="filter-bar">
+        <span class="filter-bar-lbl">Filter:</span>
+        <div class="ms-wrap">
+          <button class="ms-btn" id="msBtnTahun" onclick="toggleMs('Tahun')">📅 <span id="msLblTahun">Semua Tahun</span> <span style="font-size:.65rem">▾</span></button>
+          <div class="ms-drop" id="msDropTahun">
+            <div class="ms-opts" id="msOptsTahun"></div>
+            <span class="ms-clear-btn" onclick="clearMs('Tahun')">Hapus pilihan</span>
+          </div>
+        </div>
+        <div class="ms-wrap">
+          <button class="ms-btn" id="msBtnDept" onclick="toggleMs('Dept')">🏢 <span id="msLblDept">Semua Dept</span> <span style="font-size:.65rem">▾</span></button>
+          <div class="ms-drop" id="msDropDept">
+            <div class="ms-opts" id="msOptsDept"></div>
+            <span class="ms-clear-btn" onclick="clearMs('Dept')">Hapus pilihan</span>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Departemen</th>
+              <th class="wrap">Nama Pelatihan</th>
+              <th class="wrap">Alasan</th>
+              <th>Peserta</th>
+              <th>Jenis</th>
+              <th>Penyelenggara</th>
+              <th class="wrap">Target Pelaksanaan</th>
+              <th>Total Biaya</th>
+              <th>GT</th>
+              <th class="wrap">Approver Dept</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETAIL -->
+<div class="modal-overlay" id="detailModal" onclick="if(event.target===this)closeDetail()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="detailTitle">Detail Permohonan</span>
+      <button class="modal-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeDetail()">Tutup</button>
+      <button class="btn-confirm-reject" id="detailRejectBtn" onclick="confirmActionFromDetail('reject')">❌ Tolak</button>
+      <button class="btn-confirm-approve" id="detailApproveBtn" onclick="confirmActionFromDetail('approve')">✅ Setujui</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL KONFIRMASI APPROVE/REJECT -->
+<div class="modal-overlay" id="confirmModal" onclick="if(event.target===this)closeConfirm()">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title" id="confirmTitle">Konfirmasi</span>
+      <button class="modal-close" onclick="closeConfirm()">✕</button>
+    </div>
+    <div class="modal-body" id="confirmBody"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeConfirm()">Batal</button>
+      <button id="confirmBtn" onclick="executeAction()">Lanjutkan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+async function api(path, opts) {
+  const res = await fetch(path, { headers: {'Content-Type':'application/json'}, ...opts });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
+function showToast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = ok ? '#1e293b' : 'var(--red)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+const fmtRp = n => (!n || n == 0) ? '-' : 'Rp ' + Number(n).toLocaleString('id-ID');
+const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+function fmtMonthYear(dateStr) {
+  if (!dateStr) return '-';
+  const d = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+  const parts = d.split('-');
+  if (parts.length < 2) return d;
+  return `${MONTHS[parseInt(parts[1])-1]} ${parts[0]}`;
+}
+
+function fmtDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+  const parts = d.split('-');
+  if (parts.length < 3) return d;
+  return `${parts[2]} ${MONTHS[parseInt(parts[1])-1]} ${parts[0]}`;
+}
+
+const escH = s => (s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const getYear = d => d ? (d+'').split('T')[0].split('-')[0] : null;
+
+// ── Multi-select state ──
+const msState = { Tahun: new Set(), Dept: new Set() };
+let allData = [];
+let currentAction = null; // { type: 'approve'|'reject', id, name, dept }
+
+function toggleMs(key) {
+  const drop = document.getElementById('msDrop' + key);
+  const open = drop.classList.contains('open');
+  document.querySelectorAll('.ms-drop').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.ms-btn').forEach(b => b.classList.remove('active'));
+  if (!open) { drop.classList.add('open'); document.getElementById('msBtn' + key).classList.add('active'); }
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ms-wrap')) {
+    document.querySelectorAll('.ms-drop').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.ms-btn').forEach(b => b.classList.remove('active'));
+  }
+});
+
+function clearMs(key) {
+  msState[key].clear();
+  document.querySelectorAll('#msOpts' + key + ' input').forEach(cb => cb.checked = false);
+  updateMsLbl(key);
+  applyFilter();
+}
+
+function onMsChange(key, cb) {
+  if (cb.checked) msState[key].add(cb.value); else msState[key].delete(cb.value);
+  updateMsLbl(key);
+  applyFilter();
+}
+
+function updateMsLbl(key) {
+  const n = msState[key].size;
+  const btn = document.getElementById('msBtn' + key);
+  const lbl = document.getElementById('msLbl' + key);
+  const def = { Tahun: 'Semua Tahun', Dept: 'Semua Dept' };
+  let cnt = btn.querySelector('.ms-count');
+  if (n === 0) { lbl.textContent = def[key]; if (cnt) cnt.remove(); }
+  else {
+    lbl.textContent = '';
+    if (!cnt) { cnt = document.createElement('span'); cnt.className = 'ms-count'; cnt.style.cssText='background:var(--navy);color:#fff;border-radius:10px;padding:1px 7px;font-size:.68rem;font-weight:700'; btn.insertBefore(cnt, btn.lastElementChild); }
+    cnt.textContent = n;
+  }
+}
+
+function buildOpts(key, values) {
+  document.getElementById('msOpts' + key).innerHTML = values.map(v =>
+    `<label class="ms-opt"><input type="checkbox" value="${escH(v)}" ${msState[key].has(v)?'checked':''} onchange="onMsChange('${key}',this)"> ${escH(v)}</label>`
+  ).join('');
+}
+
+async function loadData() {
+  try {
+    const all = await api('/api/training-requests');
+    // Filter hanya PendingBODHR
+    allData = all.filter(r => r.approval_status === 'PendingBODHR');
+
+    // Update stats
+    document.getElementById('statPending').textContent = allData.length;
+    document.getElementById('statTotal').textContent = all.length;
+
+    const years = [...new Set(allData.map(r => getYear(r.training_date_start)).filter(Boolean))].sort().reverse();
+    const depts = [...new Set(allData.map(r => r.department).filter(Boolean))].sort();
+    buildOpts('Tahun', years);
+    buildOpts('Dept', depts);
+    applyFilter();
+  } catch (e) {
+    showToast('Gagal memuat data: ' + e.message, false);
+    document.getElementById('tableBody').innerHTML = '<tr class="empty-row"><td colspan="12">Gagal memuat data</td></tr>';
+  }
+}
+
+function applyFilter() {
+  let data = allData;
+  if (msState.Tahun.size > 0) data = data.filter(r => msState.Tahun.has(getYear(r.training_date_start)));
+  if (msState.Dept.size > 0) data = data.filter(r => msState.Dept.has(r.department));
+  renderTable(data);
+}
+
+function renderTable(data) {
+  const bodyEl = document.getElementById('tableBody');
+  const countEl = document.getElementById('pendingCount');
+  const msgEl = document.getElementById('mainMsg');
+
+  countEl.textContent = data.length ? `${data.length} permohonan` : '';
+
+  if (!data.length) {
+    msgEl.innerHTML = allData.length === 0
+      ? '<div style="background:var(--green-lt);border:1px solid #a7e8cc;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#007a50;margin-bottom:16px">✅ Tidak ada permohonan yang menunggu approval BOD HR saat ini.</div>'
+      : '<div style="background:var(--yellow-lt);border:1px solid #fde68a;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#92610a;margin-bottom:16px">🔍 Tidak ada permohonan yang sesuai filter.</div>';
+    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="12">Tidak ada data yang sesuai</td></tr>';
+    return;
+  }
+
+  msgEl.innerHTML = `<div style="background:var(--yellow-lt);border:1px solid #fde68a;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#92610a;margin-bottom:16px">⏳ <strong>${data.length}</strong> permohonan menunggu keputusan Anda.</div>`;
+
+  bodyEl.innerHTML = data.map((r, i) => {
+    const tgl = fmtMonthYear(r.training_date_start);
+    const approver1 = r.approver_name
+      ? `<span style="font-size:.75rem;color:var(--text2)">${escH(r.approver_name)}</span>`
+      : '<span style="color:var(--text3);font-size:.75rem">—</span>';
+    const gtColor = r.score_grand_total >= 32 ? 'var(--green)' : r.score_grand_total > 0 ? 'var(--red)' : 'var(--text3)';
+    const pesertaHtml = (r.participants || []).map(p => `<div style="font-size:.75rem">• ${escH(p)}</div>`).join('');
+    return `<tr>
+      <td style="color:var(--text3)">${i+1}</td>
+      <td><strong>${escH(r.department)}</strong></td>
+      <td>${escH(r.training_name)}</td>
+      <td style="font-size:.78rem;color:var(--text2);max-width:180px">${r.training_reason ? escH(r.training_reason) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="font-size:.75rem">${pesertaHtml || '—'}</td>
+      <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${escH(r.training_type||'—')}</span></td>
+      <td style="font-size:.78rem;color:var(--text2)">${r.organizer ? escH(r.organizer) : '—'}</td>
+      <td style="white-space:nowrap;font-size:.78rem">${tgl}</td>
+      <td style="white-space:nowrap;font-size:.78rem">${fmtRp(r.cost_total)}</td>
+      <td style="text-align:center;font-weight:600;color:${gtColor}">${r.score_grand_total||'-'} ${r.score_grand_total?(r.score_grand_total>=32?'✅':'❌'):''}</td>
+      <td>${approver1}</td>
+      <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn-sm btn-detail" onclick="openDetail(${r.request_id})">🔍 Detail</button>
+        <button class="btn-sm btn-approve" onclick="startAction('approve',${r.request_id},'${escH(r.training_name)}','${escH(r.department)}')">✅ Setujui</button>
+        <button class="btn-sm btn-reject" onclick="startAction('reject',${r.request_id},'${escH(r.training_name)}','${escH(r.department)}')">❌ Tolak</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Detail Modal ──
+let detailCurrentId = null;
+
+function openDetail(id) {
+  const r = allData.find(x => x.request_id === id);
+  if (!r) return;
+  detailCurrentId = id;
+  document.getElementById('detailTitle').textContent = r.training_name;
+  document.getElementById('detailBody').innerHTML = `
+    <dl class="dl">
+      <dt>Departemen</dt><dd>${escH(r.department)}</dd>
+      <dt>Jenis</dt><dd>${escH(r.training_type||'—')}</dd>
+      <dt>Penyelenggara</dt><dd>${escH(r.organizer||'—')}</dd>
+      <dt>Target Pelaksanaan</dt><dd>${fmtMonthYear(r.training_date_start)}</dd>
+      <dt>Tempat Pelatihan</dt><dd>${escH(r.training_venue||'—')}</dd>
+      <dt>Alasan</dt><dd>${escH(r.training_reason||'—')}</dd>
+      <dt>Rencana</dt><dd>${r.is_scheduled ? 'Terjadwal' : 'Tidak Terjadwal'}</dd>
+      <div class="section-sep"></div>
+      <dt>Peserta</dt><dd>${(r.participants||[]).map(p => `• ${escH(p)}`).join('<br>') || '—'}</dd>
+      <div class="section-sep"></div>
+      <dt>Total Biaya</dt><dd><strong>${fmtRp(r.cost_total)}</strong></dd>
+      <dt>Training Fee</dt><dd>${fmtRp(r.cost_training_fee)}</dd>
+      <dt>Akomodasi</dt><dd>${fmtRp(r.cost_akomodasi)}</dd>
+      <dt>Transport</dt><dd>${fmtRp(r.cost_transport)}</dd>
+      <dt>Makan</dt><dd>${fmtRp(r.cost_makan)}</dd>
+      <dt>Snack</dt><dd>${fmtRp(r.cost_snack)}</dd>
+      <dt>Emergency Cash</dt><dd>${fmtRp(r.cost_emergency)}</dd>
+      <div class="section-sep"></div>
+      <dt>Grand Total Score</dt><dd style="font-weight:700;color:${r.score_grand_total>=32?'var(--green)':'var(--red)'}">${r.score_grand_total||0} ${r.score_grand_total?(r.score_grand_total>=32?'✅ Diterima':'❌ Ditolak'):''}</dd>
+      <dt>Approver Dept</dt><dd>${escH(r.approver_name||'—')}</dd>
+      <dt>Diajukan Oleh</dt><dd>${escH(r.submitted_by||'—')}</dd>
+    </dl>
+  `;
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detailModal').classList.remove('open');
+  detailCurrentId = null;
+}
+
+function confirmActionFromDetail(type) {
+  if (!detailCurrentId) return;
+  const r = allData.find(x => x.request_id === detailCurrentId);
+  if (!r) return;
+  closeDetail();
+  startAction(type, r.request_id, r.training_name, r.department);
+}
+
+// ── Confirm Modal ──
+function startAction(type, id, name, dept) {
+  currentAction = { type, id, name, dept };
+  const isApprove = type === 'approve';
+  document.getElementById('confirmTitle').textContent = isApprove ? '✅ Konfirmasi Persetujuan' : '❌ Konfirmasi Penolakan';
+  document.getElementById('confirmBody').innerHTML = `
+    <div style="font-size:.88rem;line-height:1.6">
+      ${isApprove
+        ? `<div style="background:var(--green-lt);border:1px solid #a7e8cc;border-radius:8px;padding:10px 14px;margin-bottom:12px;color:#007a50">✅ Anda akan <strong>menyetujui</strong> permohonan ini. Status akan berubah menjadi <strong>Disetujui</strong>.</div>`
+        : `<div style="background:var(--red-lt);border:1px solid #fcd4d4;border-radius:8px;padding:10px 14px;margin-bottom:12px;color:var(--red)">❌ Anda akan <strong>menolak</strong> permohonan ini. Status akan berubah menjadi <strong>Ditolak BOD HR</strong>.</div>`
+      }
+      <div><strong>Pelatihan:</strong> ${escH(name)}</div>
+      <div><strong>Departemen:</strong> ${escH(dept)}</div>
+    </div>
+  `;
+  const btn = document.getElementById('confirmBtn');
+  if (isApprove) {
+    btn.textContent = '✅ Ya, Setujui';
+    btn.className = 'btn-confirm-approve';
+  } else {
+    btn.textContent = '❌ Ya, Tolak';
+    btn.className = 'btn-confirm-reject';
+  }
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.remove('open');
+  currentAction = null;
+}
+
+async function executeAction() {
+  if (!currentAction) return;
+  const { type, id, name } = currentAction;
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Memproses...';
+  try {
+    const endpoint = type === 'approve'
+      ? `/api/training-requests/${id}/approve-hrd`
+      : `/api/training-requests/${id}/reject-hrd`;
+    await api(endpoint, { method: 'PATCH' });
+    showToast(type === 'approve' ? `Permohonan "${name}" berhasil disetujui.` : `Permohonan "${name}" ditolak.`, type === 'approve');
+    closeConfirm();
+    await loadData();
+  } catch (e) {
+    showToast(e.message, false);
+    btn.disabled = false;
+    btn.textContent = type === 'approve' ? '✅ Ya, Setujui' : '❌ Ya, Tolak';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadData();
+});
+</script>
+</body>
+</html>

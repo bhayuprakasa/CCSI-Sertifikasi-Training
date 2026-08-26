@@ -362,6 +362,52 @@ router.get('/reject-hrd/:token', async (req, res) => {
   res.send(approvalPage('rejected_hrd', 'Rejected_BODHR', req_));
 });
 
+// Approve by BOD HR (via web UI, no token needed)
+router.patch('/:id/approve-hrd', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM trx_training_request WHERE request_id = ?', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
+  const req_ = rows[0];
+  if (req_.approval_status !== 'PendingBODHR') {
+    return res.status(400).json({ error: `Status tidak valid: ${req_.approval_status}. Hanya PendingBODHR yang dapat disetujui di sini.` });
+  }
+  await pool.query(
+    'UPDATE trx_training_request SET approval_status = ?, approval_hrd_token = NULL WHERE request_id = ?',
+    ['Approved', req.params.id]
+  );
+  await logAudit({
+    table_name: 'trx_training_request',
+    record_id: req.params.id,
+    operation: 'UPDATE',
+    old_data: { approval_status: req_.approval_status },
+    new_data: { approval_status: 'Approved' },
+    changed_by: req.changedBy,
+  });
+  res.json({ updated: true, approval_status: 'Approved' });
+});
+
+// Reject by BOD HR (via web UI, no token needed)
+router.patch('/:id/reject-hrd', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM trx_training_request WHERE request_id = ?', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
+  const req_ = rows[0];
+  if (req_.approval_status !== 'PendingBODHR') {
+    return res.status(400).json({ error: `Status tidak valid: ${req_.approval_status}. Hanya PendingBODHR yang dapat ditolak di sini.` });
+  }
+  await pool.query(
+    'UPDATE trx_training_request SET approval_status = ?, approval_hrd_token = NULL WHERE request_id = ?',
+    ['Rejected_BODHR', req.params.id]
+  );
+  await logAudit({
+    table_name: 'trx_training_request',
+    record_id: req.params.id,
+    operation: 'UPDATE',
+    old_data: { approval_status: req_.approval_status },
+    new_data: { approval_status: 'Rejected_BODHR' },
+    changed_by: req.changedBy,
+  });
+  res.json({ updated: true, approval_status: 'Rejected_BODHR' });
+});
+
 router.patch('/:id/dates', async (req, res) => {
   const { actual_date_start, actual_date_end } = req.body;
   if (!actual_date_start || !actual_date_end) {
