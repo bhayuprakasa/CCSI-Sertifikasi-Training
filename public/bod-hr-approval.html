@@ -89,8 +89,15 @@ tbody td{padding:10px 10px;vertical-align:middle}
 .btn-confirm-reject{padding:8px 20px;border-radius:7px;border:none;background:var(--red);color:#fff;cursor:pointer;font-family:var(--font);font-size:.85rem;font-weight:600}
 .btn-confirm-reject:hover{background:#b52929}
 .btn-cancel{padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:#f8fafd;color:var(--text2);cursor:pointer;font-family:var(--font);font-size:.83rem}
+.bulk-bar{display:none;align-items:center;gap:10px;padding:10px 14px;background:#fff8e6;border:1px solid #fde68a;border-radius:8px;margin-bottom:14px;flex-wrap:wrap}
+.bulk-bar.show{display:flex}
+.bulk-bar-info{font-size:.83rem;font-weight:600;color:#92610a;flex:1;min-width:120px}
+.bulk-btn-approve{padding:6px 16px;border-radius:7px;border:none;background:var(--green);color:#fff;cursor:pointer;font-family:var(--font);font-size:.82rem;font-weight:600;transition:background .15s}
+.bulk-btn-approve:hover{background:#008a58}
+.bulk-btn-reject{padding:6px 16px;border-radius:7px;border:none;background:var(--red);color:#fff;cursor:pointer;font-family:var(--font);font-size:.82rem;font-weight:600;transition:background .15s}
+.bulk-btn-reject:hover{background:#b52929}
 @media(max-width:600px){.header{padding:0 12px}}
-@media print{.header,.filter-bar,.btn-sm,.toast{display:none!important}.card{box-shadow:none;border:1px solid #ccc}body{background:#fff}}
+@media print{.header,.filter-bar,.btn-sm,.bulk-bar,.toast{display:none!important}.card{box-shadow:none;border:1px solid #ccc}body{background:#fff}}
 </style>
 </head>
 <body>
@@ -128,6 +135,15 @@ tbody td{padding:10px 10px;vertical-align:middle}
     </div>
     <div class="card-body">
       <div id="mainMsg"></div>
+
+      <!-- BULK ACTION BAR -->
+      <div class="bulk-bar" id="bulkBar">
+        <span class="bulk-bar-info">☑ <span id="bulkCount">0</span> permohonan dipilih</span>
+        <button class="bulk-btn-approve" onclick="startBulkAction('approve')">✅ Setujui Semua Terpilih</button>
+        <button class="bulk-btn-reject" onclick="startBulkAction('reject')">❌ Tolak Semua Terpilih</button>
+        <button class="btn-cancel" style="padding:5px 12px;font-size:.78rem" onclick="clearSelection()">Batalkan Pilihan</button>
+      </div>
+
       <div class="filter-bar">
         <span class="filter-bar-lbl">Filter:</span>
         <div class="ms-wrap">
@@ -149,6 +165,7 @@ tbody td{padding:10px 10px;vertical-align:middle}
         <table>
           <thead>
             <tr>
+              <th style="width:36px;text-align:center"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Pilih semua" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)"></th>
               <th>#</th>
               <th>Departemen</th>
               <th class="wrap">Nama Pelatihan</th>
@@ -247,6 +264,7 @@ const getYear = d => d ? (d+'').split('T')[0].split('-')[0] : null;
 const msState = { Tahun: new Set(), Dept: new Set() };
 let allData = [];
 let currentAction = null; // { type: 'approve'|'reject', id, name, dept }
+let bulkAction = null;
 
 function toggleMs(key) {
   const drop = document.getElementById('msDrop' + key);
@@ -313,7 +331,7 @@ async function loadData() {
     applyFilter();
   } catch (e) {
     showToast('Gagal memuat data: ' + e.message, false);
-    document.getElementById('tableBody').innerHTML = '<tr class="empty-row"><td colspan="12">Gagal memuat data</td></tr>';
+    document.getElementById('tableBody').innerHTML = '<tr class="empty-row"><td colspan="13">Gagal memuat data</td></tr>';
   }
 }
 
@@ -331,11 +349,16 @@ function renderTable(data) {
 
   countEl.textContent = data.length ? `${data.length} permohonan` : '';
 
+  // Reset selection state
+  const selAll = document.getElementById('selectAll');
+  if (selAll) { selAll.checked = false; selAll.indeterminate = false; }
+  document.getElementById('bulkBar').classList.remove('show');
+
   if (!data.length) {
     msgEl.innerHTML = allData.length === 0
       ? '<div style="background:var(--green-lt);border:1px solid #a7e8cc;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#007a50;margin-bottom:16px">✅ Tidak ada permohonan yang menunggu approval BOD HR saat ini.</div>'
       : '<div style="background:var(--yellow-lt);border:1px solid #fde68a;border-radius:8px;padding:12px 16px;font-size:.85rem;color:#92610a;margin-bottom:16px">🔍 Tidak ada permohonan yang sesuai filter.</div>';
-    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="12">Tidak ada data yang sesuai</td></tr>';
+    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="13">Tidak ada data yang sesuai</td></tr>';
     return;
   }
 
@@ -349,6 +372,7 @@ function renderTable(data) {
     const gtColor = r.score_grand_total >= 32 ? 'var(--green)' : r.score_grand_total > 0 ? 'var(--red)' : 'var(--text3)';
     const pesertaHtml = (r.participants || []).map(p => `<div style="font-size:.75rem">• ${escH(p)}</div>`).join('');
     return `<tr>
+      <td style="text-align:center"><input type="checkbox" class="row-cb" data-id="${r.request_id}" data-name="${escH(r.training_name)}" data-dept="${escH(r.department)}" onchange="updateSelectionUI()" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)"></td>
       <td style="color:var(--text3)">${i+1}</td>
       <td><strong>${escH(r.department)}</strong></td>
       <td>${escH(r.training_name)}</td>
@@ -447,6 +471,9 @@ function startAction(type, id, name, dept) {
 function closeConfirm() {
   document.getElementById('confirmModal').classList.remove('open');
   currentAction = null;
+  bulkAction = null;
+  // Restore default onclick for single-item actions
+  document.getElementById('confirmBtn').onclick = executeAction;
 }
 
 async function executeAction() {
@@ -468,6 +495,93 @@ async function executeAction() {
     btn.disabled = false;
     btn.textContent = type === 'approve' ? '✅ Ya, Setujui' : '❌ Ya, Tolak';
   }
+}
+
+// ── Bulk selection ──
+function updateSelectionUI() {
+  const cbs = [...document.querySelectorAll('.row-cb')];
+  const checked = cbs.filter(c => c.checked);
+  const n = checked.length;
+  const bulkBar = document.getElementById('bulkBar');
+  const bulkCount = document.getElementById('bulkCount');
+  const selAll = document.getElementById('selectAll');
+  bulkBar.classList.toggle('show', n > 0);
+  if (bulkCount) bulkCount.textContent = n;
+  if (selAll) {
+    selAll.checked = cbs.length > 0 && n === cbs.length;
+    selAll.indeterminate = n > 0 && n < cbs.length;
+  }
+}
+
+function toggleSelectAll(masterCb) {
+  document.querySelectorAll('.row-cb').forEach(cb => { cb.checked = masterCb.checked; });
+  updateSelectionUI();
+}
+
+function clearSelection() {
+  document.querySelectorAll('.row-cb').forEach(cb => { cb.checked = false; });
+  const selAll = document.getElementById('selectAll');
+  if (selAll) { selAll.checked = false; selAll.indeterminate = false; }
+  updateSelectionUI();
+}
+
+function getSelectedItems() {
+  return [...document.querySelectorAll('.row-cb:checked')].map(cb => ({
+    id: parseInt(cb.dataset.id),
+    name: cb.dataset.name,
+    dept: cb.dataset.dept,
+  }));
+}
+
+// ── Bulk action: confirm & execute ──
+
+function startBulkAction(type) {
+  const items = getSelectedItems();
+  if (!items.length) return;
+  bulkAction = { type, items };
+  const isApprove = type === 'approve';
+  document.getElementById('confirmTitle').textContent = isApprove
+    ? `✅ Konfirmasi Persetujuan (${items.length} item)`
+    : `❌ Konfirmasi Penolakan (${items.length} item)`;
+  const listHtml = items.map(it => `<div style="padding:3px 0;border-bottom:1px solid #f0f3f6">• <strong>${escH(it.name)}</strong> <span style="color:var(--text3);font-size:.78rem">(${escH(it.dept)})</span></div>`).join('');
+  document.getElementById('confirmBody').innerHTML = `
+    <div style="font-size:.88rem;line-height:1.6">
+      ${isApprove
+        ? `<div style="background:var(--green-lt);border:1px solid #a7e8cc;border-radius:8px;padding:10px 14px;margin-bottom:12px;color:#007a50">✅ Anda akan <strong>menyetujui ${items.length} permohonan</strong> berikut:</div>`
+        : `<div style="background:var(--red-lt);border:1px solid #fcd4d4;border-radius:8px;padding:10px 14px;margin-bottom:12px;color:var(--red)">❌ Anda akan <strong>menolak ${items.length} permohonan</strong> berikut:</div>`
+      }
+      <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px 10px">${listHtml}</div>
+    </div>
+  `;
+  const btn = document.getElementById('confirmBtn');
+  btn.textContent = isApprove ? `✅ Ya, Setujui ${items.length} Item` : `❌ Ya, Tolak ${items.length} Item`;
+  btn.className = isApprove ? 'btn-confirm-approve' : 'btn-confirm-reject';
+  // Override onclick for bulk
+  btn.onclick = executeBulkAction;
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+async function executeBulkAction() {
+  if (!bulkAction) return;
+  const { type, items } = bulkAction;
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = `⏳ Memproses ${items.length} item...`;
+  const endpoint = type === 'approve' ? 'approve-hrd' : 'reject-hrd';
+  let success = 0, failed = 0;
+  for (const item of items) {
+    try {
+      await api(`/api/training-requests/${item.id}/${endpoint}`, { method: 'PATCH' });
+      success++;
+    } catch { failed++; }
+  }
+  const msg = type === 'approve'
+    ? `${success} permohonan berhasil disetujui${failed ? `, ${failed} gagal` : ''}.`
+    : `${success} permohonan ditolak${failed ? `, ${failed} gagal` : ''}.`;
+  showToast(msg, failed === 0);
+  closeConfirm();
+  bulkAction = null;
+  await loadData();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
