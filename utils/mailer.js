@@ -584,6 +584,7 @@ async function sendMultiApprovalEmail({ approver, requests, appUrl: appUrlOverri
 
     return `<tr>
       <td style="padding:10px 12px;border:1px solid #dde3ec;font-size:12px;font-weight:600;color:#1e293b;vertical-align:top">${r.training_name}</td>
+      <td style="padding:10px 12px;border:1px solid #dde3ec;font-size:12px;color:#475569;vertical-align:top">${r.training_reason || '<em style="color:#94a3b8">—</em>'}</td>
       <td style="padding:10px 12px;border:1px solid #dde3ec;font-size:12px;color:#475569;vertical-align:top">${participants || '-'}</td>
       <td style="padding:10px 12px;border:1px solid #dde3ec;font-size:12px;color:#475569;vertical-align:top;white-space:nowrap">${jadwal}</td>
       <td style="padding:10px 12px;border:1px solid #dde3ec;font-size:12px;color:#475569;vertical-align:top;white-space:nowrap">${r.training_type || '-'}</td>
@@ -642,6 +643,7 @@ async function sendMultiApprovalEmail({ approver, requests, appUrl: appUrlOverri
         <thead>
           <tr style="background:#1a3c6e">
             <th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Nama Pelatihan</th>
+            <th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Alasan</th>
             <th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Peserta</th>
             <th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Terjadwal</th>
             <th style="padding:10px 12px;text-align:left;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid #2a5298">Jenis</th>

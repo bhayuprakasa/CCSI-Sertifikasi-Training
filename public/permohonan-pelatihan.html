@@ -342,6 +342,7 @@ tbody td{padding:9px 8px;vertical-align:middle}
               <th>#</th>
               <th>Departemen</th>
               <th class="wrap">Nama Pelatihan</th>
+              <th class="wrap">Alasan</th>
               <th>Peserta</th>
               <th>Terjadwal</th>
               <th>Jenis</th>
@@ -820,7 +821,7 @@ function renderRecap(data) {
 
   if (!data.length) {
     msgEl.innerHTML = '';
-    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="12">Belum ada data yang sesuai filter</td></tr>';
+    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="13">Belum ada data yang sesuai filter</td></tr>';
     prUpdateSelectionUI();
     return;
   }
@@ -855,6 +856,7 @@ function renderRecap(data) {
       <td style="color:var(--text3)">${i+1}</td>
       <td><strong>${r.department}</strong></td>
       <td>${r.training_name}</td>
+      <td style="font-size:.78rem;color:var(--text2)">${r.training_reason || '<span style="color:var(--text3)">—</span>'}</td>
       <td style="font-size:.78rem">${(r.participants||[]).map(p => `<div>• ${p}</div>`).join('')}</td>
       <td>${jadwalBadge}</td>
       <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${r.training_type}</span></td>
