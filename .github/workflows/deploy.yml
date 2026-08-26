@@ -66,7 +66,7 @@ jobs:
         if: success()
         shell: powershell
         run: |
-          $commit = git -C C:\Users\Administrator\CCSI-Sertifikasi-Training log -1 --pretty=format:"%h %s"
+          $commit = git -C C:\www\ccsi-app log -1 --pretty=format:"%h %s"
           Write-Host "Deploy berhasil: $commit"
 
       - name: Rollback jika deploy gagal
