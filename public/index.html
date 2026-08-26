@@ -374,7 +374,7 @@ select.filter:focus{border-color:var(--navy-lt)}
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>#</th><th>Departemen</th><th>Nama Pelatihan</th><th>Peserta</th><th>Jenis</th><th>Penyelenggara</th><th class="wrap">Tanggal Submit</th><th class="wrap">Tanggal Mulai</th><th class="wrap">Tanggal Selesai</th><th>Total Biaya</th><th>GT</th><th>Status</th><th>Aksi</th></tr></thead>
+              <thead><tr><th>#</th><th>Departemen</th><th>Nama Pelatihan</th><th class="wrap">Alasan</th><th>Peserta</th><th>Jenis</th><th>Penyelenggara</th><th class="wrap">Tanggal Submit</th><th class="wrap">Tanggal Mulai</th><th class="wrap">Tanggal Selesai</th><th>Total Biaya</th><th>GT</th><th>Status</th><th>Aksi</th></tr></thead>
               <tbody id="rekapBody"></tbody>
             </table>
           </div>
@@ -1613,7 +1613,7 @@ function rkRenderRows(data) {
   const bodyEl=document.getElementById('rekapBody');
   if(!data.length){
     msgEl.innerHTML='';
-    bodyEl.innerHTML='<tr class="empty-row"><td colspan="13">Belum ada data yang sesuai filter</td></tr>';
+    bodyEl.innerHTML='<tr class="empty-row"><td colspan="14">Belum ada data yang sesuai filter</td></tr>';
     return;
   }
   const totalCost=data.reduce((a,b)=>a+Number(b.cost_total||0),0);
@@ -1631,6 +1631,7 @@ function rkRenderRows(data) {
       <td style="color:var(--text3)">${i+1}</td>
       <td><strong>${rkEscH(r.department)}</strong></td>
       <td>${rkEscH(r.training_name)}</td>
+      <td style="font-size:.78rem;color:var(--text2)">${r.training_reason ? rkEscH(r.training_reason) : '<span style="color:var(--text3)">—</span>'}</td>
       <td style="font-size:.78rem">${(r.participants||[]).map(p=>`<div>• ${rkEscH(p)}</div>`).join('')||'-'}</td>
       <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${rkEscH(r.training_type||'-')}</span></td>
       <td style="color:var(--text2);font-size:.78rem">${rkEscH(r.organizer||'-')}</td>
