@@ -29,7 +29,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .btn-h:hover{background:rgba(255,255,255,.22)}
 .btn-h.primary{background:var(--accent);color:var(--navy-dk);border-color:var(--accent);font-weight:600}
 .btn-h.primary:hover{background:#d4911c}
-.page{max-width:1320px;margin:0 auto;padding:20px 16px}
+.page{max-width:1480px;margin:0 auto;padding:20px 16px}
 /* TABS */
 .tabs{display:flex;gap:2px;margin-bottom:20px;border-bottom:2px solid var(--border);overflow-x:auto}
 .tab{padding:8px 16px;font-size:.82rem;font-weight:500;cursor:pointer;border-radius:6px 6px 0 0;color:var(--text2);white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
@@ -50,11 +50,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .kpi.warn .kpi-value{color:var(--red)}.kpi.ok .kpi-value{color:var(--green)}.kpi.info .kpi-value{color:var(--yellow)}
 /* TABLE */
 .table-wrap{overflow-x:auto}
-table{width:100%;min-width:1200px;border-collapse:collapse;font-size:.81rem}
-thead th{background:#f8fafd;color:var(--text2);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:9px 10px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
+table{width:100%;min-width:1060px;border-collapse:collapse;font-size:.81rem}
+thead th{background:#f8fafd;color:var(--text2);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:9px 8px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
 tbody tr{border-bottom:1px solid #f0f3f6;transition:background .1s}
 tbody tr:hover{background:#f8fafd}
-tbody td{padding:10px 10px;vertical-align:middle}
+tbody td{padding:8px 8px;vertical-align:middle}
 .empty-row td{text-align:center;color:var(--text3);padding:28px;font-size:.83rem}
 /* BADGES */
 .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;white-space:nowrap}
@@ -375,7 +375,7 @@ select.filter:focus{border-color:var(--navy-lt)}
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>#</th><th>Departemen</th><th>Nama Pelatihan</th><th class="wrap">Alasan</th><th>Peserta</th><th>Jenis</th><th>Penyelenggara</th><th class="wrap">Tanggal Submit</th><th class="wrap">Tanggal Mulai</th><th class="wrap">Tanggal Selesai</th><th>Total Biaya</th><th>GT</th><th>Status</th><th>Aksi</th></tr></thead>
+              <thead><tr><th style="width:28px">#</th><th>Departemen</th><th style="min-width:110px">Nama Pelatihan</th><th style="min-width:90px;white-space:normal">Alasan</th><th style="min-width:90px">Peserta</th><th style="min-width:70px">Jenis</th><th style="min-width:70px">Penyelenggara</th><th style="min-width:80px;white-space:normal">Tgl Submit</th><th style="min-width:75px;white-space:normal">Tgl Mulai</th><th style="min-width:75px;white-space:normal">Tgl Selesai</th><th style="min-width:80px">Total Biaya</th><th style="width:38px">GT</th><th style="min-width:80px">Status</th><th style="min-width:130px">Aksi</th></tr></thead>
               <tbody id="rekapBody"></tbody>
             </table>
           </div>
@@ -1624,28 +1624,33 @@ function rkRenderRows(data) {
     const tglMulai=rkFmtDate(r.actual_date_start);
     const tglSelesai=rkFmtDate(r.actual_date_end);
     const apvStatus=r.approval_status||'PendingBODDept';
-    const apvMap={'Submitted_HR':{cls:'b-purple',icon:'📋',lbl:'Submitted by HR'},'PendingBODDept':{cls:'b-yellow',icon:'⏳',lbl:'Pending BOD Dept'},'PendingBODHR':{cls:'b-navy',icon:'⏳',lbl:'Pending BOD HR'},'Approved':{cls:'b-green',icon:'✅',lbl:'Disetujui'},'Rejected_BODDept':{cls:'b-red',icon:'❌',lbl:'Ditolak BOD Dept'},'Rejected_BODHR':{cls:'b-red',icon:'❌',lbl:'Ditolak BOD HR'}};
+    const apvMap={'Submitted_HR':{cls:'b-purple',icon:'📋',lbl:'Submitted HR'},'PendingBODDept':{cls:'b-yellow',icon:'⏳',lbl:'Pending BOD'},'PendingBODHR':{cls:'b-navy',icon:'⏳',lbl:'Pending HR'},'Approved':{cls:'b-green',icon:'✅',lbl:'Disetujui'},'Rejected_BODDept':{cls:'b-red',icon:'❌',lbl:'Ditolak BOD'},'Rejected_BODHR':{cls:'b-red',icon:'❌',lbl:'Ditolak HR'}};
     const {cls:statusCls,icon:statusIcon,lbl:statusLbl}=apvMap[apvStatus]||{cls:'b-gray',icon:'',lbl:apvStatus};
     const gt=r.score_grand_total;
     const rid=r.request_id;
+    const pts=r.participants||[];
+    const ptHtml=pts.slice(0,2).map(p=>`<div>• ${rkEscH(p)}</div>`).join('')+(pts.length>2?`<div style="color:var(--text3)">+${pts.length-2} lainnya</div>`:'');
+    const truncStyle='max-width:130px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis';
     return `<tr>
       <td style="color:var(--text3)">${i+1}</td>
       <td><strong>${rkEscH(r.department)}</strong></td>
-      <td>${rkEscH(r.training_name)}</td>
-      <td style="font-size:.78rem;color:var(--text2)">${r.training_reason ? rkEscH(r.training_reason) : '<span style="color:var(--text3)">—</span>'}</td>
-      <td style="font-size:.78rem">${(r.participants||[]).map(p=>`<div>• ${rkEscH(p)}</div>`).join('')||'-'}</td>
+      <td style="${truncStyle}" title="${rkEscH(r.training_name)}">${rkEscH(r.training_name)}</td>
+      <td style="font-size:.78rem;color:var(--text2);max-width:110px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical">${r.training_reason ? rkEscH(r.training_reason) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="font-size:.78rem">${ptHtml||'-'}</td>
       <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${rkEscH(r.training_type||'-')}</span></td>
-      <td style="color:var(--text2);font-size:.78rem">${rkEscH(r.organizer||'-')}</td>
+      <td style="color:var(--text2);font-size:.78rem;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="${rkEscH(r.organizer||'-')}">${rkEscH(r.organizer||'-')}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tglSubmit}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tglMulai}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tglSelesai}</td>
-      <td style="white-space:nowrap">${fmtRp(r.cost_total)}</td>
-      <td style="text-align:center;font-weight:600;color:${gt>=32?'var(--green)':gt>0?'var(--red)':'var(--text3)'}">${gt||'-'} ${gt?(gt>=32?'✅':'❌'):''}</td>
-      <td><span class="badge ${statusCls}">${statusIcon} ${statusLbl}</span></td>
-      <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn-sm" style="color:var(--navy);border-color:#c8d9f0;background:#e8eef7" onclick="rkViewDetail(${rid})">👁 Detail</button>
-        <button class="btn-sm" style="color:#007a50;border-color:#a7e8cc;background:var(--green-lt)" onclick="rkOpenDateModal(${rid})">📅 Tanggal</button>
-        <button class="btn-sm btn-del" onclick="rekapDelete(${rid})">Hapus</button>
+      <td style="white-space:nowrap;font-size:.78rem">${fmtRp(r.cost_total)}</td>
+      <td style="text-align:center;font-weight:600;font-size:.78rem;color:${gt>=32?'var(--green)':gt>0?'var(--red)':'var(--text3)'}">${gt||'-'}${gt?(gt>=32?' ✅':' ❌'):''}</td>
+      <td><span class="badge ${statusCls}" style="font-size:.68rem">${statusIcon} ${statusLbl}</span></td>
+      <td style="white-space:nowrap">
+        <div style="display:flex;gap:3px;flex-wrap:wrap">
+        <button class="btn-sm" style="color:var(--navy);border-color:#c8d9f0;background:#e8eef7;padding:3px 7px" onclick="rkViewDetail(${rid})">👁</button>
+        <button class="btn-sm" style="color:#007a50;border-color:#a7e8cc;background:var(--green-lt);padding:3px 7px" onclick="rkOpenDateModal(${rid})">📅</button>
+        <button class="btn-sm btn-del" style="padding:3px 7px" onclick="rekapDelete(${rid})">Hapus</button>
+        </div>
       </td>
     </tr>`;
   }).join('');
