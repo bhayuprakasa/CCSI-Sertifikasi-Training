@@ -14,7 +14,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      actions: write
 
     steps:
       - name: Syntax check (Node.js)
@@ -36,25 +35,5 @@ jobs:
 
       - name: Enable auto-merge
         run: gh pr merge --auto --squash "${{ github.event.pull_request.number }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Tunggu merge selesai lalu trigger deploy
-        run: |
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          echo "Menunggu PR #$PR_NUMBER di-merge..."
-          for i in $(seq 1 30); do
-            STATE=$(gh pr view "$PR_NUMBER" --json state -q .state)
-            if [ "$STATE" = "MERGED" ]; then
-              echo "PR merged. Trigger deploy ke server..."
-              gh workflow run deploy.yml --ref main
-              echo "Deploy berhasil di-trigger."
-              exit 0
-            fi
-            echo "Status: $STATE (percobaan $i/30, tunggu 10 detik...)"
-            sleep 10
-          done
-          echo "Timeout: PR belum merged setelah 5 menit."
-          exit 1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
