@@ -2130,43 +2130,48 @@ async function renderAlerts() {
 // EVALUASI TRAINER
 // =====================
 async function renderEvaluasi(){
-  const [trxs,progs,emps]=await Promise.all([getAll('trx_employee_program'),getAll('mst_program'),getAll('mst_employee')]);
+  // Fetch attendance data from server — this is where eval_json is actually stored
+  let attendances=[];
+  try{attendances=await fetch('/api/training-attendance').then(r=>r.json());}catch{}
 
-  // Populate program dropdown — show all programs, highlight those with evals
+  // Only sessions with at least one participant who filled the questionnaire
+  const withEval=attendances.filter(a=>(a.participants||[]).some(p=>p.eval_json));
+
   const fProg=document.getElementById('fEvalProg');
   const curVal=fProg.value;
-  const progHasEval=pid=>trxs.some(t=>t.program_id===pid&&t.eval_json);
   fProg.innerHTML='<option value="">-- Pilih Program --</option>'+
-    progs.map(p=>`<option value="${p.program_id}"${curVal==p.program_id?' selected':''}>${p.program_name}${progHasEval(p.program_id)?' ✓':''}</option>`).join('');
+    withEval.map(a=>{
+      const tS=a.training_date_start?(a.training_date_start+'').split('T')[0]:'';
+      const tE=a.training_date_end?(a.training_date_end+'').split('T')[0]:'';
+      const tgl=tS&&tE&&tS!==tE?` (${tS} s/d ${tE})`:tS?` (${tS})`:'';
+      return `<option value="${a.attendance_id}"${curVal==a.attendance_id?' selected':''}>${a.training_title}${tgl}</option>`;
+    }).join('');
 
-  const progId=parseInt(fProg.value);
+  const attendanceId=parseInt(fProg.value);
   const cntEl=document.getElementById('evalRespondenCount');
-  if(!progId){
+  if(!attendanceId){
     cntEl.textContent='';
     document.getElementById('evalBody').innerHTML='<p style="color:var(--text3);font-size:.83rem;text-align:center;padding:32px">Pilih program untuk melihat rekap evaluasi trainer</p>';
     return;
   }
 
-  const prog=progs.find(p=>p.program_id===progId);
-  const progTrxs=trxs.filter(t=>t.program_id===progId&&t.eval_json);
+  const session=withEval.find(a=>a.attendance_id===attendanceId);
+  if(!session) return;
 
-  if(!progTrxs.length){
+  const evalParticipants=(session.participants||[]).filter(p=>p.eval_json);
+  if(!evalParticipants.length){
     cntEl.textContent='Belum ada kuesioner';
-    document.getElementById('evalBody').innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:.83rem">Belum ada data kuesioner untuk program ini.<br>Isi kuesioner saat menambah/edit data peserta.</div>';
+    document.getElementById('evalBody').innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:.83rem">Belum ada data kuesioner untuk sesi ini.</div>';
     return;
   }
 
-  const evals=progTrxs.map(t=>{
-    const emp=emps.find(e=>e.employee_id===t.employee_id);
-    let data={};
-    try{data=JSON.parse(t.eval_json);}catch(e){}
-    return {emp,trx:t,data};
-  });
+  // eval_json is already parsed as object by the API
+  const evals=evalParticipants.map(p=>({name:p.employee_name,data:p.eval_json||{}}));
 
   cntEl.textContent=`${evals.length} responden`;
 
   // Build header participant columns
-  const pCols=evals.map((e,i)=>`<th style="text-align:center;min-width:42px">P${i+1}<br><small style="font-weight:400;font-size:.63rem;color:var(--text3)">${e.emp?e.emp.full_name.split(' ')[0]:''}</small></th>`).join('');
+  const pCols=evals.map((e,i)=>`<th style="text-align:center;min-width:42px">P${i+1}<br><small style="font-weight:400;font-size:.63rem;color:var(--text3)">${e.name.split(' ')[0]}</small></th>`).join('');
 
   let tbody='';
   let rowNo=1;
@@ -2221,12 +2226,17 @@ async function renderEvaluasi(){
   // Saran & komentar
   const saranList=evals.filter(e=>e.data.saran&&e.data.saran.trim());
 
+  const tS=session.training_date_start?(session.training_date_start+'').split('T')[0]:'-';
+  const tE=session.training_date_end?(session.training_date_end+'').split('T')[0]:'-';
+  const tgl=(tS===tE||!session.training_date_end)?tS:`${tS} s/d ${tE}`;
+
   document.getElementById('evalBody').innerHTML=`
     <div class="eval-prog-meta">
-      <span><strong>Program:</strong> ${prog.program_name}</span>
-      <span><strong>Penyelenggara:</strong> ${prog.conducted_by||'-'}</span>
-      <span><strong>Trainer:</strong> ${prog.trainer_name||'-'}</span>
-      <span><strong>Tipe:</strong> ${prog.program_type}</span>
+      <span><strong>Program:</strong> ${session.training_title}</span>
+      <span><strong>Instruktur:</strong> ${session.instructor||'-'}</span>
+      <span><strong>Departemen:</strong> ${session.department||'-'}</span>
+      <span><strong>Lokasi:</strong> ${session.location||'-'}</span>
+      <span><strong>Tanggal:</strong> ${tgl}</span>
       <span><strong>Responden:</strong> ${evals.length} peserta</span>
     </div>
     <div class="table-wrap">
@@ -2243,10 +2253,10 @@ async function renderEvaluasi(){
       ${saranList.length
         ? `<div>${saranList.map(e=>`
             <div class="saran-item">
-              <div class="saran-who">${e.emp?e.emp.full_name:e.trx.employee_id} &nbsp;·&nbsp; ${e.emp?e.emp.department:''} &nbsp;·&nbsp; ${fmtDate(e.trx.end_date)}</div>
+              <div class="saran-who">${e.name}</div>
               <div class="saran-text">${e.data.saran}</div>
             </div>`).join('')}</div>`
-        : '<div style="padding:16px 18px;font-size:.82rem;color:var(--text3)">Tidak ada saran &amp; komentar untuk program ini.</div>'
+        : '<div style="padding:16px 18px;font-size:.82rem;color:var(--text3)">Tidak ada saran &amp; komentar untuk sesi ini.</div>'
       }
     </div>`;
 }
