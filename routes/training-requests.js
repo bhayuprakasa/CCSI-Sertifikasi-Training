@@ -34,7 +34,7 @@ function validScore(v) {
 
 router.get('/', async (req, res) => {
   const [requests] = await pool.query(
-    'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, actual_date_start, actual_date_end, training_type, organizer, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status, approver_name, approver_email, approver_position FROM trx_training_request ORDER BY request_id DESC'
+    'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, actual_date_start, actual_date_end, training_type, organizer, kompetensi, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status, approver_name, approver_email, approver_position FROM trx_training_request ORDER BY request_id DESC'
   );
   const [participants] = await pool.query('SELECT participant_id, request_id, participant_name FROM trx_training_request_participant ORDER BY participant_id');
   const result = requests.map(r => ({
@@ -75,18 +75,18 @@ router.post('/', async (req, res) => {
     const [result] = await conn.query(
       `INSERT INTO trx_training_request (
         department, training_name, training_venue, training_date_start, training_date_end,
-        training_type, organizer, training_reason,
+        training_type, organizer, kompetensi, training_reason,
         cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total,
         eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan,
         coffee_break,
         score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total,
         submitted_by, is_scheduled, approval_status, approval_token,
         approver_name, approver_email, approver_position
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         item.department, item.training_name, item.training_venue || null,
         item.training_date_start, item.training_date_end || item.training_date_start,
-        item.training_type, item.organizer || null, item.training_reason || null,
+        item.training_type, item.organizer || null, item.kompetensi || null, item.training_reason || null,
         item.cost_training_fee || 0, item.cost_akomodasi || 0, item.cost_transport || 0,
         item.cost_makan || 0, item.cost_snack || 0, item.cost_emergency || 0, costTotal,
         item.eq_proyektor || 0, item.eq_laptop || 0, item.eq_kabel_hdmi || 0,
@@ -429,6 +429,51 @@ router.patch('/:id/dates', async (req, res) => {
     changed_by: req.changedBy,
   });
   res.json({ updated: true, actual_date_start, actual_date_end });
+});
+
+router.patch('/:id/organizer-participants', async (req, res) => {
+  const { organizer, participants, kompetensi } = req.body;
+  if (!Array.isArray(participants) || !participants.length) {
+    return res.status(400).json({ error: 'Minimal 1 peserta wajib diisi' });
+  }
+
+  const [existing] = await pool.query('SELECT request_id, organizer, kompetensi FROM trx_training_request WHERE request_id = ?', [req.params.id]);
+  if (!existing.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    await conn.query(
+      'UPDATE trx_training_request SET organizer = ?, kompetensi = ? WHERE request_id = ?',
+      [organizer || null, kompetensi || null, req.params.id]
+    );
+
+    await conn.query('DELETE FROM trx_training_request_participant WHERE request_id = ?', [req.params.id]);
+    for (const name of participants) {
+      if ((name || '').trim()) {
+        await conn.query('INSERT INTO trx_training_request_participant (request_id, participant_name) VALUES (?,?)', [req.params.id, name.trim()]);
+      }
+    }
+
+    await logAudit({
+      table_name: 'trx_training_request',
+      record_id: req.params.id,
+      operation: 'UPDATE',
+      old_data: { organizer: existing[0].organizer, kompetensi: existing[0].kompetensi },
+      new_data: { organizer, kompetensi, participant_count: participants.length },
+      changed_by: req.changedBy,
+      conn,
+    });
+
+    await conn.commit();
+    res.json({ updated: true, organizer, kompetensi, participant_count: participants.length });
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
 });
 
 router.delete('/:id', async (req, res) => {

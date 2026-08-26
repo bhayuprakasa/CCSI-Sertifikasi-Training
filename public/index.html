@@ -376,7 +376,7 @@ select.filter:focus{border-color:var(--navy-lt)}
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th style="width:28px">#</th><th>Departemen</th><th style="min-width:110px">Nama Pelatihan</th><th style="min-width:90px;white-space:normal">Alasan</th><th style="min-width:90px">Peserta</th><th style="min-width:70px">Jenis</th><th style="min-width:70px">Penyelenggara</th><th style="min-width:80px;white-space:normal">Tgl Submit</th><th style="min-width:75px;white-space:normal">Tgl Mulai</th><th style="min-width:75px;white-space:normal">Tgl Selesai</th><th style="min-width:80px">Total Biaya</th><th style="width:38px">GT</th><th style="min-width:80px">Status</th><th style="min-width:130px">Aksi</th></tr></thead>
+              <thead><tr><th style="width:28px">#</th><th>Departemen</th><th style="min-width:110px">Nama Pelatihan</th><th style="min-width:90px;white-space:normal">Alasan</th><th style="min-width:90px">Peserta</th><th style="min-width:70px">Jenis</th><th style="min-width:70px">Penyelenggara</th><th style="min-width:100px">Kompetensi</th><th style="min-width:80px;white-space:normal">Tgl Submit</th><th style="min-width:75px;white-space:normal">Tgl Mulai</th><th style="min-width:75px;white-space:normal">Tgl Selesai</th><th style="min-width:80px">Total Biaya</th><th style="width:38px">GT</th><th style="min-width:80px">Status</th><th style="min-width:130px">Aksi</th></tr></thead>
               <tbody id="rekapBody"></tbody>
             </table>
           </div>
@@ -841,6 +841,10 @@ select.filter:focus{border-color:var(--navy-lt)}
           <label>Alasan Pelatihan</label>
           <textarea id="mph_reason" placeholder="Jelaskan alasan / tujuan pelatihan..." rows="2"></textarea>
         </div>
+        <div class="form-group full">
+          <label>Kompetensi <span style="font-size:.7rem;font-weight:400;color:var(--text3)">(diisi oleh HR — kompetensi yang dipenuhi pelatihan ini)</span></label>
+          <textarea id="mph_kompetensi" placeholder="Deskripsi kompetensi yang akan dipenuhi..." rows="2"></textarea>
+        </div>
       </div>
       <div style="font-size:.82rem;font-weight:700;color:var(--navy);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Peserta * <span style="font-size:.72rem;font-weight:400;color:var(--text3)">(dari master data karyawan berdasarkan departemen)</span></div>
       <div id="mph_peserta" style="background:#f8fafd;border:1px solid var(--border);border-radius:8px;padding:10px 14px;max-height:180px;overflow-y:auto;margin-bottom:14px">
@@ -873,6 +877,40 @@ select.filter:focus{border-color:var(--navy-lt)}
   </div>
 </div>
 
+
+<!-- MODAL EDIT PENYELENGGARA & PESERTA -->
+<div class="modal-overlay" id="rkEditModal" onclick="if(event.target===this)rkCloseEditModal()">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span class="modal-title">✏️ Edit Penyelenggara, Peserta & Kompetensi</span>
+      <button class="modal-close" onclick="rkCloseEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--purple-lt);border:1px solid #c39bd3;border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--purple);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+        <span>ℹ️</span><span>Perubahan penyelenggara, peserta, dan kompetensi akan langsung disimpan ke database.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label>Penyelenggara</label>
+          <input type="text" id="rkEditOrganizer" placeholder="Nama penyelenggara / lembaga">
+        </div>
+        <div class="form-group">
+          <label>Kompetensi <span style="font-size:.7rem;font-weight:400;color:var(--text3)">(diisi oleh HR)</span></label>
+          <textarea id="rkEditKompetensi" rows="3" placeholder="Deskripsi kompetensi yang akan dipenuhi oleh pelatihan ini..."></textarea>
+        </div>
+        <div>
+          <div style="font-size:.76rem;font-weight:600;color:var(--text2);margin-bottom:6px">Peserta *</div>
+          <div id="rkEditPesertaList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+          <button type="button" onclick="rkEditAddPeserta()" style="padding:5px 12px;border-radius:6px;border:1px dashed var(--border);background:#f8fafd;color:var(--navy);font-size:.8rem;cursor:pointer;font-family:var(--font)">+ Tambah Peserta</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="rkCloseEditModal()">Batal</button>
+      <button id="rkEditSaveBtn" class="btn-save" onclick="rkSaveEdit()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -1601,7 +1639,7 @@ function rkRenderRows(data) {
   const bodyEl=document.getElementById('rekapBody');
   if(!data.length){
     msgEl.innerHTML='';
-    bodyEl.innerHTML='<tr class="empty-row"><td colspan="14">Belum ada data yang sesuai filter</td></tr>';
+    bodyEl.innerHTML='<tr class="empty-row"><td colspan="15">Belum ada data yang sesuai filter</td></tr>';
     return;
   }
   const totalCost=data.reduce((a,b)=>a+Number(b.cost_total||0),0);
@@ -1618,6 +1656,7 @@ function rkRenderRows(data) {
     const pts=r.participants||[];
     const ptHtml=pts.slice(0,2).map(p=>`<div>• ${rkEscH(p)}</div>`).join('')+(pts.length>2?`<div style="color:var(--text3)">+${pts.length-2} lainnya</div>`:'');
     const truncStyle='max-width:130px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis';
+    const kompTrunc=r.kompetensi?`<span style="font-size:.75rem;color:var(--text2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:120px" title="${rkEscH(r.kompetensi)}">${rkEscH(r.kompetensi)}</span>`:`<span style="color:var(--text3);font-size:.75rem">—</span>`;
     return `<tr>
       <td style="color:var(--text3)">${i+1}</td>
       <td><strong>${rkEscH(r.department)}</strong></td>
@@ -1626,6 +1665,7 @@ function rkRenderRows(data) {
       <td style="font-size:.78rem">${ptHtml||'-'}</td>
       <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${rkEscH(r.training_type||'-')}</span></td>
       <td style="color:var(--text2);font-size:.78rem;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="${rkEscH(r.organizer||'-')}">${rkEscH(r.organizer||'-')}</td>
+      <td>${kompTrunc}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tglSubmit}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tglMulai}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tglSelesai}</td>
@@ -1636,6 +1676,7 @@ function rkRenderRows(data) {
         <div style="display:flex;gap:3px;flex-wrap:wrap">
         <button class="btn-sm" style="color:var(--navy);border-color:#c8d9f0;background:#e8eef7;padding:3px 7px" onclick="rkViewDetail(${rid})">👁</button>
         <button class="btn-sm" style="color:#007a50;border-color:#a7e8cc;background:var(--green-lt);padding:3px 7px" onclick="rkOpenDateModal(${rid})">📅</button>
+        <button class="btn-sm" style="color:var(--purple);border-color:#c39bd3;background:var(--purple-lt);padding:3px 7px" onclick="rkOpenEditModal(${rid})">✏️</button>
         <button class="btn-sm btn-del" style="padding:3px 7px" onclick="rekapDelete(${rid})">Hapus</button>
         </div>
       </td>
@@ -1731,6 +1772,60 @@ async function rkSaveDates(){
   finally{btn.disabled=false;btn.textContent='💾 Simpan';}
 }
 
+// ─── Edit Penyelenggara / Peserta / Kompetensi ────────────────────────────────
+let _rkEditId = null;
+
+function rkOpenEditModal(id) {
+  const r = rkAllData.find(x => x.request_id === id);
+  if (!r) return;
+  _rkEditId = id;
+  document.getElementById('rkEditOrganizer').value = r.organizer || '';
+  document.getElementById('rkEditKompetensi').value = r.kompetensi || '';
+  const list = document.getElementById('rkEditPesertaList');
+  list.innerHTML = '';
+  const pts = r.participants || [];
+  (pts.length ? pts : ['']).forEach(p => rkEditAddPeserta(p));
+  document.getElementById('rkEditModal').classList.add('open');
+}
+
+function rkCloseEditModal() {
+  document.getElementById('rkEditModal').classList.remove('open');
+  _rkEditId = null;
+}
+
+function rkEditAddPeserta(value = '') {
+  const list = document.getElementById('rkEditPesertaList');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;align-items:center';
+  row.innerHTML = `<input type="text" value="${rkEscH(value)}" placeholder="Nama peserta" style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);outline:none">
+    <button type="button" onclick="this.closest('div').remove()" style="padding:4px 8px;border:1px solid #fcd4d4;border-radius:5px;background:var(--red-lt);color:var(--red);cursor:pointer;font-size:.8rem;flex-shrink:0">✕</button>`;
+  list.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+async function rkSaveEdit() {
+  if (!_rkEditId) return;
+  const organizer = document.getElementById('rkEditOrganizer').value.trim();
+  const kompetensi = document.getElementById('rkEditKompetensi').value.trim();
+  const participants = [...document.getElementById('rkEditPesertaList').querySelectorAll('input')]
+    .map(i => i.value.trim()).filter(Boolean);
+  if (!participants.length) { showToast('Minimal 1 peserta wajib diisi', false); return; }
+  const btn = document.getElementById('rkEditSaveBtn');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  try {
+    const res = await fetch(`/api/training-requests/${_rkEditId}/organizer-participants`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ organizer, participants, kompetensi }),
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || res.statusText); }
+    showToast('Data berhasil diperbarui');
+    rkCloseEditModal();
+    renderRekap();
+  } catch (e) { showToast(e.message, false); }
+  finally { btn.disabled = false; btn.textContent = '💾 Simpan'; }
+}
+
 async function renderRekap() {
   try { rkAllData = await fetch('/api/training-requests').then(r=>r.json()); } catch { rkAllData=[]; }
   const years=[...new Set(rkAllData.map(r=>rkGetYear(r.training_date_start)).filter(Boolean))].sort().reverse();
@@ -1766,6 +1861,7 @@ function rkViewDetail(id) {
       <div style="grid-column:1/-1"><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Nama Pelatihan</div><div>${esc(r.training_name)}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Jenis</div><div>${esc(r.training_type)}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Penyelenggara</div><div>${esc(r.organizer)}</div></div>
+      <div style="grid-column:1/-1"><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Kompetensi</div><div>${r.kompetensi ? esc(r.kompetensi) : '<span style="color:var(--text3)">—</span>'}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal Mulai</div><div>${rkFmtDate(r.training_date_start)}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal Selesai</div><div>${rkFmtDate(r.training_date_end)}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Total Biaya</div><div>${fmtRpVal(r.cost_total)}</div></div>
@@ -3086,6 +3182,7 @@ async function mphSave() {
   const venue=document.getElementById('mph_venue').value.trim();
   const organizer=document.getElementById('mph_organizer').value.trim();
   const reason=document.getElementById('mph_reason').value.trim();
+  const kompetensi=document.getElementById('mph_kompetensi').value.trim();
   const isScheduled=document.querySelector('input[name="mph_scheduled"]:checked')?.value==='1'?1:0;
   const participants=[...document.querySelectorAll('input[name="mph_peserta_check"]:checked')].map(i=>i.value.trim()).filter(Boolean);
 
@@ -3098,7 +3195,7 @@ async function mphSave() {
   const body={
     department:dept,training_name:name,training_venue:venue||null,
     training_date_start:targetMonth+'-01',training_date_end:targetMonth+'-01',
-    training_type:type,organizer:organizer||null,training_reason:reason||null,
+    training_type:type,organizer:organizer||null,training_reason:reason||null,kompetensi:kompetensi||null,
     participants,submitted_by:submitter||'HRD',submitted_by_hr:true,
     is_scheduled:isScheduled,
     cost_training_fee:mphParseCost('mph_cost_fee'),cost_akomodasi:mphParseCost('mph_cost_akomodasi'),
