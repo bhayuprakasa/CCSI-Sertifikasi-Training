@@ -12,28 +12,37 @@ jobs:
 
     steps:
       - name: Pull latest code
+        shell: powershell
         run: |
           cd C:\www\ccsi-app
           git fetch origin main
           git merge --abort 2>$null; $true
           git reset --hard origin/main
+          Write-Host "Kode berhasil diupdate ke commit: $(git rev-parse --short HEAD)"
 
       - name: Install dependencies
+        shell: powershell
         run: |
           cd C:\www\ccsi-app
           npm install --production
+          Write-Host "Dependencies berhasil diinstall"
 
       - name: Syntax check
+        shell: powershell
         run: |
           cd C:\www\ccsi-app
           node --check server.js
+          Write-Host "Syntax check OK"
         continue-on-error: false
 
       - name: Restart app via PM2
+        shell: powershell
         run: |
           C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd restart ccsi-training
+          Write-Host "App direstart"
 
       - name: Health check (tunggu app siap)
+        shell: powershell
         run: |
           $maxRetry = 10
           $delay = 3
@@ -52,14 +61,20 @@ jobs:
           }
           Write-Host "Health check gagal setelah $maxRetry percobaan"
           exit 1
+
+      - name: Deploy sukses
+        if: success()
         shell: powershell
+        run: |
+          $commit = git -C C:\www\ccsi-app log -1 --pretty=format:"%h %s"
+          Write-Host "Deploy berhasil: $commit"
 
       - name: Rollback jika deploy gagal
         if: failure()
+        shell: powershell
         run: |
           Write-Host "Deploy gagal, melakukan rollback..."
           cd C:\www\ccsi-app
           git reset --hard HEAD~1
           C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd restart ccsi-training
-          Write-Host "Rollback selesai"
-        shell: powershell
+          Write-Host "Rollback selesai ke: $(git rev-parse --short HEAD)"
