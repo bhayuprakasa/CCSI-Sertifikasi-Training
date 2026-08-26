@@ -904,7 +904,7 @@ select.filter:focus{border-color:var(--navy-lt)}
           <div style="font-size:.76rem;font-weight:600;color:var(--text2);margin-bottom:6px">Peserta *</div>
           <div class="form-group" style="margin-bottom:8px">
             <select id="rkEditDept" onchange="rkEditLoadPeserta()" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);background:#fff;color:var(--text1)">
-              <option value="">-- Pilih Departemen --</option>
+              <option value="__ALL__">Semua Departemen</option>
             </select>
           </div>
           <div id="rkEditPesertaList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px 10px;background:#f8fafd;display:flex;flex-direction:column;gap:2px">
@@ -1806,19 +1806,22 @@ async function rkOpenEditModal(id) {
     kompSel.innerHTML = '<option value="">-- Gagal memuat kompetensi --</option>';
   }
 
-  // Populate department dropdown from existing data
+  // Populate department dropdown from master employee data
   const deptSel = document.getElementById('rkEditDept');
-  const depts = [...new Set(rkAllData.map(x => x.department).filter(Boolean))].sort();
-  deptSel.innerHTML = '<option value="">-- Pilih Departemen --</option>'
-    + depts.map(d => `<option value="${rkEscH(d)}" ${d === r.department ? 'selected' : ''}>${rkEscH(d)}</option>`).join('');
-
-  // Load employees for the request's department
-  if (r.department) {
-    await rkEditLoadPeserta();
-  } else {
-    document.getElementById('rkEditPesertaList').innerHTML =
-      '<div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen untuk memuat daftar karyawan</div>';
+  deptSel.innerHTML = '<option value="">-- Memuat... --</option>';
+  try {
+    const allEmps = await fetch('/api/employees?active=1').then(res => res.json());
+    const depts = [...new Set(allEmps.map(e => e.department).filter(Boolean))].sort();
+    deptSel.innerHTML = '<option value="__ALL__">Semua Departemen</option>'
+      + depts.map(d => `<option value="${rkEscH(d)}" ${d === r.department ? 'selected' : ''}>${rkEscH(d)}</option>`).join('');
+  } catch {
+    const depts = [...new Set(rkAllData.map(x => x.department).filter(Boolean))].sort();
+    deptSel.innerHTML = '<option value="__ALL__">Semua Departemen</option>'
+      + depts.map(d => `<option value="${rkEscH(d)}" ${d === r.department ? 'selected' : ''}>${rkEscH(d)}</option>`).join('');
   }
+
+  // Load employees for the request's department (or all if no dept set)
+  await rkEditLoadPeserta();
 
   document.getElementById('rkEditModal').classList.add('open');
 }
@@ -1832,23 +1835,23 @@ function rkCloseEditModal() {
 async function rkEditLoadPeserta() {
   const dept = document.getElementById('rkEditDept').value;
   const container = document.getElementById('rkEditPesertaList');
-  if (!dept) {
-    container.innerHTML = '<div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen untuk memuat daftar karyawan</div>';
-    return;
-  }
   container.innerHTML = '<div style="color:var(--text3);font-size:.8rem">Memuat data karyawan...</div>';
   try {
-    const emps = await fetch(`/api/employees?dept=${encodeURIComponent(dept)}`).then(res => res.json());
+    const url = dept === '__ALL__' || !dept
+      ? '/api/employees?active=1'
+      : `/api/employees?dept=${encodeURIComponent(dept)}`;
+    const emps = await fetch(url).then(res => res.json());
     if (!emps.length) {
-      container.innerHTML = '<div style="color:var(--text3);font-size:.8rem;font-style:italic">Tidak ada karyawan aktif di departemen ini</div>';
+      container.innerHTML = '<div style="color:var(--text3);font-size:.8rem;font-style:italic">Tidak ada karyawan aktif</div>';
       return;
     }
+    const showDept = dept === '__ALL__' || !dept;
     container.innerHTML = emps.map(e => `
       <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f3f6">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;flex:1">
           <input type="checkbox" name="rkEditPesertaCheck" value="${rkEscH(e.full_name)}" ${_rkEditParticipants.includes(e.full_name) ? 'checked' : ''} style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
           <span>${rkEscH(e.full_name)}</span>
-          <span style="font-size:.71rem;color:var(--text3)">${rkEscH(e.position || '')}</span>
+          <span style="font-size:.71rem;color:var(--text3)">${showDept ? rkEscH(e.department || '') + (e.position ? ' · ' + rkEscH(e.position) : '') : rkEscH(e.position || '')}</span>
         </label>
       </div>`).join('');
   } catch {
