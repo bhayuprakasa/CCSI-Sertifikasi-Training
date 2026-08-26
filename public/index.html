@@ -376,7 +376,7 @@ select.filter:focus{border-color:var(--navy-lt)}
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th style="width:28px">#</th><th>Departemen</th><th style="min-width:110px">Nama Pelatihan</th><th style="min-width:90px;white-space:normal">Alasan</th><th style="min-width:90px">Peserta</th><th style="min-width:70px">Jenis</th><th style="min-width:70px">Penyelenggara</th><th style="min-width:100px">Instruktur</th><th style="min-width:100px">Kompetensi</th><th style="min-width:80px;white-space:normal">Tgl Submit</th><th style="min-width:75px;white-space:normal">Tgl Mulai</th><th style="min-width:75px;white-space:normal">Tgl Selesai</th><th style="min-width:80px">Total Biaya</th><th style="width:38px">GT</th><th style="min-width:80px">Status</th><th style="min-width:130px">Aksi</th></tr></thead>
+              <thead><tr><th style="width:26px">#</th><th style="min-width:70px">Departemen</th><th style="min-width:85px;white-space:normal">Nama Pelatihan</th><th style="min-width:70px;white-space:normal">Alasan</th><th style="min-width:75px;white-space:normal">Peserta</th><th style="min-width:55px">Jenis</th><th style="min-width:70px;white-space:normal">Penyelenggara</th><th style="min-width:75px;white-space:normal">Kompetensi</th><th style="min-width:55px;white-space:normal">Tgl Submit</th><th style="min-width:52px;white-space:normal">Tgl Mulai</th><th style="min-width:52px;white-space:normal">Tgl Selesai</th><th style="min-width:65px;white-space:normal">Total Biaya</th><th style="width:32px">GT</th><th style="min-width:70px">Status</th><th style="min-width:115px">Aksi</th></tr></thead>
               <tbody id="rekapBody"></tbody>
             </table>
           </div>
@@ -900,12 +900,20 @@ select.filter:focus{border-color:var(--navy-lt)}
         </div>
         <div class="form-group">
           <label>Kompetensi <span style="font-size:.7rem;font-weight:400;color:var(--text3)">(diisi oleh HR)</span></label>
-          <textarea id="rkEditKompetensi" rows="3" placeholder="Deskripsi kompetensi yang akan dipenuhi oleh pelatihan ini..."></textarea>
+          <select id="rkEditKompetensi" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);background:#fff;color:var(--text1)">
+            <option value="">-- Pilih Kompetensi --</option>
+          </select>
         </div>
         <div>
           <div style="font-size:.76rem;font-weight:600;color:var(--text2);margin-bottom:6px">Peserta *</div>
-          <div id="rkEditPesertaList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
-          <button type="button" onclick="rkEditAddPeserta()" style="padding:5px 12px;border-radius:6px;border:1px dashed var(--border);background:#f8fafd;color:var(--navy);font-size:.8rem;cursor:pointer;font-family:var(--font)">+ Tambah Peserta</button>
+          <div class="form-group" style="margin-bottom:8px">
+            <select id="rkEditDept" onchange="rkEditLoadPeserta()" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);background:#fff;color:var(--text1)">
+              <option value="__ALL__">Semua Departemen</option>
+            </select>
+          </div>
+          <div id="rkEditPesertaList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px 10px;background:#f8fafd;display:flex;flex-direction:column;gap:2px">
+            <div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen untuk memuat daftar karyawan</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1780,34 +1788,100 @@ async function rkSaveDates(){
 
 // ─── Edit Penyelenggara / Peserta / Kompetensi ────────────────────────────────
 let _rkEditId = null;
+let _rkEditParticipants = [];
 
-function rkOpenEditModal(id) {
+async function rkOpenEditModal(id) {
   const r = rkAllData.find(x => x.request_id === id);
   if (!r) return;
   _rkEditId = id;
+  _rkEditParticipants = r.participants || [];
   document.getElementById('rkEditOrganizer').value = r.organizer || '';
-  document.getElementById('rkEditInstruktur').value = r.instruktur || '';
-  document.getElementById('rkEditKompetensi').value = r.kompetensi || '';
-  const list = document.getElementById('rkEditPesertaList');
-  list.innerHTML = '';
-  const pts = r.participants || [];
-  (pts.length ? pts : ['']).forEach(p => rkEditAddPeserta(p));
+
+  // Populate kompetensi dropdown from master
+  const kompSel = document.getElementById('rkEditKompetensi');
+  kompSel.innerHTML = '<option value="">-- Memuat... --</option>';
+  try {
+    const comps = await fetch('/api/competencies').then(res => res.json());
+    kompSel.innerHTML = '<option value="">-- Pilih Kompetensi --</option>'
+      + comps.map(c => `<option value="${rkEscH(c.competency_name)}" ${r.kompetensi === c.competency_name ? 'selected' : ''}>${rkEscH(c.competency_name)} (${rkEscH(c.competency_type)})</option>`).join('');
+    // If saved kompetensi doesn't match any master entry, add it as a custom option
+    if (r.kompetensi && !comps.find(c => c.competency_name === r.kompetensi)) {
+      kompSel.innerHTML += `<option value="${rkEscH(r.kompetensi)}" selected>${rkEscH(r.kompetensi)}</option>`;
+    }
+  } catch {
+    kompSel.innerHTML = '<option value="">-- Gagal memuat kompetensi --</option>';
+  }
+
+  // Populate department dropdown from master employee data
+  const deptSel = document.getElementById('rkEditDept');
+  deptSel.innerHTML = '<option value="">-- Memuat... --</option>';
+  try {
+    const allEmps = await fetch('/api/employees?active=1').then(res => res.json());
+    const depts = [...new Set(allEmps.map(e => e.department).filter(Boolean))].sort();
+    deptSel.innerHTML = '<option value="__ALL__">Semua Departemen</option>'
+      + depts.map(d => `<option value="${rkEscH(d)}" ${d === r.department ? 'selected' : ''}>${rkEscH(d)}</option>`).join('');
+  } catch {
+    const depts = [...new Set(rkAllData.map(x => x.department).filter(Boolean))].sort();
+    deptSel.innerHTML = '<option value="__ALL__">Semua Departemen</option>'
+      + depts.map(d => `<option value="${rkEscH(d)}" ${d === r.department ? 'selected' : ''}>${rkEscH(d)}</option>`).join('');
+  }
+
+  // Load employees for the request's department (or all if no dept set)
+  await rkEditLoadPeserta();
+
   document.getElementById('rkEditModal').classList.add('open');
 }
 
 function rkCloseEditModal() {
   document.getElementById('rkEditModal').classList.remove('open');
   _rkEditId = null;
+  _rkEditParticipants = [];
 }
 
-function rkEditAddPeserta(value = '') {
-  const list = document.getElementById('rkEditPesertaList');
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex;gap:6px;align-items:center';
-  row.innerHTML = `<input type="text" value="${rkEscH(value)}" placeholder="Nama peserta" style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);outline:none">
-    <button type="button" onclick="this.closest('div').remove()" style="padding:4px 8px;border:1px solid #fcd4d4;border-radius:5px;background:var(--red-lt);color:var(--red);cursor:pointer;font-size:.8rem;flex-shrink:0">✕</button>`;
-  list.appendChild(row);
-  row.querySelector('input').focus();
+async function rkEditLoadPeserta() {
+  const dept = document.getElementById('rkEditDept').value;
+  const container = document.getElementById('rkEditPesertaList');
+  container.innerHTML = '<div style="color:var(--text3);font-size:.8rem">Memuat data karyawan...</div>';
+  try {
+    const url = dept === '__ALL__' || !dept
+      ? '/api/employees?active=1'
+      : `/api/employees?dept=${encodeURIComponent(dept)}`;
+    const emps = await fetch(url).then(res => res.json());
+    if (!emps.length) {
+      container.innerHTML = '<div style="color:var(--text3);font-size:.8rem;font-style:italic">Tidak ada karyawan aktif</div>';
+      return;
+    }
+    const showDept = dept === '__ALL__' || !dept;
+    const allChecked = emps.length > 0 && emps.every(e => _rkEditParticipants.includes(e.full_name));
+    container.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:2px solid #e2e8f0;margin-bottom:2px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;font-weight:600;flex:1;color:var(--navy)">
+          <input type="checkbox" id="rkEditSelectAll" ${allChecked ? 'checked' : ''} onchange="rkEditToggleAll(this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
+          <span>Pilih Semua</span>
+        </label>
+      </div>`
+      + emps.map(e => `
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f3f6">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;flex:1">
+          <input type="checkbox" name="rkEditPesertaCheck" value="${rkEscH(e.full_name)}" ${_rkEditParticipants.includes(e.full_name) ? 'checked' : ''} onchange="rkEditSyncSelectAll()" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
+          <span>${rkEscH(e.full_name)}</span>
+          <span style="font-size:.71rem;color:var(--text3)">${showDept ? rkEscH(e.department || '') + (e.position ? ' · ' + rkEscH(e.position) : '') : rkEscH(e.position || '')}</span>
+        </label>
+      </div>`).join('');
+  } catch {
+    container.innerHTML = '<div style="color:var(--red);font-size:.8rem">Gagal memuat data karyawan</div>';
+  }
+}
+
+function rkEditToggleAll(checked) {
+  document.querySelectorAll('#rkEditPesertaList input[name="rkEditPesertaCheck"]')
+    .forEach(cb => cb.checked = checked);
+}
+
+function rkEditSyncSelectAll() {
+  const all = [...document.querySelectorAll('#rkEditPesertaList input[name="rkEditPesertaCheck"]')];
+  const selectAll = document.getElementById('rkEditSelectAll');
+  if (selectAll) selectAll.checked = all.length > 0 && all.every(cb => cb.checked);
 }
 
 async function rkSaveEdit() {
@@ -1815,9 +1889,9 @@ async function rkSaveEdit() {
   const organizer = document.getElementById('rkEditOrganizer').value.trim();
   const instruktur = document.getElementById('rkEditInstruktur').value.trim();
   const kompetensi = document.getElementById('rkEditKompetensi').value.trim();
-  const participants = [...document.getElementById('rkEditPesertaList').querySelectorAll('input')]
-    .map(i => i.value.trim()).filter(Boolean);
-  if (!participants.length) { showToast('Minimal 1 peserta wajib diisi', false); return; }
+  const participants = [...document.querySelectorAll('#rkEditPesertaList input[name="rkEditPesertaCheck"]:checked')]
+    .map(i => i.value).filter(Boolean);
+  if (!participants.length) { showToast('Minimal 1 peserta wajib dipilih', false); return; }
   const btn = document.getElementById('rkEditSaveBtn');
   btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
   try {
@@ -1835,7 +1909,17 @@ async function rkSaveEdit() {
 }
 
 async function renderRekap() {
-  try { rkAllData = await fetch('/api/training-requests').then(r=>r.json()); } catch { rkAllData=[]; }
+  try {
+    const r = await fetch('/api/training-requests');
+    const data = await r.json();
+    if (Array.isArray(data)) {
+      rkAllData = data;
+      document.getElementById('rekapMsg').innerHTML = '';
+    } else {
+      rkAllData = [];
+      document.getElementById('rekapMsg').innerHTML = `<div style="color:var(--red);font-size:.82rem;margin-bottom:10px">⚠ Gagal memuat data: ${data.error||'Server error'}</div>`;
+    }
+  } catch { rkAllData=[]; }
   const years=[...new Set(rkAllData.map(r=>rkGetYear(r.training_date_start)).filter(Boolean))].sort().reverse();
   const depts=[...new Set(rkAllData.map(r=>r.department).filter(Boolean))].sort();
   const rkStatusOrder=['Submitted','Submitted_HR','PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR'];
