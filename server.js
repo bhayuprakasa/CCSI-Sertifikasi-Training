@@ -134,10 +134,13 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const autoMigrate = require('./db/auto-migrate');
+
+app.listen(PORT, '0.0.0.0', async () => {
   const nets = require('os').networkInterfaces();
   const ips = Object.values(nets).flat().filter(n => n.family === 'IPv4' && !n.internal).map(n => n.address);
   console.log(`CCSI Training API running on:`);
   console.log(`  Local:   http://localhost:${PORT}`);
   ips.forEach(ip => console.log(`  Network: http://${ip}:${PORT}`));
+  await autoMigrate();
 });
