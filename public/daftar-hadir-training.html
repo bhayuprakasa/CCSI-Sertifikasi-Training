@@ -239,6 +239,7 @@ function onTrainingSelected() {
   }
   const t = approvedTrainings.find(x => String(x.request_id) === String(id));
   if (!t) return;
+  document.getElementById('at_instructor').value = t.instruktur || '';
   document.getElementById('at_organizer').value = t.organizer || '';
   document.getElementById('at_date_start').value = t.training_date_start ? t.training_date_start.slice(0,10) : '';
   document.getElementById('at_date_end').value = t.training_date_end ? t.training_date_end.slice(0,10) : '';

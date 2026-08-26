@@ -204,6 +204,10 @@ tbody td{padding:9px 8px;vertical-align:middle}
           <label>Penyelenggara</label>
           <input type="text" id="pr_organizer" placeholder="Nama penyelenggara">
         </div>
+        <div class="form-group">
+          <label>Instruktur</label>
+          <input type="text" id="pr_instruktur" placeholder="Nama instruktur / trainer">
+        </div>
         <div class="form-group full">
           <label>Alasan Pelatihan</label>
           <textarea id="pr_reason" placeholder="Jelaskan alasan / tujuan pelatihan..." rows="2"></textarea>
@@ -666,7 +670,7 @@ async function prLoadPeserta() {
 
 function prReset(skipConfirm = false) {
   if (!skipConfirm && !confirm('Reset form? Data yang belum dikirim akan hilang.')) return;
-  document.querySelectorAll('#pr_name,#pr_venue,#pr_organizer,#pr_reason').forEach(el => el.value = '');
+  document.querySelectorAll('#pr_name,#pr_venue,#pr_organizer,#pr_instruktur,#pr_reason').forEach(el => el.value = '');
   document.getElementById('pr_dept').value = '';
   document.getElementById('pr_target_month').value = '';
   document.getElementById('pr_type').value = '';
@@ -695,6 +699,7 @@ async function prSubmit() {
   const targetMonth = document.getElementById('pr_target_month').value;
   const type = document.getElementById('pr_type').value;
   const organizer = document.getElementById('pr_organizer').value.trim();
+  const instruktur = document.getElementById('pr_instruktur').value.trim();
   const reason = document.getElementById('pr_reason').value.trim();
   const isScheduled = document.querySelector('input[name="pr_scheduled"]:checked')?.value === '1' ? 1 : 0;
 
@@ -725,7 +730,7 @@ async function prSubmit() {
   const body = {
     department: dept, training_name: name, training_venue: venue,
     training_date_start: dateStart, training_date_end: dateStart,
-    training_type: type, organizer, training_reason: reason,
+    training_type: type, organizer, instruktur, training_reason: reason,
     participants, submitted_by: submitter || null,
     approver1_name: approverName, approver1_email: approverEmail, approver1_position: approverPos,
     is_scheduled: isScheduled,
