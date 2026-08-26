@@ -35,7 +35,7 @@ function validScore(v) {
 router.get('/', async (req, res) => {
   try {
     const [requests] = await pool.query(
-      'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, actual_date_start, actual_date_end, training_type, organizer, kompetensi, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status, approver_name, approver_email, approver_position FROM trx_training_request ORDER BY request_id DESC'
+      'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, actual_date_start, actual_date_end, training_type, organizer, instruktur, kompetensi, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status, approver_name, approver_email, approver_position FROM trx_training_request ORDER BY request_id DESC'
     );
     const [participants] = await pool.query('SELECT participant_id, request_id, participant_name FROM trx_training_request_participant ORDER BY participant_id');
     const result = requests.map(r => ({
@@ -80,7 +80,7 @@ router.post('/', async (req, res) => {
     const [result] = await conn.query(
       `INSERT INTO trx_training_request (
         department, training_name, training_venue, training_date_start, training_date_end,
-        training_type, organizer, kompetensi, training_reason,
+        training_type, organizer, instruktur, kompetensi, training_reason,
         cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total,
         eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan,
         coffee_break,
@@ -91,7 +91,7 @@ router.post('/', async (req, res) => {
       [
         item.department, item.training_name, item.training_venue || null,
         item.training_date_start, item.training_date_end || item.training_date_start,
-        item.training_type, item.organizer || null, item.kompetensi || null, item.training_reason || null,
+        item.training_type, item.organizer || null, item.instruktur || null, item.kompetensi || null, item.training_reason || null,
         item.cost_training_fee || 0, item.cost_akomodasi || 0, item.cost_transport || 0,
         item.cost_makan || 0, item.cost_snack || 0, item.cost_emergency || 0, costTotal,
         item.eq_proyektor || 0, item.eq_laptop || 0, item.eq_kabel_hdmi || 0,
