@@ -1846,10 +1846,18 @@ async function rkEditLoadPeserta() {
       return;
     }
     const showDept = dept === '__ALL__' || !dept;
-    container.innerHTML = emps.map(e => `
+    const allChecked = emps.length > 0 && emps.every(e => _rkEditParticipants.includes(e.full_name));
+    container.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:2px solid #e2e8f0;margin-bottom:2px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;font-weight:600;flex:1;color:var(--navy)">
+          <input type="checkbox" id="rkEditSelectAll" ${allChecked ? 'checked' : ''} onchange="rkEditToggleAll(this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
+          <span>Pilih Semua</span>
+        </label>
+      </div>`
+      + emps.map(e => `
       <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f3f6">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;flex:1">
-          <input type="checkbox" name="rkEditPesertaCheck" value="${rkEscH(e.full_name)}" ${_rkEditParticipants.includes(e.full_name) ? 'checked' : ''} style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
+          <input type="checkbox" name="rkEditPesertaCheck" value="${rkEscH(e.full_name)}" ${_rkEditParticipants.includes(e.full_name) ? 'checked' : ''} onchange="rkEditSyncSelectAll()" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
           <span>${rkEscH(e.full_name)}</span>
           <span style="font-size:.71rem;color:var(--text3)">${showDept ? rkEscH(e.department || '') + (e.position ? ' · ' + rkEscH(e.position) : '') : rkEscH(e.position || '')}</span>
         </label>
@@ -1857,6 +1865,17 @@ async function rkEditLoadPeserta() {
   } catch {
     container.innerHTML = '<div style="color:var(--red);font-size:.8rem">Gagal memuat data karyawan</div>';
   }
+}
+
+function rkEditToggleAll(checked) {
+  document.querySelectorAll('#rkEditPesertaList input[name="rkEditPesertaCheck"]')
+    .forEach(cb => cb.checked = checked);
+}
+
+function rkEditSyncSelectAll() {
+  const all = [...document.querySelectorAll('#rkEditPesertaList input[name="rkEditPesertaCheck"]')];
+  const selectAll = document.getElementById('rkEditSelectAll');
+  if (selectAll) selectAll.checked = all.length > 0 && all.every(cb => cb.checked);
 }
 
 async function rkSaveEdit() {
