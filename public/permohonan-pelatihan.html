@@ -351,44 +351,11 @@ tbody td{padding:9px 8px;vertical-align:middle}
               <th>GT</th>
               <th class="wrap">Approver 1</th>
               <th>Status</th>
-              <th class="wrap">Penyelenggara</th>
-              <th>Aksi</th>
             </tr></thead>
             <tbody id="prRecapBody"></tbody>
           </table>
         </div>
       </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="prEditModal" onclick="if(event.target===this)prCloseEditModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border-radius:12px;width:100%;max-width:520px;margin:20px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
-    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-      <span style="font-size:.92rem;font-weight:700;color:var(--navy)">✏️ Edit Penyelenggara, Peserta & Kompetensi</span>
-      <button onclick="prCloseEditModal()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--text2)">✕</button>
-    </div>
-    <div style="padding:18px;display:flex;flex-direction:column;gap:14px">
-      <div style="background:#e8eef7;border-radius:7px;padding:9px 12px;font-size:.78rem;color:var(--navy)">
-        ℹ️ Ubah penyelenggara dan daftar peserta, atau isi kolom kompetensi (HR).
-      </div>
-      <div class="form-group">
-        <label>Penyelenggara</label>
-        <input type="text" id="prEditOrganizer" placeholder="Nama penyelenggara / lembaga">
-      </div>
-      <div class="form-group">
-        <label>Kompetensi <span style="font-weight:400;color:var(--text3)">(diisi oleh HR)</span></label>
-        <textarea id="prEditKompetensi" rows="3" placeholder="Deskripsi kompetensi yang akan dipenuhi..." style="resize:vertical"></textarea>
-      </div>
-      <div>
-        <div style="font-size:.78rem;font-weight:600;color:var(--text2);margin-bottom:6px">Peserta</div>
-        <div id="prEditPesertaList" style="display:flex;flex-direction:column;gap:5px;margin-bottom:6px"></div>
-        <button type="button" class="tn-add-peserta" onclick="prEditAddPeserta()">+ Tambah Peserta</button>
-      </div>
-    </div>
-    <div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
-      <button class="btn-cancel" onclick="prCloseEditModal()">Batal</button>
-      <button id="prEditSaveBtn" onclick="prSaveEdit()" style="padding:8px 20px;border-radius:7px;border:none;background:var(--navy);color:#fff;cursor:pointer;font-family:var(--font);font-size:.85rem;font-weight:700">💾 Simpan</button>
     </div>
   </div>
 </div>
@@ -828,56 +795,6 @@ function prBuildOpts(key, values, labelMap) {
   ).join('');
 }
 
-let _prEditId = null;
-function prOpenEditModal(id) {
-  const r = prAllData.find(x => x.request_id === id);
-  if (!r) return;
-  _prEditId = id;
-  document.getElementById('prEditOrganizer').value = r.organizer || '';
-  document.getElementById('prEditKompetensi').value = r.kompetensi || '';
-  const list = document.getElementById('prEditPesertaList');
-  list.innerHTML = '';
-  const parts = r.participants && r.participants.length ? r.participants : [''];
-  parts.forEach(p => prEditAddPeserta(p));
-  const modal = document.getElementById('prEditModal');
-  modal.style.display = 'flex';
-}
-function prCloseEditModal() {
-  document.getElementById('prEditModal').style.display = 'none';
-  _prEditId = null;
-}
-function prEditAddPeserta(value = '') {
-  const list = document.getElementById('prEditPesertaList');
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex;gap:6px;align-items:center';
-  row.innerHTML = `<input type="text" value="${value.replace(/"/g,'&quot;')}" placeholder="Nama peserta" style="flex:1;padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font)">
-    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:1rem;padding:2px 5px">✕</button>`;
-  list.appendChild(row);
-}
-async function prSaveEdit() {
-  if (!_prEditId) return;
-  const organizer = document.getElementById('prEditOrganizer').value.trim();
-  const kompetensi = document.getElementById('prEditKompetensi').value.trim();
-  const inputs = document.querySelectorAll('#prEditPesertaList input');
-  const participants = [...inputs].map(i => i.value.trim()).filter(Boolean);
-  if (!participants.length) { showToast('Minimal 1 peserta wajib diisi', false); return; }
-  const btn = document.getElementById('prEditSaveBtn');
-  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
-  try {
-    await api(`/api/training-requests/${_prEditId}/organizer-participants`, {
-      method: 'PATCH',
-      body: JSON.stringify({ organizer, kompetensi: kompetensi || null, participants })
-    });
-    showToast('Data berhasil diperbarui');
-    prCloseEditModal();
-    loadRekapData();
-  } catch (e) {
-    showToast(e.message, false);
-  } finally {
-    btn.disabled = false; btn.textContent = '💾 Simpan';
-  }
-}
-
 async function loadRekapData() {
   try { prAllData = await api('/api/training-requests'); } catch { prAllData = []; }
   const years = [...new Set(prAllData.map(r => prGetYear(r.training_date_start)).filter(Boolean))].sort().reverse();
@@ -904,7 +821,7 @@ function renderRecap(data) {
 
   if (!data.length) {
     msgEl.innerHTML = '';
-    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="15">Belum ada data yang sesuai filter</td></tr>';
+    bodyEl.innerHTML = '<tr class="empty-row"><td colspan="13">Belum ada data yang sesuai filter</td></tr>';
     prUpdateSelectionUI();
     return;
   }
@@ -948,8 +865,6 @@ function renderRecap(data) {
       <td style="text-align:center;font-weight:600;color:${r.score_grand_total>=32?'var(--green)':r.score_grand_total>0?'var(--red)':'var(--text3)'}">${r.score_grand_total||'-'} ${r.score_grand_total?(r.score_grand_total>=32?'✅':'❌'):''}</td>
       <td>${approver1}</td>
       <td><span class="badge ${apvCls}">${apvIcon} ${apvLabel}</span></td>
-      <td style="font-size:.78rem;color:var(--text2)">${r.organizer || '<span style="color:var(--text3)">—</span>'}</td>
-      <td><button class="btn-sm" style="color:var(--purple);border-color:#c39bd3;background:var(--purple-lt);padding:3px 7px" onclick="prOpenEditModal(${r.request_id})">✏️</button></td>
     </tr>`;
   }).join('');
 
