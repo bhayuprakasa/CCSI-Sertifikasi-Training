@@ -872,20 +872,6 @@ select.filter:focus{border-color:var(--navy-lt)}
   </div>
 </div>
 
-<!-- Tanggal Modal Rekap -->
-<div class="modal-overlay" id="rkDateModal" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-header"><span class="modal-title">📅 Edit Tanggal Pelatihan</span><button class="modal-close" onclick="document.getElementById('rkDateModal').classList.remove('open')">✕</button></div>
-    <div class="modal-body">
-      <input type="hidden" id="rkDateId">
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div><label style="font-size:.78rem;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">Tanggal Mulai</label><input type="date" id="rkDateStart" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:var(--font);font-size:.83rem"></div>
-        <div><label style="font-size:.78rem;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">Tanggal Selesai</label><input type="date" id="rkDateEnd" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:var(--font);font-size:.83rem"></div>
-      </div>
-    </div>
-    <div class="modal-footer"><button class="btn-cancel" onclick="document.getElementById('rkDateModal').classList.remove('open')">Batal</button><button class="btn-save" onclick="rkSaveDate()">💾 Simpan</button></div>
-  </div>
-</div>
 
 <div class="toast" id="toast"></div>
 
@@ -1788,30 +1774,6 @@ function rkViewDetail(id) {
   document.getElementById('rkDetailModal').classList.add('open');
 }
 
-function rkOpenDateModal(id) {
-  const r = rkAllData.find(x => x.request_id === id);
-  if (!r) return;
-  document.getElementById('rkDateId').value = id;
-  document.getElementById('rkDateStart').value = r.training_date_start ? (r.training_date_start+'').split('T')[0] : '';
-  document.getElementById('rkDateEnd').value = r.training_date_end ? (r.training_date_end+'').split('T')[0] : '';
-  document.getElementById('rkDateModal').classList.add('open');
-}
-
-async function rkSaveDate() {
-  const id = document.getElementById('rkDateId').value;
-  const start = document.getElementById('rkDateStart').value;
-  const end = document.getElementById('rkDateEnd').value;
-  try {
-    await fetch(`/api/training-requests/${id}`, {
-      method: 'PATCH',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({training_date_start: start||null, training_date_end: end||null})
-    });
-    showToast('Tanggal disimpan');
-    document.getElementById('rkDateModal').classList.remove('open');
-    renderRekap();
-  } catch { showToast('Gagal menyimpan',false); }
-}
 
 // =====================
 // REKAP DAFTAR HADIR
