@@ -1748,7 +1748,7 @@ function rkViewDetail(id){
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:.72rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)">Peserta</div>
-      <div>${(r.participants||[]).map(p=>`<div style="padding:3px 0;font-size:.83rem">• ${esc(p)}</div>`).join('')||'-'}</div>
+      <div>${(r.participants||[]).map(p=>`<div style="padding:3px 0;font-size:.83rem">• ${esc(p.employee_name||p)}</div>`).join('')||'-'}</div>
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:.72rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)">Rincian Biaya</div>
@@ -1975,7 +1975,7 @@ function rkViewDetail(id) {
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal Selesai</div><div>${rkFmtDate(r.training_date_end)}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Total Biaya</div><div>${fmtRpVal(r.cost_total)}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Status</div><div>${apvMap[r.approval_status]||r.approval_status||'-'}</div></div>
-      <div style="grid-column:1/-1"><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Peserta</div><div>${(r.participants||[]).map(p=>`• ${p}`).join('<br>')||'-'}</div></div>
+      <div style="grid-column:1/-1"><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Peserta</div><div>${(r.participants||[]).map(p=>`• ${p.employee_name||p}`).join('<br>')||'-'}</div></div>
     </div>`;
   document.getElementById('rkDetailModal').classList.add('open');
 }
@@ -2088,7 +2088,7 @@ function absenDetail(id) {
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal</div><div>${tgl}</div></div>
     </div>
     <div style="font-size:.75rem;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Peserta (${participants.length} orang)</div>
-    ${participants.length ? `<ol style="margin:0;padding-left:18px;font-size:.85rem;line-height:1.9">${participants.map(p=>`<li>${p}</li>`).join('')}</ol>` : '<div style="color:var(--text3);font-size:.83rem">Belum ada peserta tercatat</div>'}
+    ${participants.length ? `<ol style="margin:0;padding-left:18px;font-size:.85rem;line-height:1.9">${participants.map(p=>`<li>${p.employee_name||p}</li>`).join('')}</ol>` : '<div style="color:var(--text3);font-size:.83rem">Belum ada peserta tercatat</div>'}
   `;
   document.getElementById('absenDetailModal').classList.add('open');
 }
