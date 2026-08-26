@@ -343,6 +343,7 @@ select.filter:focus{border-color:var(--navy-lt)}
         <div style="display:flex;align-items:center;gap:8px">
           <button class="btn-sm btn-edit" onclick="event.stopPropagation();openPermHRModal()">+ Permohonan Baru</button>
           <button class="btn-sm" onclick="event.stopPropagation();window.open('/bod-hr-approval.html','_blank')" style="background:#e8f4fd;border:1px solid #b8d4f0;color:#0c2a52">🏢 Approval BOD HR</button>
+          <button class="btn-sm" id="copyBodHrBtn" onclick="event.stopPropagation();copyBodHrLink()" title="Salin link halaman Approval BOD HR" style="background:#f0fdf4;border:1px solid #86efac;color:#166534">📋 Copy Link</button>
           <span id="chevRekapPerm" class="section-chev">▼</span>
         </div>
       </div>
@@ -3050,6 +3051,19 @@ async function syncEmployeesToServer() {
 }
 
 // =====================
+function copyBodHrLink() {
+  const url = window.location.origin + '/bod-hr-approval.html';
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('copyBodHrBtn');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Tersalin!';
+    btn.style.background = '#dcfce7';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = '#f0fdf4'; }, 2000);
+  }).catch(() => {
+    prompt('Salin link berikut:', url);
+  });
+}
+
 // MODAL PERMOHONAN PELATIHAN (HRD — tanpa approval)
 // =====================
 async function openPermHRModal() {
