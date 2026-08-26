@@ -33,15 +33,20 @@ function validScore(v) {
 }
 
 router.get('/', async (req, res) => {
-  const [requests] = await pool.query(
-    'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, actual_date_start, actual_date_end, training_type, organizer, kompetensi, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status, approver_name, approver_email, approver_position FROM trx_training_request ORDER BY request_id DESC'
-  );
-  const [participants] = await pool.query('SELECT participant_id, request_id, participant_name FROM trx_training_request_participant ORDER BY participant_id');
-  const result = requests.map(r => ({
-    ...r,
-    participants: participants.filter(p => p.request_id === r.request_id).map(p => p.participant_name),
-  }));
-  res.json(result);
+  try {
+    const [requests] = await pool.query(
+      'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, actual_date_start, actual_date_end, training_type, organizer, kompetensi, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status, approver_name, approver_email, approver_position FROM trx_training_request ORDER BY request_id DESC'
+    );
+    const [participants] = await pool.query('SELECT participant_id, request_id, participant_name FROM trx_training_request_participant ORDER BY participant_id');
+    const result = requests.map(r => ({
+      ...r,
+      participants: participants.filter(p => p.request_id === r.request_id).map(p => p.participant_name),
+    }));
+    res.json(result);
+  } catch (err) {
+    console.error('[training-requests GET /]', err.message);
+    res.status(500).json({ error: 'Gagal mengambil data rekap training', detail: err.message });
+  }
 });
 
 router.post('/', async (req, res) => {
