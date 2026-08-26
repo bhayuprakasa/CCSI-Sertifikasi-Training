@@ -411,6 +411,13 @@ select.filter:focus{border-color:var(--navy-lt)}
                 <span class="ms-clear-btn" onclick="abClearMs('Dept')">Hapus pilihan</span>
               </div>
             </div>
+            <div class="ms-wrap">
+              <button class="ms-btn" id="abMsBtnPelatihan" onclick="abToggleMs('Pelatihan')">📚 <span id="abMsLblPelatihan">Semua Pelatihan</span> <span style="font-size:.65rem">▾</span></button>
+              <div class="ms-drop" id="abMsDropPelatihan">
+                <div class="ms-opts" id="abMsOptsPelatihan"></div>
+                <span class="ms-clear-btn" onclick="abClearMs('Pelatihan')">Hapus pilihan</span>
+              </div>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -865,6 +872,15 @@ select.filter:focus{border-color:var(--navy-lt)}
       <button class="btn-cancel" onclick="closeModal('modalPermHR')">Batal</button>
       <button class="btn-save" id="mphSaveBtn" onclick="mphSave()" style="background:var(--purple)">📋 Simpan Permohonan</button>
     </div>
+  </div>
+</div>
+
+<!-- Detail Modal Daftar Hadir -->
+<div class="modal-overlay" id="absenDetailModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><span class="modal-title" id="absenDetailTitle">Detail Daftar Hadir</span><button class="modal-close" onclick="document.getElementById('absenDetailModal').classList.remove('open')">✕</button></div>
+    <div class="modal-body" id="absenDetailBody"></div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="document.getElementById('absenDetailModal').classList.remove('open')">Tutup</button></div>
   </div>
 </div>
 
@@ -1968,7 +1984,7 @@ function rkViewDetail(id) {
 // =====================
 // REKAP DAFTAR HADIR
 // =====================
-const abMsState = { Tahun: new Set(), Dept: new Set() };
+const abMsState = { Tahun: new Set(), Dept: new Set(), Pelatihan: new Set() };
 let abAllData = [];
 const abGetYear = d => d ? (d+'').split('T')[0].split('-')[0] : null;
 
@@ -1995,7 +2011,7 @@ function abUpdateMsLbl(key) {
   const n = abMsState[key].size;
   const btn = document.getElementById('abMsBtn' + key);
   const lbl = document.getElementById('abMsLbl' + key);
-  const def = { Tahun: 'Semua Tahun', Dept: 'Semua Dept' };
+  const def = { Tahun: 'Semua Tahun', Dept: 'Semua Dept', Pelatihan: 'Semua Pelatihan' };
   let cnt = btn.querySelector('.ms-count');
   if (n === 0) { lbl.textContent = def[key]; if (cnt) cnt.remove(); }
   else {
@@ -2015,6 +2031,7 @@ function abApplyFilter() {
   let data = abAllData;
   if (abMsState.Tahun.size > 0) data = data.filter(r => abMsState.Tahun.has(abGetYear(r.training_date_start)));
   if (abMsState.Dept.size > 0) data = data.filter(r => abMsState.Dept.has(r.department));
+  if (abMsState.Pelatihan.size > 0) data = data.filter(r => abMsState.Pelatihan.has(r.training_title));
   abRenderRows(data);
 }
 
@@ -2039,7 +2056,7 @@ function abRenderRows(data) {
       <td style="color:var(--text2);font-size:.78rem">${r.location||'-'}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tgl}</td>
       <td style="text-align:center"><span class="badge b-navy">${(r.participants||[]).length} orang</span></td>
-      <td><button class="btn-sm btn-del" onclick="absenDelete(${r.attendance_id})">Hapus</button></td>
+      <td style="display:flex;gap:4px;align-items:center"><button class="btn-sm" style="background:var(--navy);color:#fff" onclick="absenDetail(${r.attendance_id})">Detail</button><button class="btn-sm btn-del" onclick="absenDelete(${r.attendance_id})">Hapus</button></td>
     </tr>`;
   }).join('');
 }
@@ -2048,9 +2065,32 @@ async function renderAbsen() {
   try { abAllData = await fetch('/api/training-attendance').then(r=>r.json()); } catch { abAllData=[]; }
   const years = [...new Set(abAllData.map(r=>abGetYear(r.training_date_start)).filter(Boolean))].sort().reverse();
   const depts = [...new Set(abAllData.map(r=>r.department).filter(Boolean))].sort();
+  const pelatihans = [...new Set(abAllData.map(r=>r.training_title).filter(Boolean))].sort();
   abBuildOpts('Tahun', years);
   abBuildOpts('Dept', depts);
+  abBuildOpts('Pelatihan', pelatihans);
   abApplyFilter();
+}
+
+function absenDetail(id) {
+  const r = abAllData.find(x => x.attendance_id === id);
+  if (!r) return;
+  const tglStart = r.training_date_start ? (r.training_date_start+'').split('T')[0] : '-';
+  const tglEnd = r.training_date_end ? (r.training_date_end+'').split('T')[0] : '-';
+  const tgl = (tglStart === tglEnd || !r.training_date_end) ? tglStart : `${tglStart} s/d ${tglEnd}`;
+  const participants = r.participants || [];
+  document.getElementById('absenDetailTitle').textContent = r.training_title || 'Detail Daftar Hadir';
+  document.getElementById('absenDetailBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin-bottom:16px;font-size:.82rem">
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Departemen</div><div>${r.department||'-'}</div></div>
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Lokasi</div><div>${r.location||'-'}</div></div>
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Instruktur</div><div>${r.instructor||'-'}</div></div>
+      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal</div><div>${tgl}</div></div>
+    </div>
+    <div style="font-size:.75rem;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Peserta (${participants.length} orang)</div>
+    ${participants.length ? `<ol style="margin:0;padding-left:18px;font-size:.85rem;line-height:1.9">${participants.map(p=>`<li>${p}</li>`).join('')}</ol>` : '<div style="color:var(--text3);font-size:.83rem">Belum ada peserta tercatat</div>'}
+  `;
+  document.getElementById('absenDetailModal').classList.add('open');
 }
 
 async function absenDelete(id) {
