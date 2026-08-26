@@ -1827,7 +1827,17 @@ async function rkSaveEdit() {
 }
 
 async function renderRekap() {
-  try { rkAllData = await fetch('/api/training-requests').then(r=>r.json()); } catch { rkAllData=[]; }
+  try {
+    const r = await fetch('/api/training-requests');
+    const data = await r.json();
+    if (Array.isArray(data)) {
+      rkAllData = data;
+      document.getElementById('rekapMsg').innerHTML = '';
+    } else {
+      rkAllData = [];
+      document.getElementById('rekapMsg').innerHTML = `<div style="color:var(--red);font-size:.82rem;margin-bottom:10px">⚠ Gagal memuat data: ${data.error||'Server error'}</div>`;
+    }
+  } catch { rkAllData=[]; }
   const years=[...new Set(rkAllData.map(r=>rkGetYear(r.training_date_start)).filter(Boolean))].sort().reverse();
   const depts=[...new Set(rkAllData.map(r=>r.department).filter(Boolean))].sort();
   const rkStatusOrder=['Submitted','Submitted_HR','PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR'];
