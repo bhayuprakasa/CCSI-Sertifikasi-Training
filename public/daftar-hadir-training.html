@@ -131,7 +131,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
         </div>
         <div class="form-group">
           <label>Instruktur</label>
-          <input type="text" id="at_instructor" placeholder="Nama instruktur / trainer">
+          <input type="text" id="at_instructor" placeholder="Otomatis terisi dari training" readonly>
         </div>
         <div class="form-group">
           <label>Penyelenggara</label>
@@ -232,6 +232,7 @@ async function initPage() {
 function onTrainingSelected() {
   const id = document.getElementById('at_title').value;
   if (!id) {
+    document.getElementById('at_instructor').value = '';
     document.getElementById('at_organizer').value = '';
     document.getElementById('at_date_start').value = '';
     document.getElementById('at_date_end').value = '';
@@ -239,6 +240,7 @@ function onTrainingSelected() {
   }
   const t = approvedTrainings.find(x => String(x.request_id) === String(id));
   if (!t) return;
+  document.getElementById('at_instructor').value = t.training_venue || '';
   document.getElementById('at_organizer').value = t.organizer || '';
   document.getElementById('at_date_start').value = t.training_date_start ? t.training_date_start.slice(0,10) : '';
   document.getElementById('at_date_end').value = t.training_date_end ? t.training_date_end.slice(0,10) : '';
@@ -462,6 +464,7 @@ function resetFormSilent() {
   document.getElementById('at_title').value = '';
   document.getElementById('at_instructor').value = '';
   document.getElementById('at_organizer').value = '';
+
   document.getElementById('at_dept').value = '';
   document.getElementById('at_emp_search').value = '';
   document.getElementById('at_emp_search').disabled = true;
