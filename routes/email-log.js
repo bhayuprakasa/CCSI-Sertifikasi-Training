@@ -13,15 +13,13 @@ router.get('/', (req, res) => {
   }
 });
 
-// ─── GET Approver Direktur HRD ────────────────────────────────────────────────
+// ─── GET Email HRD Notifikasi ─────────────────────────────────────────────────
 router.get('/approver-hrd', async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT c.id, c.employee_id, c.full_name, c.position, c.department, c.set_at,
-             COALESCE(e.email, c.email) AS email
-      FROM cfg_approver_hrd c
-      LEFT JOIN mst_employee e ON e.employee_id = c.employee_id
-      ORDER BY c.id DESC LIMIT 1
+      SELECT id, email, set_at
+      FROM cfg_approver_hrd
+      ORDER BY id DESC LIMIT 1
     `);
     res.json(rows[0] || null);
   } catch (e) {
@@ -29,17 +27,17 @@ router.get('/approver-hrd', async (req, res) => {
   }
 });
 
-// ─── POST Set Approver Direktur HRD ──────────────────────────────────────────
+// ─── POST Set Email HRD Notifikasi ────────────────────────────────────────────
 router.post('/approver-hrd', async (req, res) => {
-  const { employee_id, full_name, email, position, department } = req.body;
-  if (!employee_id) {
-    return res.status(400).json({ error: 'employee_id wajib diisi' });
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'email wajib diisi' });
   }
   try {
     await pool.query('DELETE FROM cfg_approver_hrd');
     await pool.query(
-      'INSERT INTO cfg_approver_hrd (employee_id, full_name, email, position, department) VALUES (?,?,?,?,?)',
-      [employee_id, full_name || '', email, position || null, department || null]
+      'INSERT INTO cfg_approver_hrd (employee_id, full_name, email) VALUES (?,?,?)',
+      ['', '', email]
     );
     res.json({ ok: true });
   } catch (e) {

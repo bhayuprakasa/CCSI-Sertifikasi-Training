@@ -550,10 +550,10 @@ select.filter:focus{border-color:var(--navy-lt)}
   <!-- LOG EMAIL -->
   <div id="tab-emaillog" class="tab-panel">
 
-    <!-- Setup Approver Direktur HRD -->
+    <!-- Email HRD Notifikasi -->
     <div class="card" style="margin-bottom:14px">
       <div class="card-header" style="cursor:pointer;user-select:none" onclick="elToggleSetup()">
-        <span class="card-title">⚙️ Setup Approver Direktur HRD</span>
+        <span class="card-title">📧 Email HRD Notifikasi</span>
         <div style="display:flex;align-items:center;gap:8px">
           <span id="elApproverBadge" style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:.72rem;font-weight:700;background:#e8eef7;color:var(--navy)">Belum diatur</span>
           <span id="elSetupChevron" style="font-size:.72rem;color:var(--text3);transition:transform .2s">▼</span>
@@ -562,39 +562,16 @@ select.filter:focus{border-color:var(--navy-lt)}
       <div id="elSetupBody" style="display:none">
         <div class="card-body" style="padding:14px 18px">
 
-          <!-- Info approver terpilih saat ini -->
-          <div id="elCurrentApprover" style="display:none;background:#f0f7ff;border:1px solid #c5d4ec;border-radius:8px;padding:10px 14px;font-size:.82rem;margin-bottom:14px;align-items:center;gap:10px">
-            <span style="font-size:1.2rem">👤</span>
-            <div>
-              <div id="elCaName" style="font-weight:700;color:var(--navy)">—</div>
-              <div style="font-size:.75rem;color:var(--text2)"><span id="elCaPos">—</span> · <span id="elCaDept">—</span> · <span id="elCaEmail">—</span></div>
-            </div>
-          </div>
-
-          <!-- Custom searchable dropdown -->
-          <div style="position:relative;margin-bottom:12px" id="elDropWrap">
-            <!-- Trigger -->
-            <div id="elDropTrigger" onclick="elToggleDropdown(event)"
-              style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--border);border-radius:7px;cursor:pointer;background:#fff;font-size:.82rem;transition:border .15s;min-height:38px"
-              onmouseover="this.style.borderColor='var(--navy-lt)'" onmouseout="if(!elDropOpen)this.style.borderColor='var(--border)'">
-              <span id="elDropLabel" style="color:var(--text3)">-- Pilih Approver --</span>
-              <span id="elDropArrow" style="font-size:.7rem;color:var(--text3);transition:transform .2s;flex-shrink:0;margin-left:8px">▼</span>
-            </div>
-            <!-- Panel dropdown -->
-            <div id="elDropPanel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:100;overflow:hidden">
-              <div style="padding:8px 10px;border-bottom:1px solid var(--border)">
-                <input id="elEmpSearch" type="text" placeholder="🔍 Cari nama, jabatan, atau departemen..."
-                  style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.81rem;outline:none;font-family:inherit"
-                  oninput="elFilterEmp()" onclick="event.stopPropagation()">
-              </div>
-              <div id="elDropList" style="max-height:240px;overflow-y:auto">
-                <div style="padding:14px;text-align:center;color:var(--text3);font-size:.81rem">⏳ Memuat...</div>
-              </div>
-            </div>
+          <div style="margin-bottom:12px">
+            <label style="display:block;font-size:.8rem;font-weight:600;color:var(--text2);margin-bottom:6px">Alamat Email HRD</label>
+            <input id="elEmailInput" type="email" placeholder="contoh: hrd@perusahaan.com"
+              style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:.82rem;outline:none;font-family:inherit;box-sizing:border-box;transition:border .15s"
+              onfocus="this.style.borderColor='var(--navy-lt)'" onblur="this.style.borderColor='var(--border)'"
+              oninput="elOnEmailInput()">
           </div>
 
           <div style="display:flex;align-items:center;gap:10px">
-            <button id="elBtnSave" class="btn-sm btn-edit" onclick="elSaveApprover()" disabled style="padding:6px 16px;font-size:.82rem">💾 Simpan Approver</button>
+            <button id="elBtnSave" class="btn-sm btn-edit" onclick="elSaveApprover()" disabled style="padding:6px 16px;font-size:.82rem">💾 Simpan Email</button>
             <span id="elSaveMsg" style="font-size:.78rem;display:none"></span>
           </div>
         </div>
@@ -1283,120 +1260,43 @@ async function esSave(layer) {
   }
 }
 
-// ── Setup Approver HRD ──────────────────────────────────────────────────────
-let elEmpData = [], elSelectedEmp = null, elSetupOpen = false, elDropOpen = false;
+// ── Email HRD Notifikasi ────────────────────────────────────────────────────
+let elSetupOpen = false;
 
 function elToggleSetup() {
   elSetupOpen = !elSetupOpen;
   document.getElementById('elSetupBody').style.display = elSetupOpen ? 'block' : 'none';
   document.getElementById('elSetupChevron').style.transform = elSetupOpen ? 'rotate(180deg)' : '';
-  if (elSetupOpen) elLoadEmployees();
 }
-
-function elToggleDropdown(e) {
-  if (e) e.stopPropagation();
-  elDropOpen = !elDropOpen;
-  document.getElementById('elDropPanel').style.display = elDropOpen ? 'block' : 'none';
-  document.getElementById('elDropArrow').style.transform = elDropOpen ? 'rotate(180deg)' : '';
-  document.getElementById('elDropTrigger').style.borderColor = elDropOpen ? 'var(--navy-lt)' : 'var(--border)';
-  if (elDropOpen) {
-    document.getElementById('elEmpSearch').value = '';
-    elRenderDropList(elEmpData);
-    setTimeout(() => document.getElementById('elEmpSearch').focus(), 50);
-  }
-}
-
-function elCloseDropdown() {
-  if (!elDropOpen) return;
-  elDropOpen = false;
-  document.getElementById('elDropPanel').style.display = 'none';
-  document.getElementById('elDropArrow').style.transform = '';
-  document.getElementById('elDropTrigger').style.borderColor = 'var(--border)';
-}
-
-document.addEventListener('click', function(e) {
-  if (elDropOpen && !document.getElementById('elDropWrap').contains(e.target)) elCloseDropdown();
-});
 
 async function elLoadCurrentApprover() {
   try {
     const resp = await fetch('/api/email-log/approver-hrd');
     if (!resp.ok) return;
     const data = await resp.json();
-    if (data) elApplyApprover(data);
+    if (data && data.email) elApplyApprover(data);
   } catch(e) { /* silent */ }
 }
 
 function elApplyApprover(data) {
-  elSelectedEmp = data;
+  const email = data.email || '';
   const badge = document.getElementById('elApproverBadge');
-  badge.textContent = '✅ ' + data.full_name;
+  badge.textContent = '✅ ' + email;
   badge.style.background = '#e6f7f1';
   badge.style.color = '#007a50';
-  const label = document.getElementById('elDropLabel');
-  label.style.color = 'var(--text)';
-  label.innerHTML = `<strong>${data.full_name}</strong> <span style="color:var(--text2);font-size:.76rem">· ${data.position||'—'} · ${data.department||'—'}${data.email?' · '+data.email:''}</span>`;
-  document.getElementById('elCaName').textContent = data.full_name;
-  document.getElementById('elCaPos').textContent = data.position || '—';
-  document.getElementById('elCaDept').textContent = data.department || '—';
-  document.getElementById('elCaEmail').textContent = data.email || '—';
-  document.getElementById('elCurrentApprover').style.display = 'flex';
-  document.getElementById('elBtnSave').disabled = false;
+  const input = document.getElementById('elEmailInput');
+  if (input) input.value = email;
+  document.getElementById('elBtnSave').disabled = !email;
 }
 
-async function elLoadEmployees() {
-  document.getElementById('elDropList').innerHTML = '<div style="padding:14px;text-align:center;color:var(--text3);font-size:.81rem">⏳ Memuat...</div>';
-  try {
-    // Hanya dari MySQL API — karyawan departemen BOD/Direksi
-    // Tidak pakai IDB fallback agar tidak ada data stale dari dept lain
-    const resp = await fetch('/api/employees?direktur=1');
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const emps = await resp.json();
-    emps.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
-
-    elEmpData = emps;
-    elRenderDropList(elEmpData);
-  } catch(e) {
-    document.getElementById('elDropList').innerHTML = `<div style="padding:14px;text-align:center;color:#d63031;font-size:.81rem">⚠️ Gagal: ${e.message}</div>`;
-  }
-}
-
-function elRenderDropList(list) {
-  const el = document.getElementById('elDropList');
-  if (!list.length) {
-    el.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text3);font-size:.81rem">Tidak ada hasil</div>';
-    return;
-  }
-  el.innerHTML = list.map(e => {
-    const isSel = elSelectedEmp && elSelectedEmp.employee_id === e.employee_id;
-    return `<div onclick="elSelectEmp('${e.employee_id}')"
-      style="padding:9px 12px;cursor:pointer;border-bottom:1px solid #f0f3f6;${isSel?'background:#dbeafe;':''}"
-      onmouseover="this.style.background='${isSel?'#bfdbfe':'#f0f7ff'}'" onmouseout="this.style.background='${isSel?'#dbeafe':''}'">
-      <div style="font-weight:${isSel?'700':'500'};font-size:.82rem;color:var(--text)">${e.full_name}${isSel?' ✓':''}</div>
-      <div style="font-size:.73rem;color:var(--text2);margin-top:2px">${e.position||'—'} · ${e.department||'—'}${e.email?' · '+e.email:''}</div>
-    </div>`;
-  }).join('');
-}
-
-function elFilterEmp() {
-  const q = document.getElementById('elEmpSearch').value.toLowerCase();
-  elRenderDropList(q ? elEmpData.filter(e =>
-    (e.full_name||'').toLowerCase().includes(q) ||
-    (e.position||'').toLowerCase().includes(q) ||
-    (e.department||'').toLowerCase().includes(q) ||
-    (e.email||'').toLowerCase().includes(q)
-  ) : elEmpData);
-}
-
-function elSelectEmp(empId) {
-  const emp = elEmpData.find(e => e.employee_id === empId);
-  if (!emp) return;
-  elApplyApprover(emp);
-  elCloseDropdown();
+function elOnEmailInput() {
+  const val = document.getElementById('elEmailInput').value.trim();
+  document.getElementById('elBtnSave').disabled = !val;
 }
 
 async function elSaveApprover() {
-  if (!elSelectedEmp) return;
+  const email = document.getElementById('elEmailInput').value.trim();
+  if (!email) return;
   const btn = document.getElementById('elBtnSave');
   const msg = document.getElementById('elSaveMsg');
   btn.disabled = true;
@@ -1406,17 +1306,15 @@ async function elSaveApprover() {
     const resp = await fetch('/api/email-log/approver-hrd', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        employee_id: elSelectedEmp.employee_id,
-        full_name:   elSelectedEmp.full_name,
-        email:       elSelectedEmp.email,
-        position:    elSelectedEmp.position,
-        department:  elSelectedEmp.department,
-      }),
+      body: JSON.stringify({ email }),
     });
     if (!resp.ok) { const err = await resp.json().catch(()=>({error:'Gagal'})); throw new Error(err.error||resp.statusText); }
+    const badge = document.getElementById('elApproverBadge');
+    badge.textContent = '✅ ' + email;
+    badge.style.background = '#e6f7f1';
+    badge.style.color = '#007a50';
     msg.style.color = '#007a50'; msg.style.fontWeight = '600';
-    msg.textContent = '✅ Approver berhasil disimpan';
+    msg.textContent = '✅ Email berhasil disimpan';
     msg.style.display = 'inline';
     setTimeout(() => { msg.style.display = 'none'; }, 3000);
   } catch(e) {
@@ -1425,7 +1323,7 @@ async function elSaveApprover() {
     msg.style.display = 'inline';
   } finally {
     btn.disabled = false;
-    btn.textContent = '💾 Simpan Approver';
+    btn.textContent = '💾 Simpan Email';
   }
 }
 
