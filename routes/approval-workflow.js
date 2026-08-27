@@ -104,8 +104,8 @@ router.post('/', async (req, res) => {
         await conn.query(
           `INSERT INTO cfg_approval_approver
             (layer_id, approver_order, approver_field, approver_action, approver_value, approver_display,
-             approver_name, approver_email, approver_role, criteria_type)
-           VALUES (?,?,?,?,?,?,?,?,?,?)`,
+             approver_name, approver_email, approver_role, criteria_type, criteria_value)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
           [
             layerId,
             ap.approver_order || 1,
@@ -116,7 +116,8 @@ router.post('/', async (req, res) => {
             ap.approver_name || '',
             ap.approver_email || '',
             ap.approver_role || null,
-            'always',
+            ap.criteria_type || 'always',
+            ap.criteria_value ? JSON.stringify(ap.criteria_value) : null,
           ]
         );
       }
@@ -168,8 +169,8 @@ router.put('/:id', async (req, res) => {
         await conn.query(
           `INSERT INTO cfg_approval_approver
             (layer_id, approver_order, approver_field, approver_action, approver_value, approver_display,
-             approver_name, approver_email, approver_role, criteria_type)
-           VALUES (?,?,?,?,?,?,?,?,?,?)`,
+             approver_name, approver_email, approver_role, criteria_type, criteria_value)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
           [
             layerId,
             ap.approver_order || 1,
@@ -180,7 +181,8 @@ router.put('/:id', async (req, res) => {
             ap.approver_name || '',
             ap.approver_email || '',
             ap.approver_role || null,
-            'always',
+            ap.criteria_type || 'always',
+            ap.criteria_value ? JSON.stringify(ap.criteria_value) : null,
           ]
         );
       }
