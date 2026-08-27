@@ -993,7 +993,9 @@ const _API_MAP = {
   'trx_certification': '/api/certifications',
   'mst_employee': '/api/employees',
   'mst_program': '/api/programs',
-  'mst_competency': '/api/competencies'
+  'mst_competency': '/api/competencies',
+  'trx_training_requests': '/api/training-requests',
+  'trx_training_attendance': '/api/training-attendance'
 };
 const _apiCache = {};
 const _CACHE_TTL = 30000; // 30 detik
@@ -1795,6 +1797,7 @@ async function rkSaveDates(){
   try{
     const res=await fetch(`/api/training-requests/${_rkDateModalId}/dates`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({actual_date_start:start,actual_date_end:end})});
     if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||res.statusText);}
+    invalidateCache('trx_training_requests');
     showToast('Tanggal berhasil diperbarui');
     rkCloseDateModal();
     renderRekap();
@@ -1917,6 +1920,7 @@ async function rkSaveEdit() {
       body: JSON.stringify({ organizer, instruktur: instruktur || null, participants, kompetensi }),
     });
     if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || res.statusText); }
+    invalidateCache('trx_training_requests');
     showToast('Data berhasil diperbarui');
     rkCloseEditModal();
     renderRekap();
@@ -1926,8 +1930,7 @@ async function rkSaveEdit() {
 
 async function renderRekap() {
   try {
-    const r = await fetch('/api/training-requests');
-    const data = await r.json();
+    const data = await getAll('trx_training_requests');
     if (Array.isArray(data)) {
       rkAllData = data;
       document.getElementById('rekapMsg').innerHTML = '';
@@ -1950,6 +1953,7 @@ async function rekapDelete(id) {
   if(!confirm('Hapus permohonan pelatihan ini?')) return;
   try {
     await fetch(`/api/training-requests/${id}`,{method:'DELETE'});
+    invalidateCache('trx_training_requests');
     showToast('Data dihapus');
     renderRekap();
   } catch { showToast('Gagal menghapus',false); }
@@ -2062,7 +2066,7 @@ function abRenderRows(data) {
 }
 
 async function renderAbsen() {
-  try { abAllData = await fetch('/api/training-attendance').then(r=>r.json()); } catch { abAllData=[]; }
+  try { abAllData = await getAll('trx_training_attendance'); } catch { abAllData=[]; }
   const years = [...new Set(abAllData.map(r=>abGetYear(r.training_date_start)).filter(Boolean))].sort().reverse();
   const depts = [...new Set(abAllData.map(r=>r.department).filter(Boolean))].sort();
   const pelatihans = [...new Set(abAllData.map(r=>r.training_title).filter(Boolean))].sort();
@@ -2097,6 +2101,7 @@ async function absenDelete(id) {
   if (!confirm('Hapus data daftar hadir ini?')) return;
   try {
     await fetch(`/api/training-attendance/${id}`, {method:'DELETE'});
+    invalidateCache('trx_training_attendance');
     showToast('Data dihapus');
     renderAbsen();
   } catch { showToast('Gagal menghapus', false); }
@@ -2172,7 +2177,7 @@ async function renderAlerts() {
 async function renderEvaluasi(){
   // Fetch attendance data from server — this is where eval_json is actually stored
   let attendances=[];
-  try{attendances=await fetch('/api/training-attendance').then(r=>r.json());}catch{}
+  try{attendances=await getAll('trx_training_attendance');}catch{}
 
   // Only sessions with at least one participant who filled the questionnaire
   const withEval=attendances.filter(a=>(a.participants||[]).some(p=>p.eval_json));
@@ -3351,6 +3356,7 @@ async function mphSave() {
   try {
     const res=await fetch('/api/training-requests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Gagal menyimpan');}
+    invalidateCache('trx_training_requests');
     showToast('Permohonan berhasil disimpan — status: Submitted by HR');
     closeModal('modalPermHR');
     renderRekap();
