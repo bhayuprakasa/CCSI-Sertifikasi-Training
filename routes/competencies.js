@@ -61,19 +61,16 @@ router.put('/:id', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
-  const [progs] = await pool.query('SELECT 1 FROM mst_program WHERE competency_id = ? LIMIT 1', [req.params.id]);
-  if (progs.length) return res.status(409).json({ error: 'Cannot delete: used in programs' });
-
   const [old] = await pool.query('SELECT competency_id, competency_name, competency_type, category FROM mst_competency WHERE competency_id = ?', [req.params.id]);
-  if (old.length) {
-    await logAudit({
-      table_name: 'mst_competency',
-      record_id: req.params.id,
-      operation: 'DELETE',
-      old_data: old[0],
-      changed_by: req.changedBy,
-    });
-  }
+  if (!old.length) return res.status(404).json({ error: 'Not found' });
+
+  await logAudit({
+    table_name: 'mst_competency',
+    record_id: req.params.id,
+    operation: 'DELETE',
+    old_data: old[0],
+    changed_by: req.changedBy,
+  });
 
   await pool.query('DELETE FROM mst_competency WHERE competency_id = ?', [req.params.id]);
   res.json({ deleted: true });
