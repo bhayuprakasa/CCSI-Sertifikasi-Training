@@ -1638,6 +1638,7 @@ async function rkOpenEditModal(id) {
   _rkEditId = id;
   _rkEditParticipants = r.participants || [];
   document.getElementById('rkEditOrganizer').value = r.organizer || '';
+  document.getElementById('rkEditInstruktur').value = r.instruktur || '';
 
   // Populate kompetensi dropdown from master
   const kompSel = document.getElementById('rkEditKompetensi');
