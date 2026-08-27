@@ -111,6 +111,7 @@ app.use('/api/training-requests', require('./routes/training-requests'));
 app.use('/api/training-attendance', require('./routes/training-attendance'));
 app.use('/api/audit-log', require('./routes/audit-log'));
 app.use('/api/email-log', require('./routes/email-log'));
+app.use('/api/upload', require('./routes/upload'));
 
 // Health check — cek koneksi MySQL tanpa auth
 app.get('/api/health', async (req, res) => {

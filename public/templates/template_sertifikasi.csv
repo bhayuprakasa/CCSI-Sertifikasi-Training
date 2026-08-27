@@ -1,0 +1,4 @@
+employee_id,sertif_name,certificate_number,issuing_body,issue_date,expiry_date,certification_type,delivery_method,notes
+EMP001,Sertifikasi Keamanan Siber,CERT-2024-001,BSSN,2024-01-15,2027-01-15,Eksternal,Offline,Perpanjangan setiap 3 tahun
+EMP002,Sertifikasi HR Professional,CHRP-2023-045,BNSP,2023-06-01,2026-06-01,Eksternal,Offline,
+EMP003,Sertifikasi K3 Umum,K3-2024-089,Kemnaker,2024-03-20,,Eksternal,Offline,Sertifikat lifetime
