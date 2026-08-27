@@ -199,11 +199,7 @@ CREATE TABLE IF NOT EXISTS trx_audit_log (
 
 
 CREATE TABLE IF NOT EXISTS cfg_approver_hrd (
-  id           INT          AUTO_INCREMENT PRIMARY KEY,
-  employee_id  VARCHAR(20)  NOT NULL,
-  full_name    VARCHAR(100) NOT NULL,
-  email        VARCHAR(150) NULL,
-  position     VARCHAR(100) NULL,
-  department   VARCHAR(100) NULL,
-  set_at       DATETIME     DEFAULT CURRENT_TIMESTAMP
+  id     INT          AUTO_INCREMENT PRIMARY KEY,
+  email  VARCHAR(150) NOT NULL,
+  set_at DATETIME     DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;

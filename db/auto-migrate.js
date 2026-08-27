@@ -92,6 +92,18 @@ async function autoMigrate() {
     `);
 
     console.log('[AutoMigrate] Schema trx_training_request OK');
+
+    // 9. cfg_approver_hrd — simplify: drop employee/personal columns, keep only email
+    //    Ensure email column exists (for fresh installs from old schema)
+    await conn.query(`
+      ALTER TABLE cfg_approver_hrd
+        ADD COLUMN IF NOT EXISTS email VARCHAR(150) NOT NULL DEFAULT '' AFTER id
+    `).catch(() => {});
+    //    Drop columns no longer needed (IF EXISTS guards against fresh installs)
+    for (const col of ['employee_id', 'full_name', 'position', 'department']) {
+      await conn.query(`ALTER TABLE cfg_approver_hrd DROP COLUMN IF EXISTS ${col}`).catch(() => {});
+    }
+    console.log('[AutoMigrate] Schema cfg_approver_hrd OK');
   } catch (err) {
     console.error('[AutoMigrate] Error:', err.message);
     // Non-fatal: server still starts; routes will surface real DB errors.
