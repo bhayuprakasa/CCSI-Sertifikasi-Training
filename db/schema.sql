@@ -283,33 +283,6 @@ CREATE TABLE IF NOT EXISTS cfg_approval_approver (
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS trx_approval_instance (
-  instance_id    INT          AUTO_INCREMENT PRIMARY KEY,
-  workflow_id    INT          NOT NULL,
-  form_type      VARCHAR(50)  NOT NULL,
-  form_id        INT          NOT NULL COMMENT 'ID dari form terkait (request_id, etc.)',
-  current_layer  INT          NOT NULL DEFAULT 1,
-  overall_status ENUM('Pending','Approved','Rejected','Cancelled') NOT NULL DEFAULT 'Pending',
-  created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_form (form_type, form_id)
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS trx_approval_step (
-  step_id        INT          AUTO_INCREMENT PRIMARY KEY,
-  instance_id    INT          NOT NULL,
-  layer_id       INT          NOT NULL,
-  layer_order    INT          NOT NULL,
-  approver_id    INT          NOT NULL,
-  approver_name  VARCHAR(100) NOT NULL,
-  approver_email VARCHAR(150) NOT NULL,
-  token          VARCHAR(64)  NULL UNIQUE,
-  status         ENUM('Waiting','Pending','Approved','Rejected','Skipped') NOT NULL DEFAULT 'Waiting',
-  notes          TEXT         NULL,
-  acted_at       DATETIME     NULL,
-  FOREIGN KEY (instance_id) REFERENCES trx_approval_instance(instance_id)
-    ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS cfg_approver_hrd (
   id           INT          AUTO_INCREMENT PRIMARY KEY,
