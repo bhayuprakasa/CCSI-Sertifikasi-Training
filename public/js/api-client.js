@@ -4,8 +4,8 @@
 
 // ── IndexedDB helper (shared, dipakai semua halaman) ─────────────────────────
 window.ccsiIdb = (function () {
-  const DB_NAME = 'CCSI_Training_v2', DB_VER = 2;
-  const STORES = ['mst_employee','mst_competency','mst_program','trx_employee_program','trx_certification','trx_training_request'];
+  const DB_NAME = 'CCSI_Training_v2', DB_VER = 3;
+  const STORES = ['mst_employee','mst_competency','trx_certification','trx_training_request'];
   let _db = null;
 
   function open() {
@@ -14,6 +14,9 @@ window.ccsiIdb = (function () {
       const req = indexedDB.open(DB_NAME, DB_VER);
       req.onupgradeneeded = e => {
         const db = e.target.result;
+        ['mst_program','trx_employee_program'].forEach(s => {
+          if (db.objectStoreNames.contains(s)) db.deleteObjectStore(s);
+        });
         STORES.forEach(s => { if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { autoIncrement: true }); });
       };
       req.onsuccess = e => { _db = e.target.result; res(_db); };
