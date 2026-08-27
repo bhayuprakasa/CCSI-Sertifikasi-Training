@@ -14,19 +14,35 @@ async function autoMigrate() {
         ADD COLUMN IF NOT EXISTS actual_date_end   DATE NULL DEFAULT NULL AFTER actual_date_start
     `);
 
-    // 2. kompetensi
+    // 2. instruktur & kompetensi
     await conn.query(`
       ALTER TABLE trx_training_request
-        ADD COLUMN IF NOT EXISTS kompetensi TEXT NULL AFTER organizer
+        ADD COLUMN IF NOT EXISTS instruktur VARCHAR(100) NULL AFTER organizer
+    `);
+    await conn.query(`
+      ALTER TABLE trx_training_request
+        ADD COLUMN IF NOT EXISTS kompetensi TEXT NULL AFTER instruktur
     `);
 
-    // 3. is_scheduled
+    // 3. score_grand_total: TINYINT (max 127) overflows when sum of 4 scores > 127; use SMALLINT
+    await conn.query(`
+      ALTER TABLE trx_training_request
+        MODIFY COLUMN IF EXISTS score_grand_total SMALLINT NULL DEFAULT NULL
+    `).catch(() => {
+      // Fallback for MySQL versions without MODIFY COLUMN IF EXISTS
+      return conn.query(`
+        ALTER TABLE trx_training_request
+          MODIFY COLUMN score_grand_total SMALLINT NULL DEFAULT NULL
+      `).catch(() => {});
+    });
+
+    // 4. is_scheduled
     await conn.query(`
       ALTER TABLE trx_training_request
         ADD COLUMN IF NOT EXISTS is_scheduled TINYINT(1) NOT NULL DEFAULT 0 AFTER submitted_by
     `);
 
-    // 4. approval_status — ensure the column exists with the full ENUM set
+    // 5. approval_status — ensure the column exists with the full ENUM set
     //    We check first; if missing, create it; if present, MODIFY to include all values.
     const [cols] = await conn.query(`
       SELECT COLUMN_NAME, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS
@@ -55,19 +71,19 @@ async function autoMigrate() {
       `);
     }
 
-    // 5. approval_token
+    // 6. approval_token
     await conn.query(`
       ALTER TABLE trx_training_request
         ADD COLUMN IF NOT EXISTS approval_token VARCHAR(64) NULL AFTER approval_status
     `);
 
-    // 6. approval_hrd_token
+    // 7. approval_hrd_token
     await conn.query(`
       ALTER TABLE trx_training_request
         ADD COLUMN IF NOT EXISTS approval_hrd_token VARCHAR(64) NULL AFTER approval_token
     `);
 
-    // 7. approver_name / approver_email / approver_position
+    // 8. approver_name / approver_email / approver_position
     await conn.query(`
       ALTER TABLE trx_training_request
         ADD COLUMN IF NOT EXISTS approver_name     VARCHAR(100) NULL AFTER approval_hrd_token,
