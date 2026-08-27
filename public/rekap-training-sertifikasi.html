@@ -276,12 +276,29 @@ function onTrainingSelect() {
   const empSearch = document.getElementById('cert_emp_search');
   const certType = document.getElementById('cert_type');
   const certIssuingBody = document.getElementById('cert_issuing_body');
+  const certComp = document.getElementById('cert_competency');
+
+  // Remove any previously added temp option
+  const prevTemp = certComp.querySelector('option[data-temp]');
+  if (prevTemp) certComp.removeChild(prevTemp);
 
   if (selectedTraining) {
     certIssuingBody.value = selectedTraining.organizer || '';
     certIssuingBody.readOnly = true;
     certType.value = selectedTraining.training_type || 'Eksternal';
     certType.disabled = true;
+
+    // Auto-fill kompetensi
+    const komp = selectedTraining.kompetensi || '';
+    const matchedComp = allCompetencies.find(c => c.competency_name.toLowerCase() === komp.toLowerCase());
+    if (matchedComp) {
+      certComp.value = matchedComp.competency_id;
+    } else if (komp) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = komp; o.setAttribute('data-temp', '1');
+      certComp.appendChild(o); certComp.value = '';
+    }
+    certComp.disabled = true;
 
     const attendedEmps = getAttendedEmployees();
     const depts = [...new Set(attendedEmps.map(e => e.department).filter(Boolean))].sort();
@@ -292,6 +309,8 @@ function onTrainingSelect() {
     certIssuingBody.readOnly = false;
     certType.value = 'Eksternal';
     certType.disabled = false;
+    certComp.value = '';
+    certComp.disabled = false;
     buildDeptOptions(deptSel, []);
     deptSel.disabled = true;
   }
@@ -403,7 +422,10 @@ function resetCertForm() {
   document.getElementById('cert_expiry_date').value = '';
   document.getElementById('cert_card_number').value = '';
   document.getElementById('cert_card_date').value = '';
-  document.getElementById('cert_competency').value = '';
+  const certComp = document.getElementById('cert_competency');
+  const tempOpt = certComp.querySelector('option[data-temp]');
+  if (tempOpt) certComp.removeChild(tempOpt);
+  certComp.value = ''; certComp.disabled = false;
   document.getElementById('cert_method').value = 'Offline';
   const certType = document.getElementById('cert_type');
   certType.value = 'Eksternal'; certType.disabled = false;
@@ -423,7 +445,11 @@ async function submitCertForm() {
   const certNumber = document.getElementById('cert_number').value.trim();
   const issueDate = document.getElementById('cert_issue_date').value;
   const expiryDate = document.getElementById('cert_expiry_date').value;
-  const competencyId = document.getElementById('cert_competency').value;
+  const certCompEl = document.getElementById('cert_competency');
+  const competencyId = certCompEl.value || null;
+  const kompText = selectedTraining
+    ? (selectedTraining.kompetensi || certCompEl.options[certCompEl.selectedIndex]?.text || '')
+    : (certCompEl.options[certCompEl.selectedIndex]?.text || '');
   const method = document.getElementById('cert_method').value;
   const type = document.getElementById('cert_type').value;
   const issuingBody = document.getElementById('cert_issuing_body').value.trim();
@@ -432,7 +458,8 @@ async function submitCertForm() {
   const errors = [];
   if (!certNumber) errors.push('No Sertifikat wajib diisi');
   if (!issueDate) errors.push('Tanggal Sertifikat wajib diisi');
-  if (!competencyId) errors.push('Kompetensi wajib dipilih');
+  if (!selectedTraining && !competencyId) errors.push('Kompetensi wajib dipilih');
+  if (selectedTraining && !kompText) errors.push('Kompetensi pelatihan tidak ditemukan');
   if (!issuingBody) errors.push('Diselenggarakan Oleh wajib diisi');
   if (!isLifetime && !expiryDate) errors.push('Berlaku Hingga wajib diisi atau pilih Seumur Hidup');
 
@@ -446,14 +473,14 @@ async function submitCertForm() {
       method: 'POST',
       body: JSON.stringify({
         employee_id: selectedEmployee.employee_id,
-        sertif_name: document.getElementById('cert_competency').options[document.getElementById('cert_competency').selectedIndex].text,
+        sertif_name: kompText,
         certificate_number: certNumber,
         issue_date: issueDate,
         expiry_date: expiryDate || null,
         issuing_body: issuingBody,
         card_number: document.getElementById('cert_card_number').value.trim() || null,
         card_date: document.getElementById('cert_card_date').value || null,
-        competency_id: competencyId,
+        competency_id: competencyId || null,
         delivery_method: method,
         certification_type: type,
         location: document.getElementById('cert_location').value.trim() || null,
