@@ -347,11 +347,11 @@ function hideEmpList() {
 
 function getAttendedEmployees() {
   if (!selectedTraining) return [];
-  const trainingName = selectedTraining.training_name;
+  const trainingName = (selectedTraining.training_name || '').toLowerCase().trim();
   const seen = new Set();
   const result = [];
   allAttendance
-    .filter(a => a.training_title === trainingName)
+    .filter(a => (a.training_title || '').toLowerCase().trim() === trainingName)
     .forEach(a => {
       (a.participants || []).forEach(p => {
         if (!seen.has(p.employee_id)) {
@@ -374,7 +374,7 @@ function renderEmpList() {
   const empPool = getAttendedEmployees();
   const filtered = empPool
     .filter(e => !dept || e.department === dept)
-    .filter(e => !q || e.full_name.toLowerCase().includes(q) || e.employee_id.toLowerCase().includes(q));
+    .filter(e => !q || e.full_name.toLowerCase().includes(q) || (e.employee_id || '').toLowerCase().includes(q));
 
   const list = document.getElementById('cert_emp_list');
   if (!filtered.length) {
@@ -475,6 +475,7 @@ async function submitCertForm() {
       method: 'POST',
       body: JSON.stringify({
         employee_id: selectedEmployee.employee_id,
+        trx_id: selectedTraining?.request_id || null,
         sertif_name: kompText,
         certificate_number: certNumber,
         issue_date: issueDate,
