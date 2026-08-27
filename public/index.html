@@ -1681,6 +1681,15 @@ function rkCloseEditModal() {
 }
 
 async function rkEditLoadPeserta() {
+  // Sync current DOM checkbox state into _rkEditParticipants before re-rendering
+  const allVisible = [...document.querySelectorAll('#rkEditPesertaList input[name="rkEditPesertaCheck"]')];
+  if (allVisible.length > 0) {
+    const checked = allVisible.filter(cb => cb.checked).map(cb => cb.value);
+    const unchecked = allVisible.filter(cb => !cb.checked).map(cb => cb.value);
+    checked.forEach(n => { if (!_rkEditParticipants.includes(n)) _rkEditParticipants.push(n); });
+    _rkEditParticipants = _rkEditParticipants.filter(n => !unchecked.includes(n));
+  }
+
   const dept = document.getElementById('rkEditDept').value;
   const container = document.getElementById('rkEditPesertaList');
   container.innerHTML = '<div style="color:var(--text3);font-size:.8rem">Memuat data karyawan...</div>';
@@ -1731,8 +1740,19 @@ async function rkSaveEdit() {
   const organizer = document.getElementById('rkEditOrganizer').value.trim();
   const instruktur = document.getElementById('rkEditInstruktur').value.trim();
   const kompetensi = document.getElementById('rkEditKompetensi').value.trim();
-  const participants = [...document.querySelectorAll('#rkEditPesertaList input[name="rkEditPesertaCheck"]:checked')]
-    .map(i => i.value).filter(Boolean);
+  const deptVal = document.getElementById('rkEditDept').value;
+  const department = (deptVal && deptVal !== '__ALL__') ? deptVal : null;
+
+  // Sync final checkbox state before reading
+  const allVisible = [...document.querySelectorAll('#rkEditPesertaList input[name="rkEditPesertaCheck"]')];
+  if (allVisible.length > 0) {
+    const checked = allVisible.filter(cb => cb.checked).map(cb => cb.value);
+    const unchecked = allVisible.filter(cb => !cb.checked).map(cb => cb.value);
+    checked.forEach(n => { if (!_rkEditParticipants.includes(n)) _rkEditParticipants.push(n); });
+    _rkEditParticipants = _rkEditParticipants.filter(n => !unchecked.includes(n));
+  }
+
+  const participants = _rkEditParticipants.filter(Boolean);
   if (!participants.length) { showToast('Minimal 1 peserta wajib dipilih', false); return; }
   const btn = document.getElementById('rkEditSaveBtn');
   btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
@@ -1740,7 +1760,7 @@ async function rkSaveEdit() {
     const res = await fetch(`/api/training-requests/${_rkEditId}/organizer-participants`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ organizer, instruktur: instruktur || null, participants, kompetensi }),
+      body: JSON.stringify({ organizer, instruktur: instruktur || null, participants, kompetensi, department }),
     });
     if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || res.statusText); }
     invalidateCache('trx_training_requests');
