@@ -248,14 +248,14 @@ select.filter:focus{border-color:var(--navy-lt)}
     <div class="kpi-grid" id="kpiGrid"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div class="card">
-        <div class="card-header"><span class="card-title">📈 Program per Bulan</span></div>
+        <div class="card-header"><span class="card-title">📈 Permohonan per Bulan</span></div>
         <div class="card-body">
           <div class="mini-chart" id="monthChart"></div>
           <div style="display:flex;gap:4px;margin-top:6px" id="monthLabels"></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">🏢 Coverage per Site</span></div>
+        <div class="card-header"><span class="card-title">🏢 Permohonan per Departemen</span></div>
         <div class="card-body" id="siteStats"></div>
       </div>
     </div>
@@ -533,10 +533,6 @@ select.filter:focus{border-color:var(--navy-lt)}
         <tbody id="empBody"></tbody>
       </table></div></div>
     </div>
-    <div style="display:none">
-      <div id="progWarningArea"></div>
-      <table><tbody id="progBody"></tbody></table>
-    </div>
   </div>
 
   <!-- LOG EMAIL -->
@@ -738,34 +734,13 @@ select.filter:focus{border-color:var(--navy-lt)}
   </div>
 </div>
 
-<!-- MODAL TRANSAKSI -->
+<!-- MODAL SERTIFIKASI -->
 <div class="modal-overlay" id="modalTrx" onclick="closeModalOutside(event,'modalTrx')">
   <div class="modal" style="max-width:680px">
-    <div class="modal-header"><span class="modal-title" id="modalTrxTitle">Tambah Data Program</span><button class="modal-close" onclick="closeModal('modalTrx')">✕</button></div>
+    <div class="modal-header"><span class="modal-title" id="modalTrxTitle">Tambah Sertifikasi</span><button class="modal-close" onclick="closeModal('modalTrx')">✕</button></div>
     <div class="modal-body">
-      <div class="mode-switcher">
-        <button class="mode-btn active" id="modeA" onclick="setTrxMode('trx')">📋 Riwayat Program</button>
-        <button class="mode-btn" id="modeB" onclick="setTrxMode('cert')">🏅 Sertifikasi</button>
-      </div>
-      <!-- FORM TRX -->
-      <div id="formTrx">
-        <div class="form-grid">
-          <div class="form-group full"><label>Karyawan *</label><select id="t_emp"><option value="">-- Pilih Karyawan --</option></select></div>
-          <div class="form-group full"><label>Program *</label><select id="t_prog"><option value="">-- Pilih Program --</option></select></div>
-          <div class="form-group"><label>Tgl Mulai</label><input type="date" id="t_start"></div>
-          <div class="form-group"><label>Tgl Selesai *</label><input type="date" id="t_end"></div>
-          <div class="form-group"><label>Status *</label><select id="t_status"><option>Done</option><option>Ongoing</option><option>Failed</option><option>Cancelled</option></select></div>
-          <div class="form-group"><label>Aktivitas</label><input type="text" id="t_aktivitas" placeholder="Detail aktivitas"></div>
-          <div class="form-group"><label>Pre-test Score (0-100)</label><input type="number" id="t_pre" min="0" max="100" placeholder="0"></div>
-          <div class="form-group"><label>Post-test Score (0-100)</label><input type="number" id="t_post" min="0" max="100" placeholder="0"></div>
-          <div class="form-group"><label>Reaction Score (1-5)</label><input type="number" id="t_react" min="1" max="5" step="0.1" placeholder="0"></div>
-          <div class="form-group"><label>Biaya (Rp)</label><input type="number" id="t_cost" placeholder="0"></div>
-          <div class="form-group full"><label>Catatan</label><textarea id="t_notes" placeholder="Catatan tambahan"></textarea></div>
-        </div>
-        <div id="evalSection" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px"></div>
-      </div>
       <!-- FORM CERT -->
-      <div id="formCert" style="display:none">
+      <div id="formCert">
         <div class="form-grid">
           <div class="form-group full"><label>Karyawan *</label><select id="c_emp"><option value="">-- Pilih Karyawan --</option></select></div>
           <div class="form-group full"><label>Nama Sertifikasi *</label><input type="text" id="c_sertif" placeholder="Nama sertifikasi / kompetensi"></div>
@@ -962,14 +937,7 @@ function openDB() {
         const cs = d.createObjectStore('mst_competency', {keyPath:'competency_id',autoIncrement:true});
         cs.createIndex('type','competency_type');
       }
-      if (!d.objectStoreNames.contains('mst_program')) {
-        const ps = d.createObjectStore('mst_program', {keyPath:'program_id',autoIncrement:true});
-        ps.createIndex('type','program_type'); ps.createIndex('competency','competency_id');
-      }
-      if (!d.objectStoreNames.contains('trx_employee_program')) {
-        const ts = d.createObjectStore('trx_employee_program', {keyPath:'trx_id',autoIncrement:true});
-        ts.createIndex('emp','employee_id'); ts.createIndex('prog','program_id'); ts.createIndex('status','status');
-      }
+
       if (!d.objectStoreNames.contains('trx_certification')) {
         const certs = d.createObjectStore('trx_certification', {keyPath:'cert_id',autoIncrement:true});
         certs.createIndex('emp','employee_id'); certs.createIndex('expiry','expiry_date');
@@ -989,10 +957,8 @@ function idbGetAll(store) {
   });
 }
 const _API_MAP = {
-  'trx_employee_program': '/api/transactions',
   'trx_certification': '/api/certifications',
   'mst_employee': '/api/employees',
-  'mst_program': '/api/programs',
   'mst_competency': '/api/competencies'
 };
 const _apiCache = {};
@@ -1067,44 +1033,6 @@ async function seedIfEmpty() {
     {competency_name:'Labour Law',competency_type:'Hard Skill',category:'Compliance'},
   ];
 
-  const programs = [
-    {program_name:'K3 Umum Dasar',program_type:'Training',competency_id:1,delivery_method:'Offline',conducted_by:'Disnaker Cilegon',trainer_name:'',location:'',is_mandatory:1,created_at:new Date().toISOString()},
-    {program_name:'Labour Law Update 2025',program_type:'Training',competency_id:10,delivery_method:'Offline',conducted_by:'GAPMMI',trainer_name:'',location:'HO Jakarta',is_mandatory:1,created_at:new Date().toISOString()},
-    {program_name:'Hidrolik & Pneumatik Lanjutan',program_type:'Training',competency_id:4,delivery_method:'Offline',conducted_by:'PT SMK Teknik',trainer_name:'',location:'KBS Cilegon',is_mandatory:0,created_at:new Date().toISOString()},
-    {program_name:'Pajak PPh Badan 2025',program_type:'Training',competency_id:5,delivery_method:'Offline',conducted_by:'Taxindo',trainer_name:'',location:'HO Jakarta',is_mandatory:0,created_at:new Date().toISOString()},
-    {program_name:'ISO 9001:2015 Internal Audit',program_type:'Training',competency_id:3,delivery_method:'Offline',conducted_by:'SGS Indonesia',trainer_name:'',location:'KIEC Cilegon',is_mandatory:1,created_at:new Date().toISOString()},
-    {program_name:'K3 Operator Mesin Extrusi',program_type:'Sosialisasi',competency_id:1,delivery_method:'Offline',conducted_by:'PT CCSI',trainer_name:'Internal HSE',location:'KBS Cilegon',is_mandatory:1,created_at:new Date().toISOString()},
-    {program_name:'Microsoft Azure Fundamentals',program_type:'Training',competency_id:6,delivery_method:'Online',conducted_by:'Microsoft',trainer_name:'',location:'',is_mandatory:0,created_at:new Date().toISOString()},
-    {program_name:'Leadership for Manufacturing',program_type:'Training',competency_id:7,delivery_method:'Offline',conducted_by:'SHL Indonesia',trainer_name:'',location:'KIEC Cilegon',is_mandatory:0,created_at:new Date().toISOString()},
-    {program_name:'Negotiation & Procurement Skill',program_type:'Training',competency_id:8,delivery_method:'Offline',conducted_by:'Dale Carnegie',trainer_name:'',location:'HO Jakarta',is_mandatory:0,created_at:new Date().toISOString()},
-    {program_name:'K3 Listrik & Instalasi',program_type:'Training',competency_id:2,delivery_method:'Offline',conducted_by:'Kemnaker RI',trainer_name:'',location:'KBS Cilegon',is_mandatory:1,created_at:new Date().toISOString()},
-    {program_name:'IK & Prosedure Inspeksi Kabel Submarine',program_type:'Sosialisasi',competency_id:3,delivery_method:'Offline',conducted_by:'PT CCSI',trainer_name:'Dony & Venanda',location:'R. Krakatau & R. Merak',is_mandatory:1,created_at:new Date().toISOString()},
-    {program_name:'Pengelasan 3G SMAW',program_type:'Sertifikasi',competency_id:9,delivery_method:'Vendor',conducted_by:'BBPLK Serang - BNSP',trainer_name:'',location:'',is_mandatory:1,created_at:new Date().toISOString()},
-  ];
-
-  const E1='{"instruktur":[4,4,4,4,4,3],"materi":[4,4,4,3,4],"lainlain":[4,3],"saran":"Materi sangat relevan dengan pekerjaan lapangan. Trainer komunikatif.","avg":3.846}';
-  const E2='{"instruktur":[3,4,3,4,3,3],"materi":[4,3,3,3,3],"lainlain":[3,3],"saran":"Perlu lebih banyak studi kasus dan latihan soal.","avg":3.231}';
-  const E3='{"instruktur":[4,4,4,4,4,4],"materi":[4,4,4,4,4],"lainlain":[4,4],"saran":"Sangat baik, trainer sangat berpengalaman dan materi terstruktur dengan baik.","avg":4}';
-  const E4='{"instruktur":[3,3,4,3,3,3],"materi":[3,4,3,3,3],"lainlain":[3,3],"saran":"","avg":3.077}';
-  const E5='{"instruktur":[4,4,4,4,4,3],"materi":[4,3,4,4,4],"lainlain":[4,3],"saran":"Waktu pelatihan kurang, sebaiknya ditambah 1 hari lagi.","avg":3.769}';
-  const E6='{"instruktur":[3,3,3,3,3,3],"materi":[3,3,3,3,3],"lainlain":[3,3],"saran":"","avg":3}';
-  const E7='{"instruktur":[4,4,4,4,4,4],"materi":[4,4,4,4,4],"lainlain":[4,4],"saran":"Excellent! Platform online sangat membantu. Materi mudah diakses kapan saja.","avg":4}';
-  const E10='{"instruktur":[4,3,3,4,3,3],"materi":[4,4,3,3,3],"lainlain":[3,3],"saran":"Trainer kompeten, fasilitas lab perlu ditingkatkan.","avg":3.308}';
-
-  const transactions = [
-    {employee_id:'CC001',program_id:1,start_date:'2025-01-10',end_date:'2025-01-12',status:'Done',aktivitas:'',pre_test_score:65,post_test_score:87,reaction_score:4.5,training_cost:500000,notes:'',eval_json:E1,recorded_by:'HR'},
-    {employee_id:'CC002',program_id:2,start_date:'2025-02-03',end_date:'2025-02-03',status:'Done',aktivitas:'',pre_test_score:70,post_test_score:88,reaction_score:4.0,training_cost:1500000,notes:'',eval_json:E2,recorded_by:'HR'},
-    {employee_id:'CC003',program_id:3,start_date:'2025-02-15',end_date:'2025-02-18',status:'Done',aktivitas:'',pre_test_score:60,post_test_score:90,reaction_score:4.8,training_cost:3200000,notes:'',eval_json:E3,recorded_by:'HR'},
-    {employee_id:'CC004',program_id:4,start_date:'2025-03-05',end_date:'2025-03-06',status:'Done',aktivitas:'',pre_test_score:72,post_test_score:90,reaction_score:4.2,training_cost:2800000,notes:'',eval_json:E4,recorded_by:'HR'},
-    {employee_id:'CC005',program_id:5,start_date:'2025-03-18',end_date:'2025-03-20',status:'Done',aktivitas:'',pre_test_score:68,post_test_score:85,reaction_score:4.5,training_cost:4500000,notes:'',eval_json:E5,recorded_by:'HR'},
-    {employee_id:'CC006',program_id:6,start_date:'2025-04-07',end_date:'2025-04-07',status:'Done',aktivitas:'',pre_test_score:55,post_test_score:80,reaction_score:3.8,training_cost:0,notes:'',eval_json:E6,recorded_by:'HR'},
-    {employee_id:'CC007',program_id:7,start_date:'2025-05-12',end_date:'2025-05-12',status:'Done',aktivitas:'',pre_test_score:75,post_test_score:92,reaction_score:4.9,training_cost:1200000,notes:'',eval_json:E7,recorded_by:'HR'},
-    {employee_id:'CC008',program_id:8,start_date:'2025-05-20',end_date:'2025-05-22',status:'Ongoing',aktivitas:'',pre_test_score:null,post_test_score:null,reaction_score:null,training_cost:7500000,notes:'Masih dalam proses',eval_json:null,recorded_by:'HR'},
-    {employee_id:'CC009',program_id:9,start_date:'2025-06-03',end_date:'2025-06-04',status:'Failed',aktivitas:'',pre_test_score:50,post_test_score:55,reaction_score:2.5,training_cost:3800000,notes:'Rescheduling perlu',eval_json:null,recorded_by:'HR'},
-    {employee_id:'CC010',program_id:10,start_date:'2025-06-16',end_date:'2025-06-17',status:'Done',aktivitas:'',pre_test_score:70,post_test_score:88,reaction_score:4.3,training_cost:600000,notes:'',eval_json:E10,recorded_by:'HR'},
-    {employee_id:'CC005',program_id:11,start_date:'2026-05-04',end_date:'2026-05-04',status:'Done',aktivitas:'',pre_test_score:null,post_test_score:null,reaction_score:4.0,training_cost:0,notes:'',eval_json:null,recorded_by:'HR'},
-    {employee_id:'CC001',program_id:12,start_date:'2019-11-14',end_date:'2019-11-15',status:'Done',aktivitas:'',pre_test_score:null,post_test_score:null,reaction_score:null,training_cost:0,notes:'',eval_json:null,recorded_by:'HR'},
-  ];
 
   const certs = [
     {employee_id:'CC001',trx_id:null,certificate_number:'SNI-K3-2025-001',issue_date:'2025-01-12',expiry_date:'2028-01-12',issuing_body:'Kemnaker RI',sertif_name:'Sertifikat K3 Umum',is_active:1,renewal_count:0,notes:''},
@@ -1119,8 +1047,6 @@ async function seedIfEmpty() {
 
   for (const e of employees) await putRecord('mst_employee', e);
   for (const c of competencies) await putRecord('mst_competency', c);
-  for (const p of programs) await putRecord('mst_program', p);
-  for (const t of transactions) await putRecord('trx_employee_program', t);
   for (const c of certs) await putRecord('trx_certification', c);
 }
 
@@ -1209,51 +1135,50 @@ function refreshCurrentTab() {
 // DASHBOARD
 // =====================
 async function renderDashboard() {
-  const [trxs,certs,emps,progs] = await Promise.all([
-    getAll('trx_employee_program'), getAll('trx_certification'),
-    getAll('mst_employee'), getAll('mst_program')
+  const [certs, emps] = await Promise.all([
+    getAll('trx_certification'), getAll('mst_employee')
   ]);
-  const done=trxs.filter(t=>t.status==='Done').length;
-  const pct=trxs.length?Math.round(done/trxs.length*100):0;
-  const expired=certs.filter(c=>c.is_active&&c.expiry_date&&daysDiff(c.expiry_date)<0).length;
-  const soon=certs.filter(c=>c.is_active&&c.expiry_date&&daysDiff(c.expiry_date)>=0&&daysDiff(c.expiry_date)<=90).length;
-  const avgScore=()=>{const s=trxs.filter(t=>t.post_test_score!=null);return s.length?Math.round(s.reduce((a,b)=>a+b.post_test_score,0)/s.length):0;};
+  let requests = [];
+  try { requests = await fetch('/api/training-requests').then(r => r.json()); } catch {}
 
-  document.getElementById('kpiGrid').innerHTML=`
-    <div class="kpi"><div class="kpi-label">Total Program</div><div class="kpi-value">${trxs.length}</div><div class="kpi-sub">${emps.length} karyawan terdaftar</div></div>
-    <div class="kpi ok"><div class="kpi-label">Completion Rate</div><div class="kpi-value">${pct}%</div><div class="kpi-sub">${done} dari ${trxs.length} selesai</div></div>
-    <div class="kpi"><div class="kpi-label">Avg Post-test</div><div class="kpi-value">${avgScore()}</div><div class="kpi-sub">skor rata-rata</div></div>
-    <div class="kpi"><div class="kpi-label">Total Sertifikasi</div><div class="kpi-value">${certs.filter(c=>c.is_active).length}</div><div class="kpi-sub">sertifikat aktif</div></div>
+  const approved = requests.filter(r => r.approval_status === 'Approved').length;
+  const pending = requests.filter(r => ['Submitted','PendingBODDept','PendingBODHR','Submitted_HR'].includes(r.approval_status)).length;
+  const rejected = requests.filter(r => (r.approval_status||'').startsWith('Rejected')).length;
+  const expired = certs.filter(c => c.is_active && c.expiry_date && daysDiff(c.expiry_date) < 0).length;
+  const soon = certs.filter(c => c.is_active && c.expiry_date && daysDiff(c.expiry_date) >= 0 && daysDiff(c.expiry_date) <= 90).length;
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Total Permohonan</div><div class="kpi-value">${requests.length}</div><div class="kpi-sub">${emps.length} karyawan terdaftar</div></div>
+    <div class="kpi ok"><div class="kpi-label">Disetujui</div><div class="kpi-value">${approved}</div><div class="kpi-sub">permohonan approved</div></div>
+    <div class="kpi info"><div class="kpi-label">Pending</div><div class="kpi-value">${pending}</div><div class="kpi-sub">menunggu persetujuan</div></div>
+    <div class="kpi ${rejected?'warn':''}"><div class="kpi-label">Ditolak</div><div class="kpi-value">${rejected}</div><div class="kpi-sub">perlu tindak lanjut</div></div>
     <div class="kpi ${expired?'warn':''}"><div class="kpi-label">Sudah Expired</div><div class="kpi-value">${expired}</div><div class="kpi-sub">perlu diperbarui</div></div>
     <div class="kpi ${soon?'info':''}"><div class="kpi-label">Expiry &lt;90 Hari</div><div class="kpi-value">${soon}</div><div class="kpi-sub">segera diperpanjang</div></div>
   `;
 
-  // Monthly bar
-  const months=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-  const counts=Array(12).fill(0);
-  trxs.forEach(t=>{ if(t.end_date){ const m=parseInt(t.end_date.split('-')[1])-1; counts[m]++; } });
-  const max=Math.max(...counts,1);
-  document.getElementById('monthChart').innerHTML=counts.map((c,i)=>`<div class="bar ${i<6?'accent':''}" style="height:${Math.round(c/max*52)+8}px" title="${months[i]}: ${c}"></div>`).join('');
-  document.getElementById('monthLabels').innerHTML=months.map(m=>`<span style="flex:1;text-align:center;font-size:.62rem;color:var(--text3)">${m}</span>`).join('');
+  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const counts = Array(12).fill(0);
+  requests.forEach(r => { if(r.submitted_at) { const m = parseInt(r.submitted_at.split('-')[1]) - 1; if(m >= 0 && m < 12) counts[m]++; } });
+  const max = Math.max(...counts, 1);
+  document.getElementById('monthChart').innerHTML = counts.map((c,i) => `<div class="bar ${i<6?'accent':''}" style="height:${Math.round(c/max*52)+8}px" title="${months[i]}: ${c}"></div>`).join('');
+  document.getElementById('monthLabels').innerHTML = months.map(m => `<span style="flex:1;text-align:center;font-size:.62rem;color:var(--text3)">${m}</span>`).join('');
 
-  // Site stats
-  const sites=['HO Jakarta','Cilegon'];
-  document.getElementById('siteStats').innerHTML=sites.map(site=>{
-    const st=trxs.filter(t=>emps.find(e=>e.employee_id===t.employee_id&&e.site===site));
-    const dn=st.filter(t=>t.status==='Done').length;
-    const p=st.length?Math.round(dn/st.length*100):0;
-    const cls=p>=80?'high':p>=50?'mid':'low';
-    return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:.81rem;margin-bottom:3px"><strong>${site}</strong><span style="color:var(--text3)">${st.length} program · ${p}% selesai</span></div><div class="prog-wrap"><div class="prog-bar ${cls}" style="width:${p}%"></div></div></div>`;
-  }).join('');
+  const depts = [...new Set(requests.map(r => r.department).filter(Boolean))].sort();
+  document.getElementById('siteStats').innerHTML = depts.slice(0, 6).map(dept => {
+    const dr = requests.filter(r => r.department === dept);
+    const done = dr.filter(r => r.approval_status === 'Approved').length;
+    const p = dr.length ? Math.round(done / dr.length * 100) : 0;
+    const cls = p >= 80 ? 'high' : p >= 50 ? 'mid' : 'low';
+    return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:.81rem;margin-bottom:3px"><strong>${dept}</strong><span style="color:var(--text3)">${dr.length} permohonan · ${p}% disetujui</span></div><div class="prog-wrap"><div class="prog-bar ${cls}" style="width:${p}%"></div></div></div>`;
+  }).join('') || '<p style="color:var(--text3);font-size:.82rem">Belum ada data permohonan</p>';
 
-  // Alerts
-  const alertCerts=certs.filter(c=>c.is_active&&c.expiry_date&&daysDiff(c.expiry_date)<=90).sort((a,b)=>new Date(a.expiry_date)-new Date(b.expiry_date));
-  if(!alertCerts.length){document.getElementById('dashAlerts').innerHTML='<p style="color:var(--green);font-size:.83rem">✅ Tidak ada sertifikasi yang akan segera expired.</p>';return;}
-  document.getElementById('dashAlerts').innerHTML='<div class="alert-list">'+alertCerts.map(c=>{
-    const d=daysDiff(c.expiry_date),tp=d<0?'danger':'warn',ic=d<0?'🔴':'🟡';
-    const emp=emps.find(e=>e.employee_id===c.employee_id);
+  const alertCerts = certs.filter(c => c.is_active && c.expiry_date && daysDiff(c.expiry_date) <= 90).sort((a,b) => new Date(a.expiry_date) - new Date(b.expiry_date));
+  if(!alertCerts.length) { document.getElementById('dashAlerts').innerHTML = '<p style="color:var(--green);font-size:.83rem">✅ Tidak ada sertifikasi yang akan segera expired.</p>'; return; }
+  document.getElementById('dashAlerts').innerHTML = '<div class="alert-list">' + alertCerts.map(c => {
+    const d = daysDiff(c.expiry_date), tp = d < 0 ? 'danger' : 'warn', ic = d < 0 ? '🔴' : '🟡';
+    const emp = emps.find(e => e.employee_id === c.employee_id);
     return `<div class="alert-item ${tp}"><span class="alert-icon">${ic}</span><div class="alert-text"><strong>${emp?emp.full_name:c.employee_id} — ${c.sertif_name}</strong><span>${emp?emp.site:''} · ${d<0?`Expired ${Math.abs(d)} hari lalu (${fmtDate(c.expiry_date)})`:`Expiry: ${fmtDate(c.expiry_date)} (${d} hari lagi)`}</span></div></div>`;
-  }).join('')+'</div>';
+  }).join('') + '</div>';
 }
 
 // =====================
@@ -2145,25 +2070,27 @@ async function renderSertif() {
 // ALERTS
 // =====================
 async function renderAlerts() {
-  const [certs,emps,trxs]=await Promise.all([getAll('trx_certification'),getAll('mst_employee'),getAll('trx_employee_program')]);
-  const mkA=(c,tp)=>{
-    const d=daysDiff(c.expiry_date),ic=tp==='danger'?'🔴':'🟡';
-    const emp=emps.find(e=>e.employee_id===c.employee_id);
+  const [certs, emps] = await Promise.all([getAll('trx_certification'), getAll('mst_employee')]);
+  let requests = [];
+  try { requests = await fetch('/api/training-requests').then(r => r.json()); } catch {}
+  const mkA = (c, tp) => {
+    const d = daysDiff(c.expiry_date), ic = tp === 'danger' ? '🔴' : '🟡';
+    const emp = emps.find(e => e.employee_id === c.employee_id);
     return `<div class="alert-item ${tp}"><span class="alert-icon">${ic}</span><div class="alert-text"><strong>${emp?emp.full_name:c.employee_id}</strong><span>${c.sertif_name}<br>${emp?emp.site:''} · ${fmtDate(c.expiry_date)} · ${tp==='danger'?`Expired ${Math.abs(d)} hari lalu`:`${d} hari lagi`}</span></div></div>`;
   };
-  const expired=certs.filter(c=>c.is_active&&c.expiry_date&&daysDiff(c.expiry_date)<0).sort((a,b)=>new Date(a.expiry_date)-new Date(b.expiry_date));
-  const soon=certs.filter(c=>c.is_active&&c.expiry_date&&daysDiff(c.expiry_date)>=0&&daysDiff(c.expiry_date)<=90).sort((a,b)=>new Date(a.expiry_date)-new Date(b.expiry_date));
-  document.getElementById('alertExp').innerHTML=expired.length?expired.map(c=>mkA(c,'danger')).join(''):'<p style="color:var(--green);font-size:.81rem">✅ Tidak ada yang expired</p>';
-  document.getElementById('alertSoon').innerHTML=soon.length?soon.map(c=>mkA(c,'warn')).join(''):'<p style="color:var(--green);font-size:.81rem">✅ Tidak ada yang expiry <90 hari</p>';
+  const expired = certs.filter(c => c.is_active && c.expiry_date && daysDiff(c.expiry_date) < 0).sort((a,b) => new Date(a.expiry_date) - new Date(b.expiry_date));
+  const soon = certs.filter(c => c.is_active && c.expiry_date && daysDiff(c.expiry_date) >= 0 && daysDiff(c.expiry_date) <= 90).sort((a,b) => new Date(a.expiry_date) - new Date(b.expiry_date));
+  document.getElementById('alertExp').innerHTML = expired.length ? expired.map(c => mkA(c,'danger')).join('') : '<p style="color:var(--green);font-size:.81rem">✅ Tidak ada yang expired</p>';
+  document.getElementById('alertSoon').innerHTML = soon.length ? soon.map(c => mkA(c,'warn')).join('') : '<p style="color:var(--green);font-size:.81rem">✅ Tidak ada yang expiry <90 hari</p>';
 
-  const yr=new Date().getFullYear().toString();
-  const trained=new Set(trxs.filter(t=>t.end_date&&t.end_date.startsWith(yr)).map(t=>t.employee_id));
-  const notTrained=emps.filter(e=>e.is_active&&!trained.has(e.employee_id));
-  document.getElementById('alertNoTrx').innerHTML=notTrained.length
-    ?`<p style="font-size:.81rem;color:var(--text2);margin-bottom:10px">⚠ ${notTrained.length} karyawan belum ada program di ${yr}:</p>
+  const yr = new Date().getFullYear().toString();
+  const reqDepts = new Set(requests.filter(r => r.submitted_at && r.submitted_at.startsWith(yr)).map(r => r.department));
+  const noReqDeptEmps = emps.filter(e => e.is_active && !reqDepts.has(e.department));
+  document.getElementById('alertNoTrx').innerHTML = noReqDeptEmps.length
+    ? `<p style="font-size:.81rem;color:var(--text2);margin-bottom:10px">⚠ ${noReqDeptEmps.length} karyawan di departemen yang belum ada permohonan training di ${yr}:</p>
       <div class="table-wrap"><table><thead><tr><th>NIK</th><th>Nama</th><th>Dept</th><th>Site</th></tr></thead>
-      <tbody>${notTrained.map(e=>`<tr><td><code style="font-size:.75rem">${e.employee_id}</code></td><td><strong>${e.full_name}</strong></td><td>${e.department}</td><td>${e.site}</td></tr>`).join('')}</tbody></table></div>`
-    :'<p style="color:var(--green);font-size:.81rem">✅ Semua karyawan aktif sudah ada program tahun ini.</p>';
+      <tbody>${noReqDeptEmps.map(e=>`<tr><td><code style="font-size:.75rem">${e.employee_id}</code></td><td><strong>${e.full_name}</strong></td><td>${e.department}</td><td>${e.site}</td></tr>`).join('')}</tbody></table></div>`
+    : '<p style="color:var(--green);font-size:.81rem">✅ Semua departemen sudah ada permohonan training tahun ini.</p>';
 }
 
 // =====================
@@ -2305,83 +2232,63 @@ async function renderEvaluasi(){
 // DEPARTEMEN
 // =====================
 async function renderDept() {
-  const [trxs,emps,progs]=await Promise.all([getAll('trx_employee_program'),getAll('mst_employee'),getAll('mst_program')]);
-  const depts=[...new Set(emps.map(e=>e.department))].sort();
-  document.getElementById('deptGrid').innerHTML=depts.map(dept=>{
-    const dEmps=emps.filter(e=>e.department===dept);
-    const rows=trxs.filter(t=>dEmps.some(e=>e.employee_id===t.employee_id));
-    const done=rows.filter(t=>t.status==='Done').length;
-    const p=rows.length?Math.round(done/rows.length*100):0;
-    const cls=p>=80?'high':p>=50?'mid':'low';
-    const cost=rows.reduce((a,b)=>a+(Number(b.training_cost)||0),0);
-    const scores=rows.filter(t=>t.post_test_score!=null);
-    const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b.post_test_score,0)/scores.length):null;
+  let requests = [];
+  try { requests = await fetch('/api/training-requests').then(r => r.json()); } catch {}
+  const emps = await getAll('mst_employee');
+  const depts = [...new Set([...emps.map(e => e.department), ...requests.map(r => r.department)].filter(Boolean))].sort();
+  document.getElementById('deptGrid').innerHTML = depts.map(dept => {
+    const dr = requests.filter(r => r.department === dept);
+    const approved = dr.filter(r => r.approval_status === 'Approved').length;
+    const p = dr.length ? Math.round(approved / dr.length * 100) : 0;
+    const cls = p >= 80 ? 'high' : p >= 50 ? 'mid' : 'low';
+    const cost = dr.reduce((a, b) => a + (Number(b.cost_total) || 0), 0);
+    const dEmps = emps.filter(e => e.department === dept);
     return `<div class="dept-card">
       <div class="dept-name">📁 ${dept}</div>
-      <div class="dept-meta">${dEmps.length} karyawan · ${rows.length} program</div>
+      <div class="dept-meta">${dEmps.length} karyawan · ${dr.length} permohonan</div>
       <div class="prog-wrap"><div class="prog-bar ${cls}" style="width:${p}%"></div></div>
-      <div class="dept-stat"><span>Completion rate</span><span>${p}%</span></div>
-      ${avg!==null?`<div class="dept-stat"><span>Avg post-test score</span><span>${avg}</span></div>`:''}
-      <div class="dept-stat"><span>Total biaya</span><span>${fmtRp(cost)}</span></div>
+      <div class="dept-stat"><span>Approval rate</span><span>${p}%</span></div>
+      <div class="dept-stat"><span>Total biaya disetujui</span><span>${fmtRp(cost)}</span></div>
     </div>`;
-  }).join('');
+  }).join('') || '<p style="color:var(--text3);font-size:.83rem">Belum ada data</p>';
 }
 
 // =====================
 // KOMPETENSI MAP
 // =====================
 async function renderKompetensi() {
-  const [trxs,emps,progs,comps]=await Promise.all([getAll('trx_employee_program'),getAll('mst_employee'),getAll('mst_program'),getAll('mst_competency')]);
-  const q=document.getElementById('searchComp').value.toLowerCase();
-  const fSite=document.getElementById('fCompSite').value;
+  const [certs, emps, comps] = await Promise.all([
+    getAll('trx_certification'), getAll('mst_employee'), getAll('mst_competency')
+  ]);
+  const q = document.getElementById('searchComp').value.toLowerCase();
+  const fSite = document.getElementById('fCompSite').value;
 
-  // --- MASTER KOMPETENSI (with employee list) ---
-  const compProgMap={};
-  progs.forEach(p=>{
-    if(!p.competency_id) return;
-    if(!compProgMap[p.competency_id]) compProgMap[p.competency_id]=[];
-    compProgMap[p.competency_id].push({name:p.program_name,type:p.program_type});
-  });
-  // map cid -> employees who completed at least one program with that competency
-  const compEmpMap={};
-  trxs.filter(t=>t.status==='Done').forEach(t=>{
-    const prog=progs.find(p=>p.program_id===t.program_id);
-    if(!prog||!prog.competency_id) return;
-    const cid=prog.competency_id;
-    if(!compEmpMap[cid]) compEmpMap[cid]=new Map();
-    const emp=emps.find(e=>e.employee_id===t.employee_id);
-    if(emp) compEmpMap[cid].set(emp.employee_id,emp);
+  // Map cid -> employees who have a cert with that competency
+  const compEmpMap = {};
+  certs.filter(c => c.is_active && c.competency_id).forEach(c => {
+    if (!compEmpMap[c.competency_id]) compEmpMap[c.competency_id] = new Map();
+    const emp = emps.find(e => e.employee_id === c.employee_id);
+    if (emp) compEmpMap[c.competency_id].set(emp.employee_id, emp);
   });
 
-  document.getElementById('compGridKomp').innerHTML=comps.length?comps.map(c=>{
-    const col={'Hard Skill':'b-navy','Safety':'b-red','Soft Skill':'b-green','Leadership':'b-purple'}[c.competency_type]||'b-gray';
-    const cProgs=compProgMap[c.competency_id]||[];
-    const cEmps=compEmpMap[c.competency_id]?[...compEmpMap[c.competency_id].values()]:[];
-    const used=cProgs.length>0;
-    const tipId=`tip-comp-k-${c.competency_id}`;
-
-    let tipRows=`<div class="tip-header">Program terkait: ${c.competency_name}</div>`;
-    cProgs.forEach(pr=>{ tipRows+=`<div class="tip-row"><span class="tip-name">${pr.name}</span><span class="tip-meta">${pr.type}</span></div>`; });
-
-    const empSection=cEmps.length
+  document.getElementById('compGridKomp').innerHTML = comps.length ? comps.map(c => {
+    const col = {'Hard Skill':'b-navy','Safety':'b-red','Soft Skill':'b-green','Leadership':'b-purple'}[c.competency_type] || 'b-gray';
+    const cEmps = compEmpMap[c.competency_id] ? [...compEmpMap[c.competency_id].values()] : [];
+    const used = cEmps.length > 0;
+    const empSection = cEmps.length
       ? `<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
-          <div style="font-size:.69rem;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">👤 ${cEmps.length} Karyawan</div>
+          <div style="font-size:.69rem;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">👤 ${cEmps.length} Karyawan Tersertifikasi</div>
           ${cEmps.slice(0,4).map(e=>`<div style="font-size:.73rem;padding:2px 0;display:flex;justify-content:space-between;gap:6px"><span style="color:var(--text)">${e.full_name}</span><span style="color:var(--text3);white-space:nowrap">${e.department}</span></div>`).join('')}
           ${cEmps.length>4?`<div style="font-size:.7rem;color:var(--text3);font-style:italic;margin-top:2px">+${cEmps.length-4} lainnya</div>`:''}
         </div>`
-      : `<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;font-size:.72rem;color:var(--text3)">Belum ada karyawan</div>`;
-
-    return `<div class="comp-card" style="position:relative">
+      : `<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px;font-size:.72rem;color:var(--text3)">Belum ada karyawan tersertifikasi</div>`;
+    return `<div class="comp-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
         <div>
           <div class="comp-name">${c.competency_name}</div>
           <div class="comp-type"><span class="badge ${col}">${c.competency_type}</span>&nbsp;${c.category||''}</div>
         </div>
-        ${used
-          ? `<span class="usage-badge used" style="font-size:.63rem" onmouseenter="showTip('${tipId}')" onmouseleave="hideTip('${tipId}')">🔒 ${cProgs.length} program</span>
-             <div class="rich-tip" id="${tipId}" style="right:0;left:auto">${tipRows}</div>`
-          : `<span class="usage-badge free" style="font-size:.63rem">✓ Bebas</span>`
-        }
+        <span class="usage-badge ${used?'used':'free'}" style="font-size:.63rem">${used?`🔒 ${cEmps.length} sertifikat`:'✓ Bebas'}</span>
       </div>
       ${empSection}
       <div style="display:flex;gap:5px;margin-top:10px">
@@ -2389,34 +2296,34 @@ async function renderKompetensi() {
         <button class="btn-sm btn-del" style="flex:1" onclick="deleteMaster('competency',${c.competency_id},${used},'${c.competency_name.replace(/'/g,"\\'")}')">Hapus</button>
       </div>
     </div>`;
-  }).join(''):'<p style="color:var(--text3);font-size:.83rem">Belum ada kompetensi</p>';
+  }).join('') : '<p style="color:var(--text3);font-size:.83rem">Belum ada kompetensi</p>';
 
-  // --- PETA KOMPETENSI KARYAWAN ---
-  const filtEmps=emps.filter(e=>e.is_active&&(!q||(e.full_name+e.employee_id+e.department).toLowerCase().includes(q))&&(!fSite||e.site===fSite));
-  const types=['Hard Skill','Safety','Soft Skill','Leadership'];
+  // Peta kompetensi karyawan - based on certifications
+  const filtEmps = emps.filter(e => e.is_active && (!q || (e.full_name+e.employee_id+e.department).toLowerCase().includes(q)) && (!fSite || e.site === fSite));
+  const types = ['Hard Skill','Safety','Soft Skill','Leadership'];
+  const empCerts = {};
+  certs.filter(c => c.is_active).forEach(c => {
+    if (!empCerts[c.employee_id]) empCerts[c.employee_id] = [];
+    empCerts[c.employee_id].push(c);
+  });
 
-  document.getElementById('kompBody').innerHTML=filtEmps.length?filtEmps.map((emp,i)=>{
-    const empTrx=trxs.filter(t=>t.employee_id===emp.employee_id&&t.status==='Done');
-    const countByType=t=>{
-      return empTrx.filter(tx=>{
-        const prog=progs.find(p=>p.program_id===tx.program_id);
-        const comp=comps.find(c=>c.competency_id===prog?.competency_id);
-        return comp?.competency_type===t;
-      }).length;
-    };
-    const scores=empTrx.filter(t=>t.post_test_score!=null);
-    const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b.post_test_score,0)/scores.length):null;
+  document.getElementById('kompBody').innerHTML = filtEmps.length ? filtEmps.map((emp, i) => {
+    const ec = empCerts[emp.employee_id] || [];
+    const countByType = t => ec.filter(c => {
+      const comp = comps.find(x => x.competency_id === c.competency_id);
+      return comp?.competency_type === t;
+    }).length;
     return `<tr>
       <td style="color:var(--text3)">${i+1}</td>
       <td><strong>${emp.full_name}</strong><br><small style="color:var(--text3)">${emp.employee_id}</small></td>
       <td>${emp.department}</td>
       <td><span class="badge b-navy" style="font-size:.68rem">${emp.site}</span></td>
       <td style="color:var(--text2)">${emp.position}</td>
-      ${types.map(t=>`<td style="text-align:center"><span class="badge ${countByType(t)>0?'b-green':'b-gray'}">${countByType(t)}</span></td>`).join('')}
-      <td style="text-align:center"><span class="badge b-navy">${empTrx.length}</span></td>
-      <td>${avg!==null?scoreBar(null,avg):'<span style="color:var(--text3)">-</span>'}</td>
+      ${types.map(t => `<td style="text-align:center"><span class="badge ${countByType(t)>0?'b-green':'b-gray'}">${countByType(t)}</span></td>`).join('')}
+      <td style="text-align:center"><span class="badge b-navy">${ec.length}</span></td>
+      <td style="text-align:center;color:var(--text3)">-</td>
     </tr>`;
-  }).join(''):'<tr class="empty-row"><td colspan="11">Tidak ada data</td></tr>';
+  }).join('') : '<tr class="empty-row"><td colspan="11">Tidak ada data</td></tr>';
 }
 
 function toggleSection(bodyId, chevId) {
@@ -2431,76 +2338,35 @@ function toggleSection(bodyId, chevId) {
 // MASTER DATA
 // =====================
 
-// Cek apakah employee sudah dipakai di transaksi
+// Cek apakah employee sudah dipakai di sertifikasi
 async function isEmpUsed(eid) {
-  const [trxs,certs]=await Promise.all([getAll('trx_employee_program'),getAll('trx_certification')]);
-  return trxs.some(t=>t.employee_id===eid) || certs.some(c=>c.employee_id===eid);
-}
-// Cek apakah program sudah dipakai di transaksi
-async function isProgUsed(pid) {
-  const trxs=await getAll('trx_employee_program');
-  return trxs.some(t=>t.program_id===pid);
-}
-// Cek apakah competency sudah dipakai di program
-async function isCompUsed(cid) {
-  const progs=await getAll('mst_program');
-  return progs.some(p=>p.competency_id===cid);
+  const certs = await getAll('trx_certification');
+  return certs.some(c => c.employee_id === eid);
 }
 
 async function renderMaster() {
-  const [emps,progs,comps,trxs,certs]=await Promise.all([
-    getAll('mst_employee'),getAll('mst_program'),getAll('mst_competency'),
-    getAll('trx_employee_program'),getAll('trx_certification')
+  const [emps, comps, certs] = await Promise.all([
+    getAll('mst_employee'), getAll('mst_competency'), getAll('trx_certification')
   ]);
 
-  // Hitung usage counts + detail
-  const empTrxMap={};  // eid -> [{prog_name, end_date, status}]
-  const empCertMap={}; // eid -> [{sertif_name, expiry}]
-  trxs.forEach(t=>{
-    const prog=progs.find(p=>p.program_id===t.program_id);
-    if(!empTrxMap[t.employee_id]) empTrxMap[t.employee_id]=[];
-    empTrxMap[t.employee_id].push({name:prog?prog.program_name:'(unknown)',date:t.end_date,status:t.status});
-  });
-  certs.forEach(c=>{
-    if(!empCertMap[c.employee_id]) empCertMap[c.employee_id]=[];
-    empCertMap[c.employee_id].push({name:c.sertif_name,expiry:c.expiry_date});
-  });
-
-  const progTrxMap={}; // pid -> [{emp_name, end_date, status}]
-  trxs.forEach(t=>{
-    const emp=emps.find(e=>e.employee_id===t.employee_id);
-    if(!progTrxMap[t.program_id]) progTrxMap[t.program_id]=[];
-    progTrxMap[t.program_id].push({name:emp?emp.full_name:t.employee_id,date:t.end_date,status:t.status});
-  });
-
-  const compProgMap={}; // cid -> [prog_name]
-  progs.forEach(p=>{
-    if(!p.competency_id) return;
-    if(!compProgMap[p.competency_id]) compProgMap[p.competency_id]=[];
-    compProgMap[p.competency_id].push({name:p.program_name,type:p.program_type});
+  const empCertMap = {}; // eid -> [{sertif_name, expiry}]
+  certs.forEach(c => {
+    if (!empCertMap[c.employee_id]) empCertMap[c.employee_id] = [];
+    empCertMap[c.employee_id].push({name: c.sertif_name, expiry: c.expiry_date});
   });
 
   // --- EMPLOYEE TABLE ---
-  document.getElementById('empBody').innerHTML=emps.length?emps.map(e=>{
-    const eTrx=empTrxMap[e.employee_id]||[];
-    const eCert=empCertMap[e.employee_id]||[];
-    const used=eTrx.length>0||eCert.length>0;
-    const totalUsed=eTrx.length+eCert.length;
-
-    // Build tooltip content (as data-attr JSON-escaped HTML)
-    let tipRows='';
-    if(eTrx.length){
-      tipRows+=`<div class="tip-section-label">📋 Riwayat Program (${eTrx.length})</div>`;
-      eTrx.slice(0,5).forEach(r=>{ tipRows+=`<div class="tip-row"><span class="tip-name">${r.name}</span><span class="tip-meta">${r.date?fmtDate(r.date):'-'} · ${r.status}</span></div>`; });
-      if(eTrx.length>5) tipRows+=`<div class="tip-more">+${eTrx.length-5} lainnya</div>`;
+  document.getElementById('empBody').innerHTML = emps.length ? emps.map(e => {
+    const eCert = empCertMap[e.employee_id] || [];
+    const used = eCert.length > 0;
+    let tipRows = '';
+    if (eCert.length) {
+      tipRows += `<div class="tip-section-label">🏅 Sertifikasi (${eCert.length})</div>`;
+      eCert.slice(0,5).forEach(r => { tipRows += `<div class="tip-row"><span class="tip-name">${r.name}</span><span class="tip-meta">${r.expiry?'Exp: '+fmtDate(r.expiry):'Seumur hidup'}</span></div>`; });
+      if (eCert.length > 5) tipRows += `<div class="tip-more">+${eCert.length-5} lainnya</div>`;
     }
-    if(eCert.length){
-      tipRows+=`<div class="tip-section-label" style="margin-top:8px">🏅 Sertifikasi (${eCert.length})</div>`;
-      eCert.slice(0,3).forEach(r=>{ tipRows+=`<div class="tip-row"><span class="tip-name">${r.name}</span><span class="tip-meta">${r.expiry?'Exp: '+fmtDate(r.expiry):'Seumur hidup'}</span></div>`; });
-    }
-    const tipHtml=`<div class="tip-header">Penggunaan: ${e.full_name}</div>${tipRows}`;
-    const tipId=`tip-emp-${e.employee_id}`;
-
+    const tipHtml = `<div class="tip-header">Penggunaan: ${e.full_name}</div>${tipRows}`;
+    const tipId = `tip-emp-${e.employee_id}`;
     return `<tr>
       <td><code style="font-size:.75rem">${e.employee_id}</code></td>
       <td><strong>${e.full_name}</strong></td>
@@ -2512,7 +2378,7 @@ async function renderMaster() {
       <td><span class="badge ${e.is_active?'b-green':'b-gray'}">${e.is_active?'Aktif':'Nonaktif'}</span></td>
       <td style="white-space:nowrap;position:relative">
         ${used
-          ? `<span class="usage-badge used" onmouseenter="showTip('${tipId}')" onmouseleave="hideTip('${tipId}')">🔒 ${totalUsed} referensi</span>
+          ? `<span class="usage-badge used" onmouseenter="showTip('${tipId}')" onmouseleave="hideTip('${tipId}')">🔒 ${eCert.length} sertifikat</span>
              <div class="rich-tip" id="${tipId}">${tipHtml}</div>`
           : `<span class="usage-badge free">✓ Belum dipakai</span>`
         }
@@ -2522,109 +2388,27 @@ async function renderMaster() {
         <button class="btn-sm btn-del" onclick="deleteMaster('employee','${e.employee_id}',${used},'${e.full_name}')">Hapus</button>
       </td>
     </tr>`;
-  }).join(''):'<tr class="empty-row"><td colspan="10">Belum ada data karyawan</td></tr>';
-
-  // --- PROGRAM TABLE ---
-  const todayStr=new Date().toISOString().split('T')[0];
-  const warnings=progs.filter(p=>p.program_status==='Waiting'&&p.start_date&&p.start_date===todayStr);
-  const warnArea=document.getElementById('progWarningArea');
-  if(warnings.length){
-    warnArea.innerHTML=warnings.map(p=>`<div style="background:var(--yellow-lt);border-left:4px solid var(--yellow);padding:8px 16px;font-size:.8rem;color:#92610a">⚠ <strong>${p.program_name}</strong> — dijadwalkan mulai hari ini tapi status masih <em>Waiting</em>. Segera perbarui statusnya.</div>`).join('');
-  } else { warnArea.innerHTML=''; }
-
-  const statusBadgeProg=s=>{const m={'Waiting':'b-yellow','On Process':'b-navy','Done':'b-green'};return`<span class="badge ${m[s]||'b-gray'}">${s||'Waiting'}</span>`;};
-  const orgTypeBadge=t=>t==='Internal'?'<span class="badge b-navy" style="font-size:.67rem">Internal</span>':'<span class="badge b-purple" style="font-size:.67rem">Eksternal</span>';
-
-  document.getElementById('progBody').innerHTML=progs.length?progs.map(p=>{
-    const comp=comps.find(c=>c.competency_id===p.competency_id);
-    const pTrx=progTrxMap[p.program_id]||[];
-    const used=pTrx.length>0;
-    const tipId=`tip-prog-${p.program_id}`;
-    const isWarnRow=p.program_status==='Waiting'&&p.start_date&&p.start_date===todayStr;
-
-    let tipRows=`<div class="tip-header">Peserta: ${p.program_name}</div>`;
-    if(pTrx.length){
-      const done=pTrx.filter(t=>t.status==='Done').length;
-      tipRows+=`<div class="tip-summary">${pTrx.length} peserta · ${done} selesai · ${pTrx.length-done} belum/gagal</div>`;
-      pTrx.slice(0,6).forEach(r=>{ tipRows+=`<div class="tip-row"><span class="tip-name">${r.name}</span><span class="tip-meta">${r.date?fmtDate(r.date):'-'} · <span style="color:${r.status==='Done'?'#00a86b':r.status==='Failed'?'#d63031':'#f39c12'}">${r.status}</span></span></div>`; });
-      if(pTrx.length>6) tipRows+=`<div class="tip-more">+${pTrx.length-6} peserta lainnya</div>`;
-    }
-
-    return `<tr style="${isWarnRow?'background:var(--yellow-lt)':''}">
-      <td style="max-width:160px;font-size:.82rem">${p.program_name}</td>
-      <td>${typeBadge(p.program_type)}</td>
-      <td>${statusBadgeProg(p.program_status)}</td>
-      <td>${orgTypeBadge(p.organizer_type)}<span style="font-size:.75rem;color:var(--text2);display:block;margin-top:2px">${p.conducted_by||''}</span></td>
-      <td style="white-space:nowrap;font-size:.8rem">${p.start_date?fmtDate(p.start_date):'-'}</td>
-      <td style="white-space:nowrap;font-size:.8rem">${p.end_date?fmtDate(p.end_date):'-'}</td>
-      <td><span class="badge b-gray" style="font-size:.67rem">${comp?comp.competency_name:'-'}</span></td>
-      <td style="color:var(--text2);font-size:.8rem">${p.delivery_method}</td>
-      <td><span class="badge ${p.is_mandatory?'b-red':'b-gray'}">${p.is_mandatory?'Wajib':'Opsional'}</span></td>
-      <td style="white-space:nowrap;position:relative">
-        ${used
-          ? `<span class="usage-badge used" onmouseenter="showTip('${tipId}')" onmouseleave="hideTip('${tipId}')">🔒 ${pTrx.length} peserta</span>
-             <div class="rich-tip" id="${tipId}">${tipRows}</div>`
-          : `<span class="usage-badge free">✓ Belum dipakai</span>`
-        }
-      </td>
-      <td style="white-space:nowrap">
-        <button class="btn-sm btn-edit" onclick="editMaster('program',${p.program_id},${used})">Edit</button>
-        <button class="btn-sm btn-del" onclick="deleteMaster('program',${p.program_id},${used},'${p.program_name.replace(/'/g,"\\'")}')">Hapus</button>
-      </td>
-    </tr>`;
-  }).join(''):'<tr class="empty-row"><td colspan="11">Belum ada program</td></tr>';
-
-  // --- COMPETENCY CARDS --- (now rendered in Kompetensi tab via renderKompetensi)
-  const compGridEl=document.getElementById('compGrid');
-  if(!compGridEl) return;
-  compGridEl.innerHTML=comps.length?comps.map(c=>{
-    const col={'Hard Skill':'b-navy','Safety':'b-red','Soft Skill':'b-green','Leadership':'b-purple'}[c.competency_type]||'b-gray';
-    const cProgs=compProgMap[c.competency_id]||[];
-    const used=cProgs.length>0;
-    const tipId=`tip-comp-${c.competency_id}`;
-
-    let tipRows=`<div class="tip-header">Program terkait: ${c.competency_name}</div>`;
-    cProgs.forEach(pr=>{ tipRows+=`<div class="tip-row"><span class="tip-name">${pr.name}</span><span class="tip-meta">${pr.type}</span></div>`; });
-
-    return `<div class="comp-card" style="position:relative">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
-        <div>
-          <div class="comp-name">${c.competency_name}</div>
-          <div class="comp-type"><span class="badge ${col}">${c.competency_type}</span>&nbsp;${c.category||''}</div>
-        </div>
-        ${used
-          ? `<span class="usage-badge used" style="font-size:.63rem" onmouseenter="showTip('${tipId}')" onmouseleave="hideTip('${tipId}')">🔒 ${cProgs.length} program</span>
-             <div class="rich-tip" id="${tipId}" style="right:0;left:auto">${tipRows}</div>`
-          : `<span class="usage-badge free" style="font-size:.63rem">✓ Bebas</span>`
-        }
-      </div>
-      <div style="display:flex;gap:5px;margin-top:10px">
-        <button class="btn-sm btn-edit" style="flex:1" onclick="editMaster('competency',${c.competency_id},${used})">Edit</button>
-        <button class="btn-sm btn-del" style="flex:1" onclick="deleteMaster('competency',${c.competency_id},${used},'${c.competency_name.replace(/'/g,"\\'")}')">Hapus</button>
-      </div>
-    </div>`;
-  }).join(''):'<p style="color:var(--text3);font-size:.83rem">Belum ada kompetensi</p>';
+  }).join('') : '<tr class="empty-row"><td colspan="10">Belum ada data karyawan</td></tr>';
 }
 
 // =====================
 // DELETE MASTER (dengan validasi)
 // =====================
 async function deleteMaster(mode, key, isUsed, label) {
-  // BLOKIR jika sudah dipakai di transaksi
+  // BLOKIR jika sudah dipakai di sertifikasi
   if(isUsed) {
     const msgs={
-      employee:`Karyawan "${label}" tidak dapat dihapus karena sudah memiliki riwayat transaksi atau sertifikasi.\n\nUbah status menjadi "Nonaktif" jika tidak lagi bekerja.`,
-      program:`Program "${label}" tidak dapat dihapus karena sudah digunakan dalam transaksi riwayat program.\n\nEdit program untuk mengubah detailnya, atau arsipkan secara manual.`,
-      competency:`Kompetensi "${label}" tidak dapat dihapus karena sudah ditautkan ke satu atau lebih program di katalog.`
+      employee:`Karyawan "${label}" tidak dapat dihapus karena sudah memiliki sertifikasi.\n\nUbah status menjadi "Nonaktif" jika tidak lagi bekerja.`,
+      competency:`Kompetensi "${label}" tidak dapat dihapus karena sudah ditautkan ke satu atau lebih sertifikasi karyawan.`
     };
     showBlockedModal(msgs[mode]||'Data tidak dapat dihapus karena sudah digunakan.');
     return;
   }
   // Konfirmasi hapus normal
-  if(!confirm(`Hapus ${mode==='employee'?'karyawan':mode==='program'?'program':'kompetensi'} "${label}"?\n\nAksi ini tidak dapat dibatalkan.`)) return;
-  const stores={employee:'mst_employee',program:'mst_program',competency:'mst_competency'};
+  if(!confirm(`Hapus ${mode==='employee'?'karyawan':'kompetensi'} "${label}"?\n\nAksi ini tidak dapat dibatalkan.`)) return;
+  const stores={employee:'mst_employee',competency:'mst_competency'};
   await deleteRecord(stores[mode], key);
-  const apiDel={employee:`/api/employees/${encodeURIComponent(key)}`,program:`/api/programs/${key}`,competency:`/api/competencies/${key}`};
+  const apiDel={employee:`/api/employees/${encodeURIComponent(key)}`,competency:`/api/competencies/${key}`};
   if(apiDel[mode]) try { await fetch(apiDel[mode],{method:'DELETE'}); } catch(e){ console.warn('MySQL sync delete gagal:',e); }
   showToast(`${label} berhasil dihapus`);
   if(mode==='competency') renderKompetensi(); else renderMaster();
@@ -2751,70 +2535,33 @@ function setEvalFromJson(json){
 // =====================
 // MODAL TRX
 // =====================
-let editTrxId=null, editCertId=null, curTrxMode='trx';
+let editCertId=null;
 
 async function openAddModal() {
-  editTrxId=null; editCertId=null;
-  document.getElementById('modalTrxTitle').textContent='Tambah Data Program';
+  editCertId=null;
+  document.getElementById('modalTrxTitle').textContent='Tambah Sertifikasi';
   clearTrxForm();
   await populateTrxSelects();
-  setTrxMode('trx');
   document.getElementById('modalTrx').classList.add('open');
 }
+async function openTrxModal() { return openAddModal(); }
 
 async function populateTrxSelects() {
-  const [emps,progs]=await Promise.all([getAll('mst_employee'),getAll('mst_program')]);
+  const emps=await getAll('mst_employee');
   const empOpts=emps.filter(e=>e.is_active).map(e=>`<option value="${e.employee_id}">${e.full_name} (${e.employee_id})</option>`).join('');
-  const progOpts=progs.map(p=>`<option value="${p.program_id}">[${p.program_type}] ${p.program_name}</option>`).join('');
-  ['t_emp','c_emp'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<option value="">-- Pilih Karyawan --</option>'+empOpts; });
-  const tp=document.getElementById('t_prog'); if(tp) tp.innerHTML='<option value="">-- Pilih Program --</option>'+progOpts;
-}
-
-function setTrxMode(m) {
-  curTrxMode=m;
-  document.getElementById('formTrx').style.display=m==='trx'?'':'none';
-  document.getElementById('formCert').style.display=m==='cert'?'':'none';
-  document.getElementById('modeA').classList.toggle('active',m==='trx');
-  document.getElementById('modeB').classList.toggle('active',m==='cert');
+  const el=document.getElementById('c_emp'); if(el) el.innerHTML='<option value="">-- Pilih Karyawan --</option>'+empOpts;
 }
 
 function clearTrxForm() {
-  ['t_emp','t_prog','t_start','t_end','t_aktivitas','t_pre','t_post','t_react','t_cost','t_notes',
-   'c_emp','c_sertif','c_no','c_penerbit','c_terbit','c_expiry','c_notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  const ts=document.getElementById('t_status'); if(ts) ts.value='Done';
-  const es=document.getElementById('evalSection'); if(es) es.innerHTML=buildEvalForm();
-}
-
-async function editTrx(id) {
-  const all=await getAll('trx_employee_program');
-  const t=all.find(x=>x.trx_id===id); if(!t) return;
-  editTrxId=id; editCertId=null;
-  document.getElementById('modalTrxTitle').textContent='Edit Data Program';
-  await populateTrxSelects();
-  setTrxMode('trx');
-  document.getElementById('t_emp').value=t.employee_id;
-  document.getElementById('t_prog').value=t.program_id;
-  document.getElementById('t_start').value=t.start_date||'';
-  document.getElementById('t_end').value=t.end_date||'';
-  document.getElementById('t_status').value=t.status;
-  document.getElementById('t_aktivitas').value=t.aktivitas||'';
-  document.getElementById('t_pre').value=t.pre_test_score!=null?t.pre_test_score:'';
-  document.getElementById('t_post').value=t.post_test_score!=null?t.post_test_score:'';
-  document.getElementById('t_react').value=t.reaction_score!=null?t.reaction_score:'';
-  document.getElementById('t_cost').value=t.training_cost||'';
-  document.getElementById('t_notes').value=t.notes||'';
-  const es=document.getElementById('evalSection');
-  if(es){ es.innerHTML=buildEvalForm(); setEvalFromJson(t.eval_json?JSON.parse(t.eval_json):null); }
-  document.getElementById('modalTrx').classList.add('open');
+  ['c_emp','c_sertif','c_no','c_penerbit','c_terbit','c_expiry','c_notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
 }
 
 async function editCert(id) {
   const all=await getAll('trx_certification');
   const c=all.find(x=>x.cert_id===id); if(!c) return;
-  editCertId=id; editTrxId=null;
+  editCertId=id;
   document.getElementById('modalTrxTitle').textContent='Edit Sertifikasi';
   await populateTrxSelects();
-  setTrxMode('cert');
   document.getElementById('c_emp').value=c.employee_id;
   document.getElementById('c_sertif').value=c.sertif_name||'';
   document.getElementById('c_no').value=c.certificate_number||'';
@@ -2826,77 +2573,34 @@ async function editCert(id) {
 }
 
 async function saveTrx() {
-  if(curTrxMode==='trx') {
-    const emp=document.getElementById('t_emp').value;
-    const prog=document.getElementById('t_prog').value;
-    const end=document.getElementById('t_end').value;
-    if(!emp||!prog||!end){showToast('Karyawan, program, dan tgl selesai wajib diisi',false);return;}
-    const evalData=getEvalJson();
-    const hasEval=evalData.avg!==null;
-    const autoReact=hasEval?parseFloat(((evalData.avg-1)/3*4+1).toFixed(2)):null;
-    const obj={
-      employee_id:emp, program_id:parseInt(prog),
-      start_date:document.getElementById('t_start').value||null,
-      end_date:end, status:document.getElementById('t_status').value,
-      aktivitas:document.getElementById('t_aktivitas').value,
-      pre_test_score:document.getElementById('t_pre').value!==''?parseFloat(document.getElementById('t_pre').value):null,
-      post_test_score:document.getElementById('t_post').value!==''?parseFloat(document.getElementById('t_post').value):null,
-      reaction_score:hasEval?autoReact:(document.getElementById('t_react').value!==''?parseFloat(document.getElementById('t_react').value):null),
-      training_cost:parseFloat(document.getElementById('t_cost').value)||0,
-      notes:document.getElementById('t_notes').value,
-      eval_json:(hasEval||evalData.saran.trim())?JSON.stringify(evalData):null,
-      recorded_by:'HR'
-    };
-    if(editTrxId) obj.trx_id=editTrxId;
-    await putRecord('trx_employee_program',obj);
-    try {
-      if(editTrxId){
-        await fetch(`/api/transactions/${editTrxId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
-      } else {
-        const r=await fetch('/api/transactions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
-        if(r.ok){const d=await r.json();obj.trx_id=d.trx_id;await putRecord('trx_employee_program',obj);}
-      }
-      invalidateCache('trx_employee_program');
-    } catch(e){console.warn('MySQL sync trx gagal:',e);}
-    showToast(editTrxId?'Data berhasil diupdate':'Data berhasil disimpan');
-  } else {
-    const emp=document.getElementById('c_emp').value;
-    const sertif=document.getElementById('c_sertif').value.trim();
-    const terbit=document.getElementById('c_terbit').value;
-    if(!emp||!sertif||!terbit){showToast('Karyawan, nama sertifikasi, dan tgl terbit wajib diisi',false);return;}
-    const obj={
-      employee_id:emp, trx_id:null,
-      sertif_name:sertif,
-      certificate_number:document.getElementById('c_no').value||'',
-      issuing_body:document.getElementById('c_penerbit').value||'',
-      issue_date:terbit,
-      expiry_date:document.getElementById('c_expiry').value||'',
-      is_active:1, renewal_count:0,
-      notes:document.getElementById('c_notes').value||''
-    };
-    if(editCertId) obj.cert_id=editCertId;
-    await putRecord('trx_certification',obj);
-    try {
-      if(editCertId){
-        await fetch(`/api/certifications/${editCertId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
-      } else {
-        const r=await fetch('/api/certifications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
-        if(r.ok){const d=await r.json();obj.cert_id=d.cert_id;await putRecord('trx_certification',obj);}
-      }
-      invalidateCache('trx_certification');
-    } catch(e){console.warn('MySQL sync cert gagal:',e);}
-    showToast(editCertId?'Sertifikasi berhasil diupdate':'Sertifikasi berhasil disimpan');
-  }
+  const emp=document.getElementById('c_emp').value;
+  const sertif=document.getElementById('c_sertif').value.trim();
+  const terbit=document.getElementById('c_terbit').value;
+  if(!emp||!sertif||!terbit){showToast('Karyawan, nama sertifikasi, dan tgl terbit wajib diisi',false);return;}
+  const obj={
+    employee_id:emp, trx_id:null,
+    sertif_name:sertif,
+    certificate_number:document.getElementById('c_no').value||'',
+    issuing_body:document.getElementById('c_penerbit').value||'',
+    issue_date:terbit,
+    expiry_date:document.getElementById('c_expiry').value||'',
+    is_active:1, renewal_count:0,
+    notes:document.getElementById('c_notes').value||''
+  };
+  if(editCertId) obj.cert_id=editCertId;
+  await putRecord('trx_certification',obj);
+  try {
+    if(editCertId){
+      await fetch(`/api/certifications/${editCertId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+    } else {
+      const r=await fetch('/api/certifications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+      if(r.ok){const d=await r.json();obj.cert_id=d.cert_id;await putRecord('trx_certification',obj);}
+    }
+    invalidateCache('trx_certification');
+  } catch(e){console.warn('MySQL sync cert gagal:',e);}
+  showToast(editCertId?'Sertifikasi berhasil diupdate':'Sertifikasi berhasil disimpan');
   closeModal('modalTrx');
   renderDashboard(); renderRekap(); renderSertif();
-}
-
-async function deleteTrx(id) {
-  if(!confirm('Hapus data transaksi ini?')) return;
-  await deleteRecord('trx_employee_program',id);
-  try { await fetch(`/api/transactions/${id}`,{method:'DELETE'}); invalidateCache('trx_employee_program'); } catch(e){console.warn('MySQL sync delete trx gagal:',e);}
-  showToast('Data dihapus');
-  renderRekap(); renderDashboard();
 }
 async function deleteCert(id) {
   if(!confirm('Hapus sertifikasi ini?')) return;
@@ -2924,20 +2628,6 @@ const masterForms = {
     <div class="form-group"><label>Status</label><select id="m_active"><option value="1">Aktif</option><option value="0">Nonaktif</option></select></div>
     <div class="form-group"><label>Dept Head</label><select id="m_dept_head"><option value="0">Tidak</option><option value="1">Ya</option></select></div>
   </div>`,
-  program:`<div class="form-grid">
-    <div class="form-group full"><label>Nama Program *</label><input type="text" id="m_pname" placeholder="Nama program training"></div>
-    <div class="form-group"><label>Tipe *</label><select id="m_ptype"><option>Training</option><option>Sosialisasi</option><option>Sertifikasi</option></select></div>
-    <div class="form-group"><label>Status *</label><select id="m_pstatus"><option value="Waiting">Waiting</option><option value="On Process">On Process</option><option value="Done">Done</option></select></div>
-    <div class="form-group"><label>Tanggal Mulai</label><input type="date" id="m_pstart"></div>
-    <div class="form-group"><label>Tanggal Selesai</label><input type="date" id="m_pend"></div>
-    <div class="form-group"><label>Metode</label><select id="m_pmethod"><option>Offline</option><option>Online</option><option>Hybrid</option><option>Vendor</option></select></div>
-    <div class="form-group"><label>Penyelenggara</label><select id="m_porgtype"><option value="Internal">Internal</option><option value="Eksternal">Eksternal</option></select></div>
-    <div class="form-group"><label>Nama Penyelenggara</label><input type="text" id="m_pconducted" placeholder="Nama lembaga / vendor"></div>
-    <div class="form-group"><label>Trainer</label><input type="text" id="m_ptrainer" placeholder="Nama trainer"></div>
-    <div class="form-group"><label>Lokasi</label><input type="text" id="m_ploc" placeholder="Lokasi pelaksanaan"></div>
-    <div class="form-group"><label>Kompetensi</label><select id="m_pcomp"><option value="">-- Pilih Kompetensi --</option></select></div>
-    <div class="form-group"><label>Wajib?</label><select id="m_pmandatory"><option value="1">Wajib</option><option value="0">Opsional</option></select></div>
-  </div>`,
   competency:`<div class="form-grid">
     <div class="form-group full"><label>Nama Kompetensi *</label><input type="text" id="m_cname" placeholder="Nama standar kompetensi"></div>
     <div class="form-group"><label>Tipe *</label><select id="m_ctype"><option>Hard Skill</option><option>Soft Skill</option><option>Safety</option><option>Leadership</option></select></div>
@@ -2947,37 +2637,33 @@ const masterForms = {
 
 async function openMasterModal(mode) {
   masterMode=mode; masterEditKey=null;
-  const titles={employee:'Tambah Karyawan',program:'Tambah Program',competency:'Tambah Kompetensi'};
+  const titles={employee:'Tambah Karyawan',competency:'Tambah Kompetensi'};
   document.getElementById('masterTitle').textContent=titles[mode];
   document.getElementById('masterBody').innerHTML=masterForms[mode];
-  if(mode==='program') await populateCompSelect();
   document.getElementById('modalMaster').classList.add('open');
 }
 
 async function editMaster(mode, key, isUsed=false) {
   masterMode=mode; masterEditKey=key;
-  const titles={employee:'Edit Karyawan',program:'Edit Program',competency:'Edit Kompetensi'};
+  const titles={employee:'Edit Karyawan',competency:'Edit Kompetensi'};
   document.getElementById('masterTitle').textContent=titles[mode];
 
-  // Warning banner jika data sudah dipakai di transaksi
   const warnMsgs={
-    employee:'Karyawan ini sudah memiliki riwayat transaksi. NIK tidak dapat diubah. Kolom lain tetap bisa diedit.',
-    program:'Program ini sudah digunakan dalam transaksi. Nama program & tipe tidak dapat diubah untuk menjaga konsistensi data historis.',
-    competency:'Kompetensi ini sudah ditautkan ke satu atau lebih program. Nama & tipe tidak dapat diubah.'
+    employee:'Karyawan ini sudah memiliki sertifikasi. NIK tidak dapat diubah. Kolom lain tetap bisa diedit.',
+    competency:'Kompetensi ini sudah ditautkan ke satu atau lebih sertifikasi karyawan. Nama & tipe tidak dapat diubah.'
   };
   const warnBanner = isUsed
     ? `<div style="background:var(--yellow-lt);border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:#92610a;line-height:1.5">
-        ⚠ <strong>Data sudah digunakan dalam transaksi.</strong><br>${warnMsgs[mode]}
+        ⚠ <strong>Data sudah digunakan dalam sertifikasi.</strong><br>${warnMsgs[mode]}
        </div>`
     : '';
 
   document.getElementById('masterBody').innerHTML = warnBanner + masterForms[mode];
-  if(mode==='program') await populateCompSelect();
 
   if(mode==='employee'){
     const all=await getAll('mst_employee'), r=all.find(x=>x.employee_id===key); if(!r) return;
     document.getElementById('m_nik').value=r.employee_id;
-    document.getElementById('m_nik').disabled=true; // NIK selalu locked saat edit
+    document.getElementById('m_nik').disabled=true;
     document.getElementById('m_name').value=r.full_name;
     document.getElementById('m_dept').value=r.department;
     document.getElementById('m_pos').value=r.position;
@@ -2988,32 +2674,11 @@ async function editMaster(mode, key, isUsed=false) {
     document.getElementById('m_active').value=r.is_active;
     document.getElementById('m_dept_head').value=r.is_dept_head??0;
 
-  } else if(mode==='program'){
-    const all=await getAll('mst_program'), r=all.find(x=>x.program_id===key); if(!r) return;
-    document.getElementById('m_pname').value=r.program_name;
-    document.getElementById('m_ptype').value=r.program_type;
-    document.getElementById('m_pstatus').value=r.program_status||'Waiting';
-    document.getElementById('m_pstart').value=r.start_date||'';
-    document.getElementById('m_pend').value=r.end_date||'';
-    document.getElementById('m_pmethod').value=r.delivery_method;
-    document.getElementById('m_porgtype').value=r.organizer_type||'Internal';
-    document.getElementById('m_pconducted').value=r.conducted_by||'';
-    document.getElementById('m_ptrainer').value=r.trainer_name||'';
-    document.getElementById('m_ploc').value=r.location||'';
-    document.getElementById('m_pcomp').value=r.competency_id||'';
-    document.getElementById('m_pmandatory').value=r.is_mandatory;
-    // Lock nama program & tipe jika sudah dipakai
-    if(isUsed){
-      document.getElementById('m_pname').disabled=true;
-      document.getElementById('m_ptype').disabled=true;
-    }
-
   } else if(mode==='competency'){
     const all=await getAll('mst_competency'), r=all.find(x=>x.competency_id===key); if(!r) return;
     document.getElementById('m_cname').value=r.competency_name;
     document.getElementById('m_ctype').value=r.competency_type;
     document.getElementById('m_ccat').value=r.category||'';
-    // Lock nama & tipe kompetensi jika sudah dipakai
     if(isUsed){
       document.getElementById('m_cname').disabled=true;
       document.getElementById('m_ctype').disabled=true;
@@ -3022,11 +2687,6 @@ async function editMaster(mode, key, isUsed=false) {
   document.getElementById('modalMaster').classList.add('open');
 }
 
-async function populateCompSelect() {
-  const comps=await getAll('mst_competency');
-  const el=document.getElementById('m_pcomp');
-  if(el) el.innerHTML='<option value="">-- Pilih Kompetensi --</option>'+comps.map(c=>`<option value="${c.competency_id}">${c.competency_name} (${c.competency_type})</option>`).join('');
-}
 
 function validateRequired(ids) {
   let ok=true;
@@ -3077,53 +2737,6 @@ async function saveMaster() {
       showToast('Gagal menyimpan: '+e.message+' — periksa koneksi dan coba lagi',false);
       return;
     }
-
-  } else if(masterMode==='program'){
-    // Jika nama disabled (terkunci), ambil nilai asli dari DB
-    let progName=document.getElementById('m_pname').value.trim();
-    let progType=document.getElementById('m_ptype').value;
-    if(masterEditKey && document.getElementById('m_pname').disabled){
-      const orig=(await getAll('mst_program')).find(p=>p.program_id===masterEditKey);
-      if(orig){ progName=orig.program_name; progType=orig.program_type; }
-    }
-    if(!progName){
-      document.getElementById('m_pname').classList.add('field-error');
-      showToast('Nama program wajib diisi',false);return;
-    }
-    const progStatus=document.getElementById('m_pstatus').value;
-    const startDate=document.getElementById('m_pstart').value||null;
-    const endDate=document.getElementById('m_pend').value||null;
-    // Warning jika status Waiting tapi start_date = hari ini
-    if(progStatus==='Waiting' && startDate){
-      const todayStr=new Date().toISOString().split('T')[0];
-      if(startDate===todayStr) showToast('⚠ Peringatan: Program ini dijadwalkan mulai hari ini tapi statusnya masih Waiting!',false);
-    }
-    const obj={
-      program_name:progName, program_type:progType,
-      program_status:progStatus,
-      start_date:startDate,
-      end_date:endDate,
-      organizer_type:document.getElementById('m_porgtype').value,
-      delivery_method:document.getElementById('m_pmethod').value,
-      conducted_by:document.getElementById('m_pconducted').value,
-      trainer_name:document.getElementById('m_ptrainer').value,
-      location:document.getElementById('m_ploc').value,
-      competency_id:parseInt(document.getElementById('m_pcomp').value)||null,
-      is_mandatory:parseInt(document.getElementById('m_pmandatory').value),
-      created_at:new Date().toISOString()
-    };
-    if(masterEditKey) obj.program_id=masterEditKey;
-    await putRecord('mst_program',obj);
-    try {
-      if(masterEditKey){
-        await fetch(`/api/programs/${masterEditKey}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
-      } else {
-        const r=await fetch('/api/programs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
-        if(r.ok){const d=await r.json();obj.program_id=d.program_id;await putRecord('mst_program',obj);}
-      }
-      invalidateCache('mst_program');
-    } catch(e){console.warn('MySQL sync program gagal:',e);}
-    showToast(masterEditKey?'Program berhasil diperbarui':'Program berhasil ditambahkan');
 
   } else if(masterMode==='competency'){
     let compName=document.getElementById('m_cname').value.trim();
@@ -3369,16 +2982,14 @@ function closeModalOutside(e,id){if(e.target.id===id)closeModal(id)}
 // EXPORT CSV
 // =====================
 async function exportCSV() {
-  const [trxs,emps,progs,comps]=await Promise.all([getAll('trx_employee_program'),getAll('mst_employee'),getAll('mst_program'),getAll('mst_competency')]);
-  let csv='No,NIK,Nama Karyawan,Departemen,Site,Jabatan,Nama Program,Tipe,Kompetensi,Metode,Penyelenggara,Tgl Mulai,Tgl Selesai,Status,Pre-test,Post-test,Reaction Score,Biaya,Catatan\n';
-  trxs.forEach((t,i)=>{
-    const emp=emps.find(e=>e.employee_id===t.employee_id)||{};
-    const prog=progs.find(p=>p.program_id===t.program_id)||{};
-    const comp=comps.find(c=>c.competency_id===prog.competency_id)||{};
-    csv+=`${i+1},"${t.employee_id}","${emp.full_name||''}","${emp.department||''}","${emp.site||''}","${emp.position||''}","${prog.program_name||''}","${prog.program_type||''}","${comp.competency_type||''}","${prog.delivery_method||''}","${prog.conducted_by||''}","${t.start_date||''}","${t.end_date||''}","${t.status}","${t.pre_test_score??''}","${t.post_test_score??''}","${t.reaction_score??''}","${t.training_cost||0}","${t.notes||''}"\n`;
+  let requests=[];
+  try { requests=await fetch('/api/training-requests').then(r=>r.json()); } catch{}
+  let csv='No,Departemen,Nama Pelatihan,Tipe,Tgl Mulai,Tgl Selesai,Penyelenggara,Total Biaya,Status Approval,Diajukan Oleh,Tgl Diajukan\n';
+  requests.forEach((r,i)=>{
+    csv+=`${i+1},"${r.department||''}","${r.training_name||''}","${r.training_type||''}","${r.training_date_start||''}","${r.training_date_end||''}","${r.organizer||''}","${r.cost_total||0}","${r.approval_status||''}","${r.submitted_by||''}","${(r.submitted_at||'').slice(0,10)}"\n`;
   });
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='ccsi-training-export.csv'; a.click();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='ccsi-training-requests-export.csv'; a.click();
 }
 
 // =====================
