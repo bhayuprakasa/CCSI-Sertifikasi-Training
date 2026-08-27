@@ -276,12 +276,30 @@ function onTrainingSelect() {
   const empSearch = document.getElementById('cert_emp_search');
   const certType = document.getElementById('cert_type');
   const certIssuingBody = document.getElementById('cert_issuing_body');
+  const certComp = document.getElementById('cert_competency');
+
+  // Remove any previously added temp option
+  const prevTemp = certComp.querySelector('option[data-temp]');
+  if (prevTemp) certComp.removeChild(prevTemp);
 
   if (selectedTraining) {
     certIssuingBody.value = selectedTraining.organizer || '';
     certIssuingBody.readOnly = true;
     certType.value = selectedTraining.training_type || 'Eksternal';
     certType.disabled = true;
+
+    // Auto-fill kompetensi from training record
+    const komp = selectedTraining.kompetensi || '';
+    const matchedComp = allCompetencies.find(c => c.competency_name.toLowerCase() === komp.toLowerCase());
+    if (matchedComp) {
+      certComp.value = String(matchedComp.competency_id);
+    } else if (komp) {
+      const o = document.createElement('option');
+      o.value = '__komp__'; o.textContent = komp; o.setAttribute('data-temp', '1');
+      certComp.appendChild(o);
+      o.selected = true;
+    }
+    certComp.disabled = true;
 
     const attendedEmps = getAttendedEmployees();
     const depts = [...new Set(attendedEmps.map(e => e.department).filter(Boolean))].sort();
@@ -292,6 +310,8 @@ function onTrainingSelect() {
     certIssuingBody.readOnly = false;
     certType.value = 'Eksternal';
     certType.disabled = false;
+    certComp.value = '';
+    certComp.disabled = false;
     buildDeptOptions(deptSel, []);
     deptSel.disabled = true;
   }
@@ -427,7 +447,8 @@ async function submitCertForm() {
   const issueDate = document.getElementById('cert_issue_date').value;
   const expiryDate = document.getElementById('cert_expiry_date').value;
   const certCompEl = document.getElementById('cert_competency');
-  const competencyId = certCompEl.value || null;
+  const rawCompId = certCompEl.value;
+  const competencyId = (rawCompId && rawCompId !== '__komp__') ? rawCompId : null;
   const kompText = selectedTraining
     ? (selectedTraining.kompetensi || certCompEl.options[certCompEl.selectedIndex]?.text || '')
     : (certCompEl.options[certCompEl.selectedIndex]?.text || '');
