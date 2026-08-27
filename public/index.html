@@ -342,6 +342,7 @@ select.filter:focus{border-color:var(--navy-lt)}
         <span class="card-title">📋 Rekap Permohonan Pelatihan</span>
         <div style="display:flex;align-items:center;gap:8px">
           <button class="btn-sm btn-edit" onclick="event.stopPropagation();openPermHRModal()">+ Permohonan Baru</button>
+          <button class="btn-sm" onclick="event.stopPropagation();openUploadModal('pelatihan')" style="background:#e8f7ef;border:1px solid #a7d9b8;color:#1a6e3c">📤 Upload CSV</button>
           <button class="btn-sm" onclick="event.stopPropagation();window.open('/bod-hr-approval.html','_blank')" style="background:#e8f4fd;border:1px solid #b8d4f0;color:#0c2a52">🏢 Approval BOD HR</button>
           <button class="btn-sm" id="copyBodHrBtn" onclick="event.stopPropagation();copyBodHrLink()" title="Salin link halaman Approval BOD HR" style="background:#f0fdf4;border:1px solid #86efac;color:#166534">📋 Copy Link</button>
           <span id="chevRekapPerm" class="section-chev">▼</span>
@@ -389,6 +390,7 @@ select.filter:focus{border-color:var(--navy-lt)}
       <div class="card-header" style="cursor:pointer;user-select:none" onclick="toggleSection('rekapAbsenBody','chevRekapAbsen')">
         <span class="card-title">✅ Rekap Daftar Hadir Training</span>
         <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-sm" onclick="event.stopPropagation();openUploadModal('absensi')" style="background:#e8f7ef;border:1px solid #a7d9b8;color:#1a6e3c">📤 Upload CSV</button>
           <span id="chevRekapAbsen" class="section-chev">▼</span>
         </div>
       </div>
@@ -433,7 +435,7 @@ select.filter:focus{border-color:var(--navy-lt)}
   <!-- SERTIFIKASI -->
   <div id="tab-sertifikasi" class="tab-panel">
     <div class="card">
-      <div class="card-header"><span class="card-title">Rekap Sertifikasi Aktif</span><span id="sertifCount" style="font-size:.78rem;color:var(--text3)"></span></div>
+      <div class="card-header"><span class="card-title">Rekap Sertifikasi Aktif</span><div style="display:flex;align-items:center;gap:8px"><button class="btn-sm" onclick="openUploadModal('sertifikasi')" style="background:#e8f7ef;border:1px solid #a7d9b8;color:#1a6e3c">📤 Upload CSV</button><span id="sertifCount" style="font-size:.78rem;color:var(--text3)"></span></div></div>
       <div class="card-body">
         <div class="toolbar">
           <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchSertif" placeholder="Cari nama, sertifikasi, nomor..." oninput="renderSertif()"></div>
@@ -523,6 +525,7 @@ select.filter:focus{border-color:var(--navy-lt)}
       <div class="card-header" style="flex-wrap:wrap;gap:10px">
         <span class="card-title">📝 Rekapitulasi Evaluasi Trainer</span>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-sm" onclick="openUploadModal('evaluasi')" style="background:#e8f7ef;border:1px solid #a7d9b8;color:#1a6e3c">📤 Upload CSV</button>
           <select class="filter" id="fEvalProg" onchange="renderEvaluasi()" style="min-width:280px"><option value="">-- Pilih Program --</option></select>
           <span id="evalRespondenCount" style="font-size:.78rem;color:var(--text3)"></span>
         </div>
@@ -539,7 +542,7 @@ select.filter:focus{border-color:var(--navy-lt)}
       🔒 <strong>Aturan integritas data:</strong> Master data yang sudah dipakai dalam transaksi <strong>tidak dapat dihapus</strong> untuk menjaga keakuratan riwayat. Data yang sudah dipakai hanya bisa diedit pada field tertentu yang tidak mempengaruhi historis.
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">👥 Master Karyawan</span><div style="display:flex;gap:6px"><button class="btn-sm" id="btnSyncEmp" onclick="syncEmployeesToServer()" style="background:#e8f0fe;border:1px solid #c5d4f5;color:#1a56c4;font-size:.75rem">⟳ Sync ke Server</button><button class="btn-sm btn-edit" onclick="openMasterModal('employee')">+ Tambah</button></div></div>
+      <div class="card-header"><span class="card-title">👥 Master Karyawan</span><div style="display:flex;gap:6px"><button class="btn-sm" id="btnSyncEmp" onclick="syncEmployeesToServer()" style="background:#e8f0fe;border:1px solid #c5d4f5;color:#1a56c4;font-size:.75rem">⟳ Sync ke Server</button><button class="btn-sm" onclick="openUploadModal('karyawan')" style="background:#e8f7ef;border:1px solid #a7d9b8;color:#1a6e3c">📤 Upload CSV</button><button class="btn-sm btn-edit" onclick="openMasterModal('employee')">+ Tambah</button></div></div>
       <div class="card-body"><div class="table-wrap"><table>
         <thead><tr><th>NIK</th><th>Nama</th><th>Dept</th><th>Site</th><th>Jabatan</th><th>Dept Head</th><th>Email</th><th>Status</th><th>Penggunaan</th><th>Aksi</th></tr></thead>
         <tbody id="empBody"></tbody>
@@ -899,6 +902,55 @@ select.filter:focus{border-color:var(--navy-lt)}
     <div class="modal-footer">
       <button class="btn-cancel" onclick="rkCloseEditModal()">Batal</button>
       <button id="rkEditSaveBtn" class="btn-save" onclick="rkSaveEdit()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UPLOAD CSV -->
+<div class="modal-overlay" id="modalUpload" onclick="if(event.target===this)closeUploadModal()">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <span class="modal-title" id="uploadModalTitle">📤 Upload Data</span>
+      <button class="modal-close" onclick="closeUploadModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Info banner -->
+      <div id="uploadInfoBanner" style="background:#e8f4fd;border:1px solid #b8d4f0;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#0c2a52;margin-bottom:16px;line-height:1.6"></div>
+
+      <!-- Template download -->
+      <div style="background:#f8fafd;border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+        <div style="flex:1">
+          <div style="font-size:.8rem;font-weight:700;color:var(--navy);margin-bottom:2px">📥 Download Template CSV</div>
+          <div style="font-size:.75rem;color:var(--text3)">Gunakan template ini untuk mengisi data sebelum upload</div>
+        </div>
+        <a id="uploadTemplateLink" href="#" download style="text-decoration:none">
+          <button class="btn-sm" style="background:#e8eef7;border:1px solid #c5d4ec;color:var(--navy);padding:6px 14px">⬇ Download Template</button>
+        </a>
+      </div>
+
+      <!-- File input -->
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Pilih File CSV *</label>
+        <input type="file" id="uploadFileInput" accept=".csv"
+          style="padding:8px;border:1px dashed var(--border);border-radius:7px;width:100%;font-size:.83rem;background:#f8fafd;cursor:pointer">
+        <small style="color:var(--text3)">Maksimal 5 MB · Hanya format .csv</small>
+      </div>
+
+      <!-- Columns info -->
+      <div id="uploadColInfo" style="background:#f0f3f8;border-radius:8px;padding:10px 14px;font-size:.75rem;color:var(--text2);margin-bottom:14px;line-height:1.7"></div>
+
+      <!-- Progress -->
+      <div id="uploadProgress" style="display:none">
+        <div style="font-size:.8rem;color:var(--text2);margin-bottom:6px">Memproses...</div>
+        <div class="prog-wrap"><div class="prog-bar" id="uploadBar" style="width:60%"></div></div>
+      </div>
+
+      <!-- Result -->
+      <div id="uploadResult" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeUploadModal()">Batal</button>
+      <button class="btn-save" id="uploadSubmitBtn" onclick="submitUpload()" style="background:var(--green)">📤 Upload & Proses</button>
     </div>
   </div>
 </div>
@@ -3032,6 +3084,220 @@ function showTip(id) {
 }
 function hideTip(id) {
   const el=document.getElementById(id); if(el) el.classList.remove('visible');
+}
+
+// =====================
+// UPLOAD CSV
+// =====================
+const _UPLOAD_CONFIG = {
+  karyawan: {
+    title: 'Upload Master Karyawan',
+    endpoint: '/api/upload/karyawan',
+    template: '/templates/template_karyawan.csv',
+    templateName: 'template_karyawan.csv',
+    info: 'Upload data karyawan dari file CSV. Data yang sudah ada (berdasarkan NIK / employee_id) akan di-update, data baru akan ditambahkan.',
+    cols: [
+      { name: 'employee_id', wajib: true, desc: 'NIK / ID karyawan (unik)' },
+      { name: 'full_name', wajib: true, desc: 'Nama lengkap' },
+      { name: 'department', wajib: true, desc: 'Nama departemen' },
+      { name: 'position', wajib: true, desc: 'Jabatan' },
+      { name: 'site', wajib: true, desc: 'HO Jakarta atau Cilegon' },
+      { name: 'email', wajib: false, desc: 'Alamat email' },
+      { name: 'employment_status', wajib: false, desc: 'PKWTT atau PKWT (default: PKWTT)' },
+      { name: 'join_date', wajib: false, desc: 'Tanggal masuk (YYYY-MM-DD)' },
+      { name: 'is_active', wajib: false, desc: '1 = Aktif, 0 = Non-aktif (default: 1)' },
+      { name: 'is_dept_head', wajib: false, desc: '1 = Dept Head, 0 = Bukan (default: 0)' },
+    ],
+    afterSuccess: () => { invalidateCache('mst_employee'); renderMaster && renderMaster(); },
+  },
+  pelatihan: {
+    title: 'Upload Rekap Pelatihan',
+    endpoint: '/api/upload/pelatihan',
+    template: '/templates/template_rekap_pelatihan.csv',
+    templateName: 'template_rekap_pelatihan.csv',
+    info: 'Upload data permohonan pelatihan dari file CSV. Setiap baris akan menjadi satu permohonan baru dengan status <strong>Submitted by HR</strong>.',
+    cols: [
+      { name: 'department', wajib: true, desc: 'Departemen / divisi' },
+      { name: 'training_name', wajib: true, desc: 'Nama program pelatihan' },
+      { name: 'training_venue', wajib: false, desc: 'Tempat / lokasi pelatihan' },
+      { name: 'training_date_start', wajib: false, desc: 'Tanggal mulai (YYYY-MM-DD)' },
+      { name: 'training_date_end', wajib: false, desc: 'Tanggal selesai (YYYY-MM-DD)' },
+      { name: 'training_type', wajib: false, desc: 'Internal atau Eksternal' },
+      { name: 'organizer', wajib: false, desc: 'Nama penyelenggara' },
+      { name: 'training_reason', wajib: false, desc: 'Alasan / tujuan pelatihan' },
+      { name: 'submitted_by', wajib: false, desc: 'Nama pengusul' },
+      { name: 'is_scheduled', wajib: false, desc: '1 = Terjadwal, 0 = Tidak (default: 0)' },
+      { name: 'participants', wajib: false, desc: 'Nama peserta dipisah titik-koma (;)' },
+    ],
+    afterSuccess: () => { invalidateCache('trx_training_requests'); renderRekap && renderRekap(); },
+  },
+  absensi: {
+    title: 'Upload Data Absensi',
+    endpoint: '/api/upload/absensi',
+    template: '/templates/template_absensi.csv',
+    templateName: 'template_absensi.csv',
+    info: 'Upload daftar hadir training dari file CSV. Baris dengan judul + departemen + tanggal + instruktur yang sama akan dikelompokkan menjadi satu sesi training.',
+    cols: [
+      { name: 'training_title', wajib: true, desc: 'Judul / nama program training' },
+      { name: 'instructor', wajib: false, desc: 'Nama instruktur' },
+      { name: 'location', wajib: false, desc: 'Lokasi pelaksanaan' },
+      { name: 'department', wajib: true, desc: 'Departemen' },
+      { name: 'training_date_start', wajib: false, desc: 'Tanggal mulai (YYYY-MM-DD)' },
+      { name: 'training_date_end', wajib: false, desc: 'Tanggal selesai (YYYY-MM-DD)' },
+      { name: 'employee_id', wajib: true, desc: 'NIK / ID karyawan peserta' },
+      { name: 'employee_name', wajib: true, desc: 'Nama karyawan peserta' },
+    ],
+    afterSuccess: () => { invalidateCache('trx_training_attendance'); renderAbsen && renderAbsen(); },
+  },
+  evaluasi: {
+    title: 'Upload Data Evaluasi',
+    endpoint: '/api/upload/evaluasi',
+    template: '/templates/template_evaluasi.csv',
+    templateName: 'template_evaluasi.csv',
+    info: 'Upload data evaluasi trainer dari file CSV. Skor menggunakan skala 1–5. Baris dengan judul + departemen + tanggal yang sama dikelompokkan menjadi satu sesi.',
+    cols: [
+      { name: 'training_title', wajib: true, desc: 'Judul / nama program training' },
+      { name: 'instructor', wajib: false, desc: 'Nama instruktur' },
+      { name: 'department', wajib: true, desc: 'Departemen' },
+      { name: 'training_date_start', wajib: false, desc: 'Tanggal pelaksanaan (YYYY-MM-DD)' },
+      { name: 'employee_id', wajib: true, desc: 'NIK / ID karyawan peserta' },
+      { name: 'employee_name', wajib: true, desc: 'Nama karyawan peserta' },
+      { name: 'score_materi', wajib: false, desc: 'Skor materi (1–5)' },
+      { name: 'score_instruktur', wajib: false, desc: 'Skor instruktur (1–5)' },
+      { name: 'score_fasilitas', wajib: false, desc: 'Skor fasilitas (1–5)' },
+      { name: 'score_organisasi', wajib: false, desc: 'Skor organisasi (1–5)' },
+      { name: 'saran', wajib: false, desc: 'Saran / komentar peserta' },
+    ],
+    afterSuccess: () => { invalidateCache('trx_training_attendance'); renderEvaluasi && renderEvaluasi(); },
+  },
+  sertifikasi: {
+    title: 'Upload Data Sertifikasi',
+    endpoint: '/api/upload/sertifikasi',
+    template: '/templates/template_sertifikasi.csv',
+    templateName: 'template_sertifikasi.csv',
+    info: 'Upload data sertifikasi karyawan dari file CSV. Setiap baris akan menambahkan satu record sertifikasi baru.',
+    cols: [
+      { name: 'employee_id', wajib: true, desc: 'NIK / ID karyawan' },
+      { name: 'sertif_name', wajib: true, desc: 'Nama sertifikasi / kompetensi' },
+      { name: 'certificate_number', wajib: false, desc: 'Nomor sertifikat resmi' },
+      { name: 'issuing_body', wajib: false, desc: 'Lembaga penerbit (BNSP / Kemnaker / dll)' },
+      { name: 'issue_date', wajib: true, desc: 'Tanggal terbit (YYYY-MM-DD)' },
+      { name: 'expiry_date', wajib: false, desc: 'Tanggal kadaluarsa (YYYY-MM-DD, kosong = lifetime)' },
+      { name: 'certification_type', wajib: false, desc: 'Internal atau Eksternal (default: Eksternal)' },
+      { name: 'delivery_method', wajib: false, desc: 'Online atau Offline (default: Offline)' },
+      { name: 'notes', wajib: false, desc: 'Catatan perpanjangan dll' },
+    ],
+    afterSuccess: () => { invalidateCache('trx_certification'); renderSertif && renderSertif(); },
+  },
+};
+
+let _uploadCurrentType = null;
+
+function openUploadModal(type) {
+  const cfg = _UPLOAD_CONFIG[type];
+  if (!cfg) return;
+  _uploadCurrentType = type;
+
+  document.getElementById('uploadModalTitle').textContent = '📤 ' + cfg.title;
+  document.getElementById('uploadInfoBanner').innerHTML = 'ℹ️ ' + cfg.info;
+  document.getElementById('uploadTemplateLink').href = cfg.template;
+  document.getElementById('uploadTemplateLink').download = cfg.templateName;
+  document.getElementById('uploadFileInput').value = '';
+  document.getElementById('uploadProgress').style.display = 'none';
+  document.getElementById('uploadResult').style.display = 'none';
+  document.getElementById('uploadSubmitBtn').disabled = false;
+  document.getElementById('uploadSubmitBtn').textContent = '📤 Upload & Proses';
+
+  // Build column info table
+  const wajib = cfg.cols.filter(c => c.wajib);
+  const opsional = cfg.cols.filter(c => !c.wajib);
+  let html = '<div style="font-weight:700;font-size:.76rem;color:var(--navy);margin-bottom:6px">📋 Kolom CSV</div>';
+  html += '<div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px">';
+  wajib.forEach(c => {
+    html += `<div style="color:var(--red);font-weight:700;white-space:nowrap">${c.name} *</div><div>${c.desc}</div>`;
+  });
+  opsional.forEach(c => {
+    html += `<div style="color:var(--text2);white-space:nowrap">${c.name}</div><div style="color:var(--text3)">${c.desc}</div>`;
+  });
+  html += '</div><div style="margin-top:6px;font-size:.7rem;color:var(--red)">* kolom wajib diisi</div>';
+  document.getElementById('uploadColInfo').innerHTML = html;
+
+  document.getElementById('modalUpload').classList.add('open');
+}
+
+function closeUploadModal() {
+  document.getElementById('modalUpload').classList.remove('open');
+  _uploadCurrentType = null;
+}
+
+async function submitUpload() {
+  const cfg = _UPLOAD_CONFIG[_uploadCurrentType];
+  if (!cfg) return;
+
+  const fileInput = document.getElementById('uploadFileInput');
+  if (!fileInput.files || !fileInput.files[0]) {
+    showToast('Pilih file CSV terlebih dahulu', false);
+    return;
+  }
+
+  const btn = document.getElementById('uploadSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Memproses...';
+  document.getElementById('uploadProgress').style.display = 'block';
+  document.getElementById('uploadResult').style.display = 'none';
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+
+  try {
+    const resp = await fetch(cfg.endpoint, { method: 'POST', body: formData });
+    const data = await resp.json();
+
+    document.getElementById('uploadProgress').style.display = 'none';
+    const resDiv = document.getElementById('uploadResult');
+    resDiv.style.display = 'block';
+
+    if (!resp.ok) {
+      resDiv.innerHTML = `<div style="background:var(--red-lt);border:1px solid #fcd4d4;border-radius:8px;padding:12px 14px;font-size:.83rem;color:var(--red)">
+        ❌ <strong>Gagal:</strong> ${data.error || 'Terjadi kesalahan'}
+      </div>`;
+      return;
+    }
+
+    let html = `<div style="background:var(--green-lt);border:1px solid #a7e8cc;border-radius:8px;padding:12px 14px;font-size:.83rem;color:#007a50;margin-bottom:10px">
+      ✅ <strong>Berhasil diproses!</strong>
+      <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap">
+        <span>📋 Total baris: <strong>${data.total}</strong></span>
+        ${data.inserted !== undefined ? `<span>✅ Ditambahkan: <strong>${data.inserted}</strong></span>` : ''}
+        ${data.updated !== undefined ? `<span>✏️ Diupdate: <strong>${data.updated}</strong></span>` : ''}
+        ${data.sessions !== undefined ? `<span>📂 Sesi: <strong>${data.sessions}</strong></span>` : ''}
+        ${data.skipped ? `<span style="color:var(--yellow)">⚠ Dilewati: <strong>${data.skipped}</strong></span>` : ''}
+      </div>
+    </div>`;
+
+    if (data.errors && data.errors.length) {
+      html += `<div style="background:var(--yellow-lt);border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:.78rem;color:#856404">
+        <div style="font-weight:700;margin-bottom:6px">⚠ Peringatan / Error (${data.errors.length})</div>
+        <div style="max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:3px">
+          ${data.errors.map(e => `<div>• ${e}</div>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    resDiv.innerHTML = html;
+
+    // Refresh data in background
+    if (cfg.afterSuccess) cfg.afterSuccess();
+    showToast('Upload selesai — ' + (data.inserted || 0) + ' data berhasil disimpan');
+
+  } catch(e) {
+    document.getElementById('uploadProgress').style.display = 'none';
+    document.getElementById('uploadResult').style.display = 'block';
+    document.getElementById('uploadResult').innerHTML = `<div style="background:var(--red-lt);border:1px solid #fcd4d4;border-radius:8px;padding:12px 14px;font-size:.83rem;color:var(--red)">❌ ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📤 Upload & Proses';
+  }
 }
 
 // =====================
