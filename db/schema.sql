@@ -197,51 +197,6 @@ CREATE TABLE IF NOT EXISTS trx_audit_log (
   INDEX idx_changed_at   (changed_at)
 ) ENGINE=InnoDB;
 
--- ============================================================
--- APPROVAL WORKFLOW CONFIGURATION
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS cfg_approval_workflow (
-  workflow_id   INT          AUTO_INCREMENT PRIMARY KEY,
-  workflow_name VARCHAR(100) NOT NULL,
-  form_type     VARCHAR(50)  NOT NULL COMMENT 'training_request | training_needs | certification',
-  is_active     TINYINT      NOT NULL DEFAULT 1,
-  description   TEXT         NULL,
-  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS cfg_approval_layer (
-  layer_id        INT          AUTO_INCREMENT PRIMARY KEY,
-  workflow_id     INT          NOT NULL,
-  layer_order     INT          NOT NULL COMMENT 'Urutan layer: 1, 2, 3...',
-  layer_name      VARCHAR(100) NOT NULL,
-  criteria_field  VARCHAR(50)  NOT NULL DEFAULT 'all_employee',
-  criteria_value  TEXT         NULL,
-  auto_ascend     TINYINT      NOT NULL DEFAULT 0,
-  FOREIGN KEY (workflow_id) REFERENCES cfg_approval_workflow(workflow_id)
-    ON DELETE CASCADE ON UPDATE CASCADE,
-  UNIQUE KEY uq_workflow_order (workflow_id, layer_order)
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS cfg_approval_approver (
-  approver_id      INT          AUTO_INCREMENT PRIMARY KEY,
-  layer_id         INT          NOT NULL,
-  approver_order   INT          NOT NULL DEFAULT 1,
-  approver_field   VARCHAR(50)  NOT NULL DEFAULT 'employee_id',
-  approver_action  VARCHAR(50)  NOT NULL DEFAULT 'requested',
-  approver_value   VARCHAR(100) NULL,
-  approver_display VARCHAR(100) NULL,
-  approver_name    VARCHAR(100) NOT NULL,
-  approver_email   VARCHAR(150) NOT NULL,
-  approver_role    VARCHAR(100) NULL,
-  criteria_type    ENUM('always','cost_above','cost_range','department','training_type','combined')
-                   NOT NULL DEFAULT 'always',
-  criteria_value   TEXT         NULL COMMENT 'JSON criteria config',
-  FOREIGN KEY (layer_id) REFERENCES cfg_approval_layer(layer_id)
-    ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
 
 CREATE TABLE IF NOT EXISTS cfg_approver_hrd (
   id           INT          AUTO_INCREMENT PRIMARY KEY,
