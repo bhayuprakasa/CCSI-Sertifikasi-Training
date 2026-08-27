@@ -87,7 +87,7 @@ router.post('/', async (req, res) => {
         score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total,
         submitted_by, is_scheduled, approval_status, approval_token,
         approver_name, approver_email, approver_position
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         item.department, item.training_name, item.training_venue || null,
         item.training_date_start, item.training_date_end || item.training_date_start,
@@ -437,21 +437,22 @@ router.patch('/:id/dates', async (req, res) => {
 });
 
 router.patch('/:id/organizer-participants', async (req, res) => {
-  const { organizer, participants, kompetensi, instruktur } = req.body;
+  const { organizer, participants, kompetensi, instruktur, department } = req.body;
   if (!Array.isArray(participants) || !participants.length) {
     return res.status(400).json({ error: 'Minimal 1 peserta wajib diisi' });
   }
 
-  const [existing] = await pool.query('SELECT request_id, organizer, kompetensi, instruktur FROM trx_training_request WHERE request_id = ?', [req.params.id]);
+  const [existing] = await pool.query('SELECT request_id, department, organizer, kompetensi, instruktur FROM trx_training_request WHERE request_id = ?', [req.params.id]);
   if (!existing.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
 
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
+    const newDept = department || existing[0].department;
     await conn.query(
-      'UPDATE trx_training_request SET organizer = ?, kompetensi = ?, instruktur = ? WHERE request_id = ?',
-      [organizer || null, kompetensi || null, instruktur || null, req.params.id]
+      'UPDATE trx_training_request SET department = ?, organizer = ?, kompetensi = ?, instruktur = ? WHERE request_id = ?',
+      [newDept, organizer || null, kompetensi || null, instruktur || null, req.params.id]
     );
 
     await conn.query('DELETE FROM trx_training_request_participant WHERE request_id = ?', [req.params.id]);
@@ -465,14 +466,14 @@ router.patch('/:id/organizer-participants', async (req, res) => {
       table_name: 'trx_training_request',
       record_id: req.params.id,
       operation: 'UPDATE',
-      old_data: { organizer: existing[0].organizer, kompetensi: existing[0].kompetensi, instruktur: existing[0].instruktur },
-      new_data: { organizer, kompetensi, instruktur, participant_count: participants.length },
+      old_data: { department: existing[0].department, organizer: existing[0].organizer, kompetensi: existing[0].kompetensi, instruktur: existing[0].instruktur },
+      new_data: { department: newDept, organizer, kompetensi, instruktur, participant_count: participants.length },
       changed_by: req.changedBy,
       conn,
     });
 
     await conn.commit();
-    res.json({ updated: true, organizer, kompetensi, instruktur, participant_count: participants.length });
+    res.json({ updated: true, department: newDept, organizer, kompetensi, instruktur, participant_count: participants.length });
   } catch (e) {
     await conn.rollback();
     throw e;
