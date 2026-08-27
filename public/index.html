@@ -478,6 +478,43 @@ select.filter:focus{border-color:var(--navy-lt)}
         <div class="card-body"><div class="comp-grid" id="compGridKomp"></div></div>
       </div>
     </div>
+
+    <!-- PETA KOMPETENSI KARYAWAN -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-header" style="flex-wrap:wrap;gap:10px">
+        <span class="card-title">🗺️ Peta Kompetensi Karyawan</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="text" id="searchComp" class="filter" placeholder="Cari karyawan..." style="min-width:180px" oninput="renderKompetensi()">
+          <select id="fCompSite" class="filter" onchange="renderKompetensi()">
+            <option value="">Semua Site</option>
+            <option value="HO Jakarta">HO Jakarta</option>
+            <option value="Cilegon">Cilegon</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body" style="overflow-x:auto;padding:0">
+        <table class="data-table" style="min-width:700px">
+          <thead>
+            <tr>
+              <th style="width:26px">#</th>
+              <th>Nama Karyawan</th>
+              <th>Departemen</th>
+              <th>Site</th>
+              <th>Jabatan</th>
+              <th style="text-align:center">Hard Skill</th>
+              <th style="text-align:center">Safety</th>
+              <th style="text-align:center">Soft Skill</th>
+              <th style="text-align:center">Leadership</th>
+              <th style="text-align:center">Total</th>
+              <th style="text-align:center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="kompBody">
+            <tr class="empty-row"><td colspan="11">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- EVALUASI -->
