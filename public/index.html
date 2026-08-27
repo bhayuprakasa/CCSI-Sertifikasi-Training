@@ -834,14 +834,6 @@ select.filter:focus{border-color:var(--navy-lt)}
   </div>
 </div>
 
-<!-- Detail Modal Rekap -->
-<div class="modal-overlay" id="rkDetailModal" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-header"><span class="modal-title" id="rkDetailTitle">Detail Pelatihan</span><button class="modal-close" onclick="document.getElementById('rkDetailModal').classList.remove('open')">✕</button></div>
-    <div class="modal-body" id="rkDetailBody"></div>
-    <div class="modal-footer"><button class="btn-cancel" onclick="document.getElementById('rkDetailModal').classList.remove('open')">Tutup</button></div>
-  </div>
-</div>
 
 
 <!-- MODAL EDIT PENYELENGGARA & PESERTA -->
@@ -2542,5 +2534,567 @@ async function editCert(id) {
   document.getElementById('c_sertif').value=c.sertif_name||'';
   document.getElementById('c_no').value=c.certificate_number||'';
   document.getElementById('c_penerbit').value=c.issuing_body||'';
-  document.getElementById('c_terbit').value=c.issue_date||'';
-  document.getElementById('c_expirySaya hanya AI berbasis teks dan tidak bisa membantu Anda untuk itu.
+  document.getElementById('c_expiry').value=c.expiry_date||'';
+  document.getElementById('c_notes').value=c.notes||'';
+  document.getElementById('modalTrx').classList.add('open');
+}
+
+async function saveTrx() {
+  const emp=document.getElementById('c_emp').value;
+  const sertif=document.getElementById('c_sertif').value.trim();
+  const terbit=document.getElementById('c_terbit').value;
+  if(!emp||!sertif||!terbit){showToast('Karyawan, nama sertifikasi, dan tgl terbit wajib diisi',false);return;}
+  const obj={
+    employee_id:emp, trx_id:null,
+    sertif_name:sertif,
+    certificate_number:document.getElementById('c_no').value||'',
+    issuing_body:document.getElementById('c_penerbit').value||'',
+    issue_date:terbit,
+    expiry_date:document.getElementById('c_expiry').value||'',
+    is_active:1, renewal_count:0,
+    notes:document.getElementById('c_notes').value||''
+  };
+  if(editCertId) obj.cert_id=editCertId;
+  await putRecord('trx_certification',obj);
+  try {
+    if(editCertId){
+      await fetch(`/api/certifications/${editCertId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+    } else {
+      const r=await fetch('/api/certifications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+      if(r.ok){const d=await r.json();obj.cert_id=d.cert_id;await putRecord('trx_certification',obj);}
+    }
+    invalidateCache('trx_certification');
+  } catch(e){console.warn('MySQL sync cert gagal:',e);}
+  showToast(editCertId?'Sertifikasi berhasil diupdate':'Sertifikasi berhasil disimpan');
+  closeModal('modalTrx');
+  renderDashboard(); renderRekap(); renderSertif();
+}
+
+async function deleteCert(id) {
+  if(!confirm('Hapus sertifikasi ini?')) return;
+  await deleteRecord('trx_certification',id);
+  try { await fetch(`/api/certifications/${id}`,{method:'DELETE'}); invalidateCache('trx_certification'); } catch(e){console.warn('MySQL sync delete cert gagal:',e);}
+  showToast('Sertifikasi dihapus');
+  renderSertif(); renderDashboard();
+}
+
+// =====================
+// MODAL MASTER
+// =====================
+let masterMode='', masterEditKey=null;
+
+const masterForms = {
+  employee:`<div class="form-grid">
+    <div class="form-group"><label>NIK *</label><input type="text" id="m_nik" placeholder="CC001"></div>
+    <div class="form-group"><label>Nama Lengkap *</label><input type="text" id="m_name" placeholder="Nama karyawan"></div>
+    <div class="form-group"><label>Departemen *</label><input type="text" id="m_dept" placeholder="Produksi" list="deptList2"><datalist id="deptList2"><option>Direksi/BOD</option><option>HR & GA</option><option>Finance</option><option>IT</option><option>Produksi</option><option>QC/QA</option><option>Engineering</option><option>Purchasing</option><option>PPIC</option><option>Maintenance</option><option>Warehouse</option><option>Sales</option></datalist></div>
+    <div class="form-group"><label>Jabatan *</label><input type="text" id="m_pos" placeholder="Staff / Supervisor / dll"></div>
+    <div class="form-group"><label>Site *</label><select id="m_site"><option value="">-- Pilih --</option><option>HO Jakarta</option><option>Cilegon</option></select></div>
+    <div class="form-group"><label>Email</label><input type="email" id="m_email" placeholder="nama@ccsi.co.id"></div>
+    <div class="form-group"><label>Status Kepegawaian</label><select id="m_empstatus"><option>PKWTT</option><option>PKWT</option></select></div>
+    <div class="form-group"><label>Tgl Join</label><input type="date" id="m_join"></div>
+    <div class="form-group"><label>Status</label><select id="m_active"><option value="1">Aktif</option><option value="0">Nonaktif</option></select></div>
+    <div class="form-group"><label>Dept Head</label><select id="m_dept_head"><option value="0">Tidak</option><option value="1">Ya</option></select></div>
+  </div>`,
+  program:`<div class="form-grid">
+    <div class="form-group full"><label>Nama Program *</label><input type="text" id="m_pname" placeholder="Nama program training"></div>
+    <div class="form-group"><label>Tipe *</label><select id="m_ptype"><option>Training</option><option>Sosialisasi</option><option>Sertifikasi</option></select></div>
+    <div class="form-group"><label>Status *</label><select id="m_pstatus"><option value="Waiting">Waiting</option><option value="On Process">On Process</option><option value="Done">Done</option></select></div>
+    <div class="form-group"><label>Tanggal Mulai</label><input type="date" id="m_pstart"></div>
+    <div class="form-group"><label>Tanggal Selesai</label><input type="date" id="m_pend"></div>
+    <div class="form-group"><label>Metode</label><select id="m_pmethod"><option>Offline</option><option>Online</option><option>Hybrid</option><option>Vendor</option></select></div>
+    <div class="form-group"><label>Penyelenggara</label><select id="m_porgtype"><option value="Internal">Internal</option><option value="Eksternal">Eksternal</option></select></div>
+    <div class="form-group"><label>Nama Penyelenggara</label><input type="text" id="m_pconducted" placeholder="Nama lembaga / vendor"></div>
+    <div class="form-group"><label>Trainer</label><input type="text" id="m_ptrainer" placeholder="Nama trainer"></div>
+    <div class="form-group"><label>Lokasi</label><input type="text" id="m_ploc" placeholder="Lokasi pelaksanaan"></div>
+    <div class="form-group"><label>Kompetensi</label><select id="m_pcomp"><option value="">-- Pilih Kompetensi --</option></select></div>
+    <div class="form-group"><label>Wajib?</label><select id="m_pmandatory"><option value="1">Wajib</option><option value="0">Opsional</option></select></div>
+  </div>`,
+  competency:`<div class="form-grid">
+    <div class="form-group full"><label>Nama Kompetensi *</label><input type="text" id="m_cname" placeholder="Nama standar kompetensi"></div>
+    <div class="form-group"><label>Tipe *</label><select id="m_ctype"><option>Hard Skill</option><option>Soft Skill</option><option>Safety</option><option>Leadership</option></select></div>
+    <div class="form-group"><label>Kategori</label><input type="text" id="m_ccat" placeholder="K3 / Teknis / Finance / dll"></div>
+  </div>`
+};
+
+async function openMasterModal(mode) {
+  masterMode=mode; masterEditKey=null;
+  const titles={employee:'Tambah Karyawan',program:'Tambah Program',competency:'Tambah Kompetensi'};
+  document.getElementById('masterTitle').textContent=titles[mode];
+  document.getElementById('masterBody').innerHTML=masterForms[mode];
+  if(mode==='program') await populateCompSelect();
+  document.getElementById('modalMaster').classList.add('open');
+}
+
+async function editMaster(mode, key, isUsed=false) {
+  masterMode=mode; masterEditKey=key;
+  const titles={employee:'Edit Karyawan',program:'Edit Program',competency:'Edit Kompetensi'};
+  document.getElementById('masterTitle').textContent=titles[mode];
+
+  // Warning banner jika data sudah dipakai di transaksi
+  const warnMsgs={
+    employee:'Karyawan ini sudah memiliki riwayat transaksi. NIK tidak dapat diubah. Kolom lain tetap bisa diedit.',
+    program:'Program ini sudah digunakan dalam transaksi. Nama program & tipe tidak dapat diubah untuk menjaga konsistensi data historis.',
+    competency:'Kompetensi ini sudah ditautkan ke satu atau lebih program. Nama & tipe tidak dapat diubah.'
+  };
+  const warnBanner = isUsed
+    ? `<div style="background:var(--yellow-lt);border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:#92610a;line-height:1.5">
+        ⚠ <strong>Data sudah digunakan dalam transaksi.</strong><br>${warnMsgs[mode]}
+       </div>`
+    : '';
+
+  document.getElementById('masterBody').innerHTML = warnBanner + masterForms[mode];
+  if(mode==='program') await populateCompSelect();
+
+  if(mode==='employee'){
+    const all=await getAll('mst_employee'), r=all.find(x=>x.employee_id===key); if(!r) return;
+    document.getElementById('m_nik').value=r.employee_id;
+    document.getElementById('m_nik').disabled=true; // NIK selalu locked saat edit
+    document.getElementById('m_name').value=r.full_name;
+    document.getElementById('m_dept').value=r.department;
+    document.getElementById('m_pos').value=r.position;
+    document.getElementById('m_site').value=r.site;
+    document.getElementById('m_email').value=r.email||'';
+    document.getElementById('m_empstatus').value=r.employment_status;
+    document.getElementById('m_join').value=r.join_date||'';
+    document.getElementById('m_active').value=r.is_active;
+    document.getElementById('m_dept_head').value=r.is_dept_head??0;
+
+  } else if(mode==='program'){
+    const all=await getAll('mst_program'), r=all.find(x=>x.program_id===key); if(!r) return;
+    document.getElementById('m_pname').value=r.program_name;
+    document.getElementById('m_ptype').value=r.program_type;
+    document.getElementById('m_pstatus').value=r.program_status||'Waiting';
+    document.getElementById('m_pstart').value=r.start_date||'';
+    document.getElementById('m_pend').value=r.end_date||'';
+    document.getElementById('m_pmethod').value=r.delivery_method;
+    document.getElementById('m_porgtype').value=r.organizer_type||'Internal';
+    document.getElementById('m_pconducted').value=r.conducted_by||'';
+    document.getElementById('m_ptrainer').value=r.trainer_name||'';
+    document.getElementById('m_ploc').value=r.location||'';
+    document.getElementById('m_pcomp').value=r.competency_id||'';
+    document.getElementById('m_pmandatory').value=r.is_mandatory;
+    // Lock nama program & tipe jika sudah dipakai
+    if(isUsed){
+      document.getElementById('m_pname').disabled=true;
+      document.getElementById('m_ptype').disabled=true;
+    }
+
+  } else if(mode==='competency'){
+    const all=await getAll('mst_competency'), r=all.find(x=>x.competency_id===key); if(!r) return;
+    document.getElementById('m_cname').value=r.competency_name;
+    document.getElementById('m_ctype').value=r.competency_type;
+    document.getElementById('m_ccat').value=r.category||'';
+    // Lock nama & tipe kompetensi jika sudah dipakai
+    if(isUsed){
+      document.getElementById('m_cname').disabled=true;
+      document.getElementById('m_ctype').disabled=true;
+    }
+  }
+  document.getElementById('modalMaster').classList.add('open');
+}
+
+async function populateCompSelect() {
+  const comps=await getAll('mst_competency');
+  const el=document.getElementById('m_pcomp');
+  if(el) el.innerHTML='<option value="">-- Pilih Kompetensi --</option>'+comps.map(c=>`<option value="${c.competency_id}">${c.competency_name} (${c.competency_type})</option>`).join('');
+}
+
+function validateRequired(ids) {
+  let ok=true;
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const val=(el.value||'').trim();
+    if(!val){ el.classList.add('field-error'); ok=false; }
+    else el.classList.remove('field-error');
+  });
+  return ok;
+}
+
+async function saveMaster() {
+  if(masterMode==='employee'){
+    const nikEl=document.getElementById('m_nik');
+    const ok=validateRequired(['m_name','m_dept','m_pos','m_site']);
+    if(!masterEditKey && !validateRequired(['m_nik'])) return showToast('Field wajib bertanda merah harus diisi',false)||undefined;
+    if(!ok) return showToast('Field wajib bertanda merah harus diisi',false)||undefined;
+    const nik=(nikEl.value||'').trim()||(masterEditKey||'');
+    const name=document.getElementById('m_name').value.trim();
+    if(!nik||!name){showToast('NIK dan nama wajib diisi',false);return;}
+    const obj={
+      employee_id: masterEditKey||nik,
+      full_name:name,
+      department:document.getElementById('m_dept').value,
+      position:document.getElementById('m_pos').value,
+      site:document.getElementById('m_site').value,
+      email:document.getElementById('m_email').value.trim()||null,
+      employment_status:document.getElementById('m_empstatus').value,
+      join_date:document.getElementById('m_join').value||null,
+      is_active:parseInt(document.getElementById('m_active').value),
+      is_dept_head:parseInt(document.getElementById('m_dept_head').value)
+    };
+    // MySQL DULU — IDB hanya diupdate kalau MySQL berhasil agar tidak terjadi data stale
+    try {
+      let res;
+      if(masterEditKey){
+        res = await fetch(`/api/employees/${encodeURIComponent(masterEditKey)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+      } else {
+        res = await fetch('/api/employees',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+      }
+      if(!res.ok){ const err=await res.json().catch(()=>({})); throw new Error(err.error||`HTTP ${res.status}`); }
+      await putRecord('mst_employee',obj);
+      invalidateCache('mst_employee');
+      showToast(masterEditKey?'Data karyawan diperbarui':'Karyawan berhasil ditambahkan');
+    } catch(e){
+      showToast('Gagal menyimpan: '+e.message+' — periksa koneksi dan coba lagi',false);
+      return;
+    }
+
+  } else if(masterMode==='program'){
+    // Jika nama disabled (terkunci), ambil nilai asli dari DB
+    let progName=document.getElementById('m_pname').value.trim();
+    let progType=document.getElementById('m_ptype').value;
+    if(masterEditKey && document.getElementById('m_pname').disabled){
+      const orig=(await getAll('mst_program')).find(p=>p.program_id===masterEditKey);
+      if(orig){ progName=orig.program_name; progType=orig.program_type; }
+    }
+    if(!progName){
+      document.getElementById('m_pname').classList.add('field-error');
+      showToast('Nama program wajib diisi',false);return;
+    }
+    const progStatus=document.getElementById('m_pstatus').value;
+    const startDate=document.getElementById('m_pstart').value||null;
+    const endDate=document.getElementById('m_pend').value||null;
+    // Warning jika status Waiting tapi start_date = hari ini
+    if(progStatus==='Waiting' && startDate){
+      const todayStr=new Date().toISOString().split('T')[0];
+      if(startDate===todayStr) showToast('⚠ Peringatan: Program ini dijadwalkan mulai hari ini tapi statusnya masih Waiting!',false);
+    }
+    const obj={
+      program_name:progName, program_type:progType,
+      program_status:progStatus,
+      start_date:startDate,
+      end_date:endDate,
+      organizer_type:document.getElementById('m_porgtype').value,
+      delivery_method:document.getElementById('m_pmethod').value,
+      conducted_by:document.getElementById('m_pconducted').value,
+      trainer_name:document.getElementById('m_ptrainer').value,
+      location:document.getElementById('m_ploc').value,
+      competency_id:parseInt(document.getElementById('m_pcomp').value)||null,
+      is_mandatory:parseInt(document.getElementById('m_pmandatory').value),
+      created_at:new Date().toISOString()
+    };
+    if(masterEditKey) obj.program_id=masterEditKey;
+    await putRecord('mst_program',obj);
+    try {
+      if(masterEditKey){
+        await fetch(`/api/programs/${masterEditKey}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+      } else {
+        const r=await fetch('/api/programs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+        if(r.ok){const d=await r.json();obj.program_id=d.program_id;await putRecord('mst_program',obj);}
+      }
+      invalidateCache('mst_program');
+    } catch(e){console.warn('MySQL sync program gagal:',e);}
+    showToast(masterEditKey?'Program berhasil diperbarui':'Program berhasil ditambahkan');
+
+  } else if(masterMode==='competency'){
+    let compName=document.getElementById('m_cname').value.trim();
+    let compType=document.getElementById('m_ctype').value;
+    if(masterEditKey && document.getElementById('m_cname').disabled){
+      const orig=(await getAll('mst_competency')).find(c=>c.competency_id===masterEditKey);
+      if(orig){ compName=orig.competency_name; compType=orig.competency_type; }
+    }
+    if(!compName){showToast('Nama kompetensi wajib diisi',false);return;}
+    const obj={competency_name:compName,competency_type:compType,category:document.getElementById('m_ccat').value};
+    if(masterEditKey) obj.competency_id=masterEditKey;
+    await putRecord('mst_competency',obj);
+    try {
+      if(masterEditKey){
+        await fetch(`/api/competencies/${masterEditKey}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+      } else {
+        const r=await fetch('/api/competencies',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+        if(r.ok){const d=await r.json();obj.competency_id=d.competency_id;await putRecord('mst_competency',obj);}
+      }
+      invalidateCache('mst_competency');
+    } catch(e){console.warn('MySQL sync competency gagal:',e);}
+    showToast(masterEditKey?'Kompetensi berhasil diperbarui':'Kompetensi berhasil ditambahkan');
+  }
+  closeModal('modalMaster');
+  if(masterMode==='competency') renderKompetensi(); else renderMaster();
+}
+
+// =====================
+// SYNC EMPLOYEES TO SERVER
+// =====================
+async function syncEmployeesToServer() {
+  const btn = document.getElementById('btnSyncEmp');
+  btn.disabled = true;
+  btn.textContent = '⟳ Menyinkronkan...';
+  try {
+    let emps = await idbGetAll('mst_employee');
+    if (!emps.length) {
+      // IndexedDB kosong — coba tarik data dari server ke IndexedDB
+      btn.textContent = '⟳ Mengambil data dari server...';
+      try {
+        const res = await fetch('/api/employees');
+        if (res.ok) {
+          const serverEmps = await res.json();
+          if (!serverEmps.length) {
+            showToast('Tidak ada data karyawan di server maupun IndexedDB', false);
+            return;
+          }
+          for (const emp of serverEmps) await putRecord('mst_employee', emp);
+          invalidateCache('mst_employee');
+          emps = serverEmps;
+          showToast(`${emps.length} data karyawan berhasil dipulihkan dari server ke IndexedDB`, true);
+          return;
+        } else {
+          showToast('IndexedDB kosong dan server tidak dapat dijangkau', false);
+          return;
+        }
+      } catch (e) {
+        showToast('IndexedDB kosong dan gagal terhubung ke server: ' + e.message, false);
+        return;
+      }
+    }
+
+    // GET daftar server — opsional, tidak gagal total jika MySQL error
+    let serverIds = new Set();
+    try {
+      const res = await fetch('/api/employees');
+      if (res.ok) {
+        const serverEmps = await res.json();
+        serverIds = new Set(serverEmps.map(e => e.employee_id));
+      }
+    } catch (_) {}
+
+    let added = 0, updated = 0, failed = 0;
+    const errors = [];
+    for (const emp of emps) {
+      try {
+        if (serverIds.has(emp.employee_id)) {
+          const r = await fetch(`/api/employees/${encodeURIComponent(emp.employee_id)}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(emp)
+          });
+          if (r.ok) {
+            updated++;
+          } else {
+            failed++;
+            try { const body = await r.json(); errors.push(`PUT ${emp.employee_id} [${r.status}]: ${body.error||JSON.stringify(body)}`); } catch { errors.push(`PUT ${emp.employee_id} [${r.status}]`); }
+          }
+        } else {
+          // POST dulu; jika 409/500 (mungkin sudah ada), fallback ke PUT
+          const r = await fetch('/api/employees', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(emp)
+          });
+          if (r.ok) {
+            added++;
+          } else if (r.status === 409 || r.status === 500) {
+            const r2 = await fetch(`/api/employees/${encodeURIComponent(emp.employee_id)}`, {
+              method: 'PUT',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(emp)
+            });
+            if (r2.ok) {
+              updated++;
+            } else {
+              failed++;
+              try { const body = await r2.json(); errors.push(`PUT ${emp.employee_id} [${r2.status}]: ${body.error||JSON.stringify(body)}`); } catch { errors.push(`PUT ${emp.employee_id} [${r2.status}]`); }
+            }
+          } else {
+            failed++;
+            try { const body = await r.json(); errors.push(`POST ${emp.employee_id} [${r.status}]: ${body.error||JSON.stringify(body)}`); } catch { errors.push(`POST ${emp.employee_id} [${r.status}]`); }
+          }
+        }
+      } catch(e) { failed++; errors.push(`${emp.employee_id}: ${e.message}`); }
+    }
+    const msg = `Sync selesai: ${added} ditambah, ${updated} diperbarui${failed ? ', ' + failed + ' gagal' : ''}`;
+    showToast(msg, failed === 0);
+    if (errors.length) console.error('[Sync Karyawan] Detail error:\n' + errors.join('\n'));
+  } catch (e) {
+    showToast('Sync gagal: ' + e.message, false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⟳ Sync ke Server';
+  }
+}
+
+// =====================
+function copyBodHrLink() {
+  const url = window.location.origin + '/bod-hr-approval.html';
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('copyBodHrBtn');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Tersalin!';
+    btn.style.background = '#dcfce7';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = '#f0fdf4'; }, 2000);
+  }).catch(() => {
+    prompt('Salin link berikut:', url);
+  });
+}
+
+// MODAL PERMOHONAN PELATIHAN (HRD — tanpa approval)
+// =====================
+async function openPermHRModal() {
+  ['mph_submitter','mph_name','mph_venue','mph_organizer','mph_reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const deptSel=document.getElementById('mph_dept');
+  if(deptSel)deptSel.value='';
+  document.getElementById('mph_type').value='';
+  const targetMon=document.getElementById('mph_target_month');
+  if(targetMon){const today=new Date();targetMon.min=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');targetMon.value='';}
+  document.querySelectorAll('input[name="mph_scheduled"]').forEach(r=>{r.checked=(r.value==='0');});
+  ['mph_cost_fee','mph_cost_akomodasi','mph_cost_transport','mph_cost_makan','mph_cost_snack','mph_cost_emergency'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('mph_cost_total').textContent='Rp 0';
+  document.getElementById('mph_peserta').innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen terlebih dahulu</div>';
+
+  try {
+    const emps=await getAll('mst_employee');
+    const depts=[...new Set(emps.map(e=>e.department).filter(Boolean))].sort();
+    deptSel.innerHTML='<option value="">-- Pilih Departemen --</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
+  } catch {
+    const fallback=['Engineering','Finance','HR & GA','IT','Maintenance','PPIC','Produksi','Purchasing','QC/QA','Sales','Warehouse'];
+    deptSel.innerHTML='<option value="">-- Pilih Departemen --</option>'+fallback.map(d=>`<option value="${d}">${d}</option>`).join('');
+  }
+  document.getElementById('modalPermHR').classList.add('open');
+}
+
+async function mphLoadPeserta() {
+  const dept=document.getElementById('mph_dept').value;
+  const container=document.getElementById('mph_peserta');
+  if(!dept){container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen terlebih dahulu</div>';return;}
+  container.innerHTML='<div style="color:var(--text3);font-size:.8rem">Memuat data karyawan...</div>';
+  try {
+    const allEmps=await getAll('mst_employee');
+    const emps=allEmps.filter(e=>e.is_active&&e.department===dept);
+    if(!emps.length){container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Tidak ada karyawan aktif di departemen ini</div>';return;}
+    container.innerHTML=emps.map(e=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f3f6">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;flex:1">
+          <input type="checkbox" name="mph_peserta_check" value="${e.full_name}" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
+          <span>${e.full_name}</span>
+          <span style="font-size:.71rem;color:var(--text3)">${e.position||''}</span>
+        </label>
+      </div>`).join('');
+  } catch {container.innerHTML='<div style="color:var(--red);font-size:.8rem">Gagal memuat data karyawan</div>';}
+}
+
+function mphFormatCost(el){let v=el.value.replace(/\D/g,'');if(v)el.value=Number(v).toLocaleString('id-ID');else el.value='';}
+function mphParseCost(id){return parseInt((document.getElementById(id)?.value||'0').replace(/\D/g,''))||0;}
+function mphCalcTotal(){
+  const t=mphParseCost('mph_cost_fee')+mphParseCost('mph_cost_akomodasi')+mphParseCost('mph_cost_transport')+mphParseCost('mph_cost_makan')+mphParseCost('mph_cost_snack')+mphParseCost('mph_cost_emergency');
+  document.getElementById('mph_cost_total').textContent=t>0?'Rp '+t.toLocaleString('id-ID'):'Rp 0';
+}
+
+async function mphSave() {
+  const dept=document.getElementById('mph_dept').value.trim();
+  const name=document.getElementById('mph_name').value.trim();
+  const targetMonth=document.getElementById('mph_target_month').value;
+  const type=document.getElementById('mph_type').value;
+  const submitter=document.getElementById('mph_submitter').value.trim();
+  const venue=document.getElementById('mph_venue').value.trim();
+  const organizer=document.getElementById('mph_organizer').value.trim();
+  const reason=document.getElementById('mph_reason').value.trim();
+  const kompetensi=document.getElementById('mph_kompetensi').value.trim();
+  const isScheduled=document.querySelector('input[name="mph_scheduled"]:checked')?.value==='1'?1:0;
+  const participants=[...document.querySelectorAll('input[name="mph_peserta_check"]:checked')].map(i=>i.value.trim()).filter(Boolean);
+
+  if(!dept){showToast('Departemen wajib dipilih',false);return;}
+  if(!name){showToast('Nama Pelatihan wajib diisi',false);return;}
+  if(!targetMonth){showToast('Target Pelaksanaan wajib diisi',false);return;}
+  if(!type){showToast('Jenis Training wajib dipilih',false);return;}
+  if(!participants.length){showToast('Pilih minimal 1 peserta',false);return;}
+
+  const body={
+    department:dept,training_name:name,training_venue:venue||null,
+    training_date_start:targetMonth+'-01',training_date_end:targetMonth+'-01',
+    training_type:type,organizer:organizer||null,training_reason:reason||null,kompetensi:kompetensi||null,
+    participants,submitted_by:submitter||'HRD',submitted_by_hr:true,
+    is_scheduled:isScheduled,
+    cost_training_fee:mphParseCost('mph_cost_fee'),cost_akomodasi:mphParseCost('mph_cost_akomodasi'),
+    cost_transport:mphParseCost('mph_cost_transport'),cost_makan:mphParseCost('mph_cost_makan'),
+    cost_snack:mphParseCost('mph_cost_snack'),cost_emergency:mphParseCost('mph_cost_emergency'),
+  };
+
+  const btn=document.getElementById('mphSaveBtn');
+  btn.disabled=true;btn.textContent='⏳ Menyimpan...';
+  try {
+    const res=await fetch('/api/training-requests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Gagal menyimpan');}
+    invalidateCache('trx_training_requests');
+    showToast('Permohonan berhasil disimpan — status: Submitted by HR');
+    closeModal('modalPermHR');
+    renderRekap();
+    renderDashboard();
+  } catch(e){showToast(e.message,false);}
+  finally{btn.disabled=false;btn.textContent='📋 Simpan Permohonan';}
+}
+
+// =====================
+// MODAL UTILS
+// =====================
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+function closeModalOutside(e,id){if(e.target.id===id)closeModal(id)}
+
+// =====================
+// EXPORT CSV
+// =====================
+async function exportCSV() {
+  const reqs=await getAll('trx_training_requests');
+  let csv='No,Dept,Nama Pelatihan,Jenis,Penyelenggara,Target Bulan,Tgl Mulai,Tgl Selesai,Status Approval,Total Biaya,Skor Evaluasi,Peserta,Catatan\n';
+  reqs.forEach((r,i)=>{
+    const peserta=(r.peserta_json?JSON.parse(r.peserta_json):r.participants_json?JSON.parse(r.participants_json):[]);
+    const names=Array.isArray(peserta)?peserta.map(p=>p.full_name||p.name||p.employee_id||p).join('; '):'';
+    csv+=`${i+1},"${r.department||''}","${r.training_name||''}","${r.training_type||''}","${r.organizer||''}","${r.target_month||''}","${r.training_date_start||''}","${r.training_date_end||''}","${r.approval_status||''}","${r.cost_total||0}","${r.score_grand_total!=null?r.score_grand_total:''}","${names}","${r.notes||''}"\n`;
+  });
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='ccsi-training-export.csv'; a.click();
+}
+
+// =====================
+// RICH TOOLTIP
+// =====================
+function showTip(id) {
+  const el=document.getElementById(id); if(el) el.classList.add('visible');
+}
+function hideTip(id) {
+  const el=document.getElementById(id); if(el) el.classList.remove('visible');
+}
+
+// =====================
+// INIT
+// =====================
+(async()=>{
+  try{
+    await openDB();
+    await seedIfEmpty();
+    // Prefetch semua store sekaligus agar cache terisi sebelum tab pertama render
+    await Promise.all(Object.keys(_API_MAP).map(store => getAll(store).catch(()=>{})));
+    renderDashboard();
+    initNetworkUrl();
+    // Check MySQL API connectivity
+    fetch('/api/employees?limit=1').then(r=>{
+      if(r.ok){
+        document.getElementById('dbStatus').textContent='● DB Aktif (MySQL)';
+        document.getElementById('dbStatus').style.color='#7bffc4';
+      } else {
+        document.getElementById('dbStatus').textContent='● DB Aktif (IndexedDB)';
+        document.getElementById('dbStatus').style.color='#7bffc4';
+      }
+    }).catch(()=>{
+      document.getElementById('dbStatus').textContent='● DB Aktif (IndexedDB)';
+      document.getElementById('dbStatus').style.color='#7bffc4';
+    });
+  } catch(e){
+    document.getElementById('dbStatus').textContent='● DB Error';
+    document.getElementById('dbStatus').style.color='#ff7b7b';
+    console.error(e);
+  }
+})();
+
+</script>
+</body>
+</html>
