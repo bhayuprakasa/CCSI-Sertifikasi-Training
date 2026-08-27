@@ -876,9 +876,16 @@ select.filter:focus{border-color:var(--navy-lt)}
             <option value="">-- Pilih Kompetensi --</option>
           </select>
         </div>
+        <div class="form-group">
+          <label>Departemen Training</label>
+          <select id="rkEditDeptTraining" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);background:#fff;color:var(--text1)">
+            <option value="">-- Pilih Departemen --</option>
+          </select>
+        </div>
         <div>
           <div style="font-size:.76rem;font-weight:600;color:var(--text2);margin-bottom:6px">Peserta *</div>
           <div class="form-group" style="margin-bottom:8px">
+            <label style="font-size:.75rem;font-weight:400;color:var(--text3);margin-bottom:4px;display:block">Filter Karyawan per Departemen</label>
             <select id="rkEditDept" onchange="rkEditLoadPeserta()" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);background:#fff;color:var(--text1)">
               <option value="__ALL__">Semua Departemen</option>
             </select>
@@ -1655,18 +1662,26 @@ async function rkOpenEditModal(id) {
     kompSel.innerHTML = '<option value="">-- Gagal memuat kompetensi --</option>';
   }
 
-  // Populate department dropdown from master employee data
+  // Populate department dropdowns from master employee data
   const deptSel = document.getElementById('rkEditDept');
+  const deptTrainingSel = document.getElementById('rkEditDeptTraining');
   deptSel.innerHTML = '<option value="">-- Memuat... --</option>';
+  deptTrainingSel.innerHTML = '<option value="">-- Memuat... --</option>';
   try {
     const allEmps = (await getAll('mst_employee')).filter(e => e.is_active);
     const depts = [...new Set(allEmps.map(e => e.department).filter(Boolean))].sort();
+    // Filter dropdown: always defaults to "Semua Departemen"
     deptSel.innerHTML = '<option value="__ALL__" selected>Semua Departemen</option>'
       + depts.map(d => `<option value="${rkEscH(d)}">${rkEscH(d)}</option>`).join('');
+    // Training dept field: pre-select training's own department
+    deptTrainingSel.innerHTML = '<option value="">-- Pilih Departemen --</option>'
+      + depts.map(d => `<option value="${rkEscH(d)}" ${r.department === d ? 'selected' : ''}>${rkEscH(d)}</option>`).join('');
   } catch {
     const depts = [...new Set(rkAllData.map(x => x.department).filter(Boolean))].sort();
     deptSel.innerHTML = '<option value="__ALL__" selected>Semua Departemen</option>'
       + depts.map(d => `<option value="${rkEscH(d)}">${rkEscH(d)}</option>`).join('');
+    deptTrainingSel.innerHTML = '<option value="">-- Pilih Departemen --</option>'
+      + depts.map(d => `<option value="${rkEscH(d)}" ${r.department === d ? 'selected' : ''}>${rkEscH(d)}</option>`).join('');
   }
 
   // Load employees for the request's department (or all if no dept set)
@@ -1741,8 +1756,7 @@ async function rkSaveEdit() {
   const organizer = document.getElementById('rkEditOrganizer').value.trim();
   const instruktur = document.getElementById('rkEditInstruktur').value.trim();
   const kompetensi = document.getElementById('rkEditKompetensi').value.trim();
-  const deptVal = document.getElementById('rkEditDept').value;
-  const department = (deptVal && deptVal !== '__ALL__') ? deptVal : null;
+  const department = document.getElementById('rkEditDeptTraining').value || null;
 
   // Sync final checkbox state before reading
   const allVisible = [...document.querySelectorAll('#rkEditPesertaList input[name="rkEditPesertaCheck"]')];
