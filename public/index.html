@@ -998,7 +998,7 @@ const _API_MAP = {
   'trx_training_attendance': '/api/training-attendance'
 };
 const _apiCache = {};
-const _CACHE_TTL = 30000; // 30 detik
+const _CACHE_TTL = 300000; // 5 menit
 function getAll(store) {
   const ep = _API_MAP[store];
   if (!ep) return idbGetAll(store);
@@ -1820,7 +1820,7 @@ async function rkOpenEditModal(id) {
   const kompSel = document.getElementById('rkEditKompetensi');
   kompSel.innerHTML = '<option value="">-- Memuat... --</option>';
   try {
-    const comps = await fetch('/api/competencies').then(res => res.json());
+    const comps = await getAll('mst_competency');
     kompSel.innerHTML = '<option value="">-- Pilih Kompetensi --</option>'
       + comps.map(c => `<option value="${rkEscH(c.competency_name)}" ${r.kompetensi === c.competency_name ? 'selected' : ''}>${rkEscH(c.competency_name)} (${rkEscH(c.competency_type)})</option>`).join('');
     // If saved kompetensi doesn't match any master entry, add it as a custom option
@@ -1835,7 +1835,7 @@ async function rkOpenEditModal(id) {
   const deptSel = document.getElementById('rkEditDept');
   deptSel.innerHTML = '<option value="">-- Memuat... --</option>';
   try {
-    const allEmps = await fetch('/api/employees?active=1').then(res => res.json());
+    const allEmps = (await getAll('mst_employee')).filter(e => e.is_active);
     const depts = [...new Set(allEmps.map(e => e.department).filter(Boolean))].sort();
     deptSel.innerHTML = '<option value="__ALL__">Semua Departemen</option>'
       + depts.map(d => `<option value="${rkEscH(d)}" ${d === r.department ? 'selected' : ''}>${rkEscH(d)}</option>`).join('');
@@ -3285,7 +3285,7 @@ async function openPermHRModal() {
   document.getElementById('mph_peserta').innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen terlebih dahulu</div>';
 
   try {
-    const emps=await fetch('/api/employees').then(r=>r.json());
+    const emps=await getAll('mst_employee');
     const depts=[...new Set(emps.map(e=>e.department).filter(Boolean))].sort();
     deptSel.innerHTML='<option value="">-- Pilih Departemen --</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
   } catch {
@@ -3301,7 +3301,8 @@ async function mphLoadPeserta() {
   if(!dept){container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen terlebih dahulu</div>';return;}
   container.innerHTML='<div style="color:var(--text3);font-size:.8rem">Memuat data karyawan...</div>';
   try {
-    const emps=await fetch(`/api/employees?dept=${encodeURIComponent(dept)}`).then(r=>r.json());
+    const allEmps=await getAll('mst_employee');
+    const emps=allEmps.filter(e=>e.is_active&&e.department===dept);
     if(!emps.length){container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Tidak ada karyawan aktif di departemen ini</div>';return;}
     container.innerHTML=emps.map(e=>`
       <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f3f6">
@@ -3404,6 +3405,8 @@ function hideTip(id) {
   try{
     await openDB();
     await seedIfEmpty();
+    // Prefetch semua store sekaligus agar cache terisi sebelum tab pertama render
+    await Promise.all(Object.keys(_API_MAP).map(store => getAll(store).catch(()=>{})));
     renderDashboard();
     initNetworkUrl();
     // Check MySQL API connectivity
