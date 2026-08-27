@@ -1661,12 +1661,12 @@ async function rkOpenEditModal(id) {
   try {
     const allEmps = (await getAll('mst_employee')).filter(e => e.is_active);
     const depts = [...new Set(allEmps.map(e => e.department).filter(Boolean))].sort();
-    deptSel.innerHTML = '<option value="__ALL__">Semua Departemen</option>'
-      + depts.map(d => `<option value="${rkEscH(d)}" ${d === r.department ? 'selected' : ''}>${rkEscH(d)}</option>`).join('');
+    deptSel.innerHTML = '<option value="__ALL__" selected>Semua Departemen</option>'
+      + depts.map(d => `<option value="${rkEscH(d)}">${rkEscH(d)}</option>`).join('');
   } catch {
     const depts = [...new Set(rkAllData.map(x => x.department).filter(Boolean))].sort();
-    deptSel.innerHTML = '<option value="__ALL__">Semua Departemen</option>'
-      + depts.map(d => `<option value="${rkEscH(d)}" ${d === r.department ? 'selected' : ''}>${rkEscH(d)}</option>`).join('');
+    deptSel.innerHTML = '<option value="__ALL__" selected>Semua Departemen</option>'
+      + depts.map(d => `<option value="${rkEscH(d)}">${rkEscH(d)}</option>`).join('');
   }
 
   // Load employees for the request's department (or all if no dept set)
