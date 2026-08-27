@@ -106,7 +106,6 @@ app.use('/api', requireApiKey);
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/competencies', require('./routes/competencies'));
 app.use('/api/programs', require('./routes/programs'));
-app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/certifications', require('./routes/certifications'));
 app.use('/api/training-needs', require('./routes/training-needs'));
 app.use('/api/training-requests', require('./routes/training-requests'));

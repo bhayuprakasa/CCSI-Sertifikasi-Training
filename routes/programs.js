@@ -78,9 +78,6 @@ router.put('/:id', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
-  const [trx] = await pool.query('SELECT 1 FROM trx_employee_program WHERE program_id = ? LIMIT 1', [req.params.id]);
-  if (trx.length) return res.status(409).json({ error: 'Cannot delete: used in transactions' });
-
   const [old] = await pool.query(`SELECT ${PROGRAM_COLS} FROM mst_program WHERE program_id = ?`, [req.params.id]);
   if (old.length) {
     await logAudit({

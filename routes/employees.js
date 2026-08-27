@@ -143,9 +143,8 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const [trx] = await pool.query('SELECT 1 FROM trx_employee_program WHERE employee_id = ? LIMIT 1', [req.params.id]);
     const [cert] = await pool.query('SELECT 1 FROM trx_certification WHERE employee_id = ? LIMIT 1', [req.params.id]);
-    if (trx.length || cert.length) return res.status(409).json({ error: 'Cannot delete: used in transactions' });
+    if (cert.length) return res.status(409).json({ error: 'Cannot delete: employee has certification records' });
 
     const [old] = await pool.query(`SELECT ${SAFE_COLS} FROM mst_employee WHERE employee_id = ?`, [req.params.id]);
     if (old.length) {

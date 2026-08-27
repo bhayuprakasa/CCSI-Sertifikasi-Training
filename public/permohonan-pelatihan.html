@@ -492,7 +492,7 @@ function openIDB() {
     const req = indexedDB.open('CCSI_Training_v2', 2);
     req.onupgradeneeded = e => {
       const db = e.target.result;
-      ['mst_employee','mst_competency','mst_program','trx_employee_program','trx_certification','trx_training_request'].forEach(s => {
+      ['mst_employee','mst_competency','mst_program','trx_certification','trx_training_request'].forEach(s => {
         if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { autoIncrement: true });
       });
     };
