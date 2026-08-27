@@ -31,48 +31,9 @@ CREATE TABLE IF NOT EXISTS mst_competency (
   category        VARCHAR(50)   NULL
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS mst_program (
-  program_id      INT           AUTO_INCREMENT PRIMARY KEY,
-  program_name    VARCHAR(200)  NOT NULL,
-  program_type    ENUM('Training','Sosialisasi','Sertifikasi') NOT NULL,
-  competency_id   INT           NULL,
-  delivery_method ENUM('Offline','Online','Hybrid','Vendor') NOT NULL DEFAULT 'Offline',
-  conducted_by    VARCHAR(100)  NULL,
-  trainer_name    VARCHAR(100)  NULL,
-  location        VARCHAR(100)  NULL,
-  is_mandatory    TINYINT(1)    NOT NULL DEFAULT 0,
-  program_status  ENUM('Waiting','On Process','Done') NOT NULL DEFAULT 'Waiting',
-  start_date      DATE          NULL,
-  end_date        DATE          NULL,
-  organizer_type  ENUM('Internal','Eksternal') NOT NULL DEFAULT 'Eksternal',
-  created_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (competency_id) REFERENCES mst_competency(competency_id)
-    ON UPDATE CASCADE ON DELETE SET NULL
-) ENGINE=InnoDB;
-
 -- ============================================================
 -- TRANSACTION TABLES
 -- ============================================================
-
-CREATE TABLE IF NOT EXISTS trx_employee_program (
-  trx_id          INT           AUTO_INCREMENT PRIMARY KEY,
-  employee_id     VARCHAR(20)   NOT NULL,
-  program_id      INT           NOT NULL,
-  start_date      DATE          NULL,
-  end_date        DATE          NULL,
-  status          ENUM('Done','Ongoing','Failed','Cancelled') NOT NULL DEFAULT 'Ongoing',
-  aktivitas       VARCHAR(200)  NULL,
-  pre_test_score  DECIMAL(5,2)  NULL,
-  post_test_score DECIMAL(5,2)  NULL,
-  reaction_score  DECIMAL(5,2)  NULL,
-  training_cost   DECIMAL(15,2) NOT NULL DEFAULT 0,
-  notes           TEXT          NULL,
-  recorded_by     VARCHAR(50)   NULL,
-  FOREIGN KEY (employee_id) REFERENCES mst_employee(employee_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (program_id) REFERENCES mst_program(program_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT
-) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS trx_certification (
   cert_id             INT           AUTO_INCREMENT PRIMARY KEY,
@@ -97,8 +58,6 @@ CREATE TABLE IF NOT EXISTS trx_certification (
   updated_at          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (employee_id) REFERENCES mst_employee(employee_id)
     ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (trx_id) REFERENCES trx_employee_program(trx_id)
-    ON UPDATE CASCADE ON DELETE SET NULL,
   FOREIGN KEY (competency_id) REFERENCES mst_competency(competency_id)
     ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB;
