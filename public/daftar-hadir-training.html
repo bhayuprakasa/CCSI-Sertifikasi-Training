@@ -143,11 +143,11 @@ tbody td{padding:10px 12px;vertical-align:middle}
       <div class="date-range" style="margin-bottom:14px">
         <div class="form-group">
           <label>Tanggal Mulai *</label>
-          <input type="date" id="at_date_start" readonly>
+          <input type="date" id="at_date_start">
         </div>
         <div class="form-group">
           <label>Tanggal Selesai</label>
-          <input type="date" id="at_date_end" readonly>
+          <input type="date" id="at_date_end">
         </div>
       </div>
 
@@ -241,8 +241,10 @@ function onTrainingSelected() {
   if (!t) return;
   document.getElementById('at_instructor').value = t.instruktur || '';
   document.getElementById('at_organizer').value = t.organizer || '';
-  document.getElementById('at_date_start').value = t.training_date_start ? t.training_date_start.slice(0,10) : '';
-  document.getElementById('at_date_end').value = t.training_date_end ? t.training_date_end.slice(0,10) : '';
+  const ds = t.training_date_start && t.training_date_start !== '0000-00-00' ? t.training_date_start.slice(0,10) : '';
+  const de = t.training_date_end && t.training_date_end !== '0000-00-00' ? t.training_date_end.slice(0,10) : '';
+  document.getElementById('at_date_start').value = ds;
+  document.getElementById('at_date_end').value = de;
 }
 
 function loadEmployees() {
@@ -440,7 +442,7 @@ async function submitForm() {
       body: JSON.stringify({
         training_title: title, instructor, department: dept,
         training_date_start: dateStart,
-        training_date_end: dateEnd || dateStart,
+        training_date_end: dateEnd || null,
         participants: participantsWithEval,
       }),
     });

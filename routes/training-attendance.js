@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
 
     const [result] = await conn.query(
       'INSERT INTO trx_training_attendance (training_title, instructor, department, training_date_start, training_date_end) VALUES (?,?,?,?,?)',
-      [training_title, instructor || null, department, training_date_start, training_date_end || training_date_start]
+      [training_title, instructor || null, department, training_date_start, training_date_end || null]
     );
     const id = result.insertId;
 
