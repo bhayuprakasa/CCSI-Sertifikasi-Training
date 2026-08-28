@@ -185,14 +185,12 @@ tbody td{padding:9px 8px;vertical-align:middle}
 
       <!-- PESERTA -->
       <div class="section-title">Peserta * <span style="font-size:.72rem;font-weight:400;color:var(--text3)">(bisa pilih lintas departemen)</span></div>
-      <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
+      <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
         <select id="pr_peserta_dept_filter" onchange="prFilterPeserta()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;font-family:var(--font);background:var(--bg);color:var(--text);flex:1;min-width:140px">
           <option value="">Semua Departemen</option>
         </select>
         <input type="text" id="pr_peserta_search" oninput="prFilterPeserta()" placeholder="Cari nama karyawan..." style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;font-family:var(--font);flex:2;min-width:160px">
-        <button type="button" id="pr_select_all_btn" onclick="prToggleSelectAll()" style="padding:5px 12px;border:1px solid var(--border);border-radius:7px;font-size:.78rem;font-family:var(--font);background:#f8fafd;color:var(--navy);cursor:pointer;white-space:nowrap">☑ Pilih Semua</button>
       </div>
-      <div id="pr_peserta_count" style="font-size:.73rem;color:var(--text3);margin-bottom:4px"></div>
       <div id="pr_peserta" class="peserta-box">
         <div class="peserta-empty">Memuat data karyawan...</div>
       </div>
@@ -685,7 +683,6 @@ function prFilterPeserta() {
   if (search) emps = emps.filter(e => (e.full_name || '').toLowerCase().includes(search) || (e.department || '').toLowerCase().includes(search));
   if (!emps.length) {
     container.innerHTML = '<div class="peserta-empty">Tidak ada karyawan yang sesuai filter</div>';
-    prUpdatePesertaUI();
     return;
   }
   // Group by department
@@ -696,27 +693,12 @@ function prFilterPeserta() {
     ${list.map(e => `
       <div class="peserta-check-row">
         <label>
-          <input type="checkbox" name="pr_peserta_check" value="${e.full_name}" ${checked.has(e.full_name) ? 'checked' : ''} onchange="prUpdatePesertaUI()">
+          <input type="checkbox" name="pr_peserta_check" value="${e.full_name}" ${checked.has(e.full_name) ? 'checked' : ''}>
           <span>${e.full_name}</span>
           <span class="emp-pos">${e.position || ''}</span>
         </label>
       </div>`).join('')}
   `).join('');
-  prUpdatePesertaUI();
-}
-
-function prUpdatePesertaUI() {
-  const all = [...document.querySelectorAll('input[name="pr_peserta_check"]')];
-  const checkedCount = all.filter(c => c.checked).length;
-  const btn = document.getElementById('pr_select_all_btn');
-  const countEl = document.getElementById('pr_peserta_count');
-  if (btn) {
-    const allChecked = all.length > 0 && checkedCount === all.length;
-    btn.textContent = allChecked ? '☐ Hapus Semua' : '☑ Pilih Semua';
-  }
-  if (countEl) {
-    countEl.textContent = checkedCount > 0 ? `${checkedCount} peserta dipilih (dari ${all.length} yang tampil)` : all.length > 0 ? `${all.length} karyawan tersedia` : '';
-  }
 }
 
 function prToggleSelectAll() {
