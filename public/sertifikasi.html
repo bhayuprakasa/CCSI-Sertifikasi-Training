@@ -176,8 +176,8 @@ tbody td{padding:10px 12px;vertical-align:middle}
             </select>
           </div>
           <div class="form-group">
-            <label>Diselenggarakan Oleh *</label>
-            <input type="text" id="cert_issuing_body" placeholder="Nama organisasi / lembaga">
+            <label>Penerbit Sertifikat *</label>
+            <input type="text" id="cert_issuing_body" placeholder="Nama organisasi / lembaga penerbit">
           </div>
         </div>
 
@@ -382,7 +382,7 @@ async function submitCertForm() {
   if (!sertifName) errors.push('Nama Sertifikasi wajib diisi');
   if (!certNumber) errors.push('No Sertifikat wajib diisi');
   if (!issueDate) errors.push('Tanggal Sertifikat wajib diisi');
-  if (!issuingBody) errors.push('Diselenggarakan Oleh wajib diisi');
+  if (!issuingBody) errors.push('Penerbit Sertifikat wajib diisi');
   if (!isLifetime && !expiryDate) errors.push('Berlaku Hingga wajib diisi atau pilih Seumur Hidup');
 
   if (errors.length) { showToast(errors[0], false); return; }
