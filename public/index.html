@@ -430,7 +430,7 @@ select.filter:focus{border-color:var(--navy-lt)}
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>#</th><th>Nama Pelatihan</th><th>Instruktur</th><th>Departemen</th><th>Lokasi</th><th>Tanggal</th><th>Peserta</th><th>Aksi</th></tr></thead>
+              <thead><tr><th>#</th><th>Nama Pelatihan</th><th>Instruktur</th><th>Departemen</th><th>Tanggal</th><th>Peserta</th><th>Aksi</th></tr></thead>
               <tbody id="absenBody"></tbody>
             </table>
           </div>
@@ -1992,7 +1992,6 @@ function abRenderRows(data) {
       <td><strong>${r.training_title}</strong></td>
       <td style="color:var(--text2);font-size:.78rem">${r.instructor||'-'}</td>
       <td><strong>${r.department||'-'}</strong></td>
-      <td style="color:var(--text2);font-size:.78rem">${r.location||'-'}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tgl}</td>
       <td style="text-align:center"><span class="badge b-navy">${(r.participants||[]).length} orang</span></td>
       <td style="display:flex;gap:4px;align-items:center"><button class="btn-sm" style="background:var(--navy);color:#fff" onclick="absenDetail(${r.attendance_id})">Detail</button><button class="btn-sm btn-del" onclick="absenDelete(${r.attendance_id})">Hapus</button></td>
@@ -2022,7 +2021,6 @@ function absenDetail(id) {
   document.getElementById('absenDetailBody').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin-bottom:16px;font-size:.82rem">
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Departemen</div><div>${r.department||'-'}</div></div>
-      <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Lokasi</div><div>${r.location||'-'}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Instruktur</div><div>${r.instructor||'-'}</div></div>
       <div><div style="font-size:.7rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tanggal</div><div>${tgl}</div></div>
     </div>
@@ -2727,7 +2725,6 @@ const masterForms = {
     <div class="form-group"><label>Penyelenggara</label><select id="m_porgtype"><option value="Internal">Internal</option><option value="Eksternal">Eksternal</option></select></div>
     <div class="form-group"><label>Nama Penyelenggara</label><input type="text" id="m_pconducted" placeholder="Nama lembaga / vendor"></div>
     <div class="form-group"><label>Trainer</label><input type="text" id="m_ptrainer" placeholder="Nama trainer"></div>
-    <div class="form-group"><label>Lokasi</label><input type="text" id="m_ploc" placeholder="Lokasi pelaksanaan"></div>
     <div class="form-group"><label>Kompetensi</label><select id="m_pcomp"><option value="">-- Pilih Kompetensi --</option></select></div>
     <div class="form-group"><label>Wajib?</label><select id="m_pmandatory"><option value="1">Wajib</option><option value="0">Opsional</option></select></div>
   </div>`,
@@ -2792,7 +2789,6 @@ async function editMaster(mode, key, isUsed=false) {
     document.getElementById('m_porgtype').value=r.organizer_type||'Internal';
     document.getElementById('m_pconducted').value=r.conducted_by||'';
     document.getElementById('m_ptrainer').value=r.trainer_name||'';
-    document.getElementById('m_ploc').value=r.location||'';
     document.getElementById('m_pcomp').value=r.competency_id||'';
     document.getElementById('m_pmandatory').value=r.is_mandatory;
     // Lock nama program & tipe jika sudah dipakai
@@ -2900,7 +2896,6 @@ async function saveMaster() {
       delivery_method:document.getElementById('m_pmethod').value,
       conducted_by:document.getElementById('m_pconducted').value,
       trainer_name:document.getElementById('m_ptrainer').value,
-      location:document.getElementById('m_ploc').value,
       competency_id:parseInt(document.getElementById('m_pcomp').value)||null,
       is_mandatory:parseInt(document.getElementById('m_pmandatory').value),
       created_at:new Date().toISOString()
@@ -3288,7 +3283,6 @@ const _UPLOAD_CONFIG = {
     cols: [
       { name: 'training_title', wajib: true, desc: 'Judul / nama program training' },
       { name: 'instructor', wajib: false, desc: 'Nama instruktur' },
-      { name: 'location', wajib: false, desc: 'Lokasi pelaksanaan' },
       { name: 'department', wajib: true, desc: 'Departemen' },
       { name: 'training_date_start', wajib: false, desc: 'Tanggal mulai (YYYY-MM-DD)' },
       { name: 'training_date_end', wajib: false, desc: 'Tanggal selesai (YYYY-MM-DD)' },
