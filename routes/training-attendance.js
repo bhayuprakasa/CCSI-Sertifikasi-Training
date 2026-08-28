@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   const { training_title, instructor, department, training_date_start, training_date_end, participants } = req.body;
-  if (!training_title || !department || !training_date_start || !participants?.length) {
+  if (!training_title || !department || !participants?.length) {
     return res.status(400).json({ error: 'Field wajib belum lengkap' });
   }
 

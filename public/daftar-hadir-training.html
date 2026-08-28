@@ -139,7 +139,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
         </div>
       </div>
 
-      <div class="section-title">Tanggal Pelaksanaan *</div>
+      <div class="section-title">Tanggal Pelaksanaan</div>
       <div class="date-range" style="margin-bottom:14px">
         <div class="form-group">
           <label>Tanggal Mulai *</label>
@@ -423,7 +423,6 @@ async function submitForm() {
 
   const errors = [];
   if (!titleSel.value) errors.push('Judul Training wajib dipilih');
-  if (!dateStart) errors.push('Tanggal Mulai wajib diisi');
   if (!dept) errors.push('Departemen wajib dipilih');
   if (!selectedParticipants.length) errors.push('Minimal 1 peserta wajib dipilih');
 
