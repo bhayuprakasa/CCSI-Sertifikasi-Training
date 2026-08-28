@@ -2134,12 +2134,12 @@ async function renderEvaluasi(){
   fProg.innerHTML='<option value="">-- Pilih Program --</option>'+
     groupList.map((g,i)=>{
       const tgl=g.dateStart?` (${g.dateStart})`:'';
-      return `<option value="${i}"${curVal==i?' selected':''}>${g.title}${tgl}</option>`;
+      return `<option value="${i}"${curVal===String(i)?' selected':''}>${g.title}${tgl}</option>`;
     }).join('');
 
   const selIdx=parseInt(fProg.value);
   const cntEl=document.getElementById('evalRespondenCount');
-  if(isNaN(selIdx)||selIdx<0||selIdx>=groupList.length){
+  if(!fProg.value||isNaN(selIdx)||selIdx<0||selIdx>=groupList.length){
     cntEl.textContent='';
     document.getElementById('evalBody').innerHTML='<p style="color:var(--text3);font-size:.83rem;text-align:center;padding:32px">Pilih program untuk melihat rekap evaluasi trainer</p>';
     return;
