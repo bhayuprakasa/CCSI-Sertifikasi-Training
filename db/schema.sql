@@ -102,7 +102,6 @@ CREATE TABLE IF NOT EXISTS trx_training_request (
   request_id           INT           AUTO_INCREMENT PRIMARY KEY,
   department           VARCHAR(50)   NOT NULL,
   training_name        VARCHAR(200)  NOT NULL,
-  training_venue       VARCHAR(200)  NULL,
   training_date_start  DATE          NOT NULL,
   training_date_end    DATE          NULL,
   actual_date_start    DATE          NULL DEFAULT NULL,
