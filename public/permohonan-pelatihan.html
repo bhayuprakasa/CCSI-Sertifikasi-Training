@@ -191,6 +191,10 @@ tbody td{padding:9px 8px;vertical-align:middle}
         </select>
         <input type="text" id="pr_peserta_search" oninput="prFilterPeserta()" placeholder="Cari nama karyawan..." style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;font-family:var(--font);flex:2;min-width:160px">
       </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div id="pr_peserta_count" style="font-size:.73rem;color:var(--text3)"></div>
+        <button type="button" id="pr_select_all_btn" onclick="prTogglePesertaAll()" style="padding:4px 14px;border:1px solid var(--navy-lt);border-radius:6px;font-size:.76rem;font-family:var(--font);background:#e8eef7;color:var(--navy);cursor:pointer;font-weight:600">☑ Pilih Semua</button>
+      </div>
       <div id="pr_peserta" class="peserta-box">
         <div class="peserta-empty">Memuat data karyawan...</div>
       </div>
@@ -683,6 +687,7 @@ function prFilterPeserta() {
   if (search) emps = emps.filter(e => (e.full_name || '').toLowerCase().includes(search) || (e.department || '').toLowerCase().includes(search));
   if (!emps.length) {
     container.innerHTML = '<div class="peserta-empty">Tidak ada karyawan yang sesuai filter</div>';
+    prUpdatePesertaUI();
     return;
   }
   // Group by department
@@ -693,15 +698,25 @@ function prFilterPeserta() {
     ${list.map(e => `
       <div class="peserta-check-row">
         <label>
-          <input type="checkbox" name="pr_peserta_check" value="${e.full_name}" ${checked.has(e.full_name) ? 'checked' : ''}>
+          <input type="checkbox" name="pr_peserta_check" value="${e.full_name}" ${checked.has(e.full_name) ? 'checked' : ''} onchange="prUpdatePesertaUI()">
           <span>${e.full_name}</span>
           <span class="emp-pos">${e.position || ''}</span>
         </label>
       </div>`).join('')}
   `).join('');
+  prUpdatePesertaUI();
 }
 
-function prToggleSelectAll() {
+function prUpdatePesertaUI() {
+  const all = [...document.querySelectorAll('input[name="pr_peserta_check"]')];
+  const n = all.filter(c => c.checked).length;
+  const btn = document.getElementById('pr_select_all_btn');
+  const countEl = document.getElementById('pr_peserta_count');
+  if (btn) { const allCk = all.length > 0 && n === all.length; btn.textContent = allCk ? '☐ Hapus Semua' : '☑ Pilih Semua'; }
+  if (countEl) { countEl.textContent = n > 0 ? `${n} peserta dipilih (dari ${all.length} yang tampil)` : all.length > 0 ? `${all.length} karyawan tersedia` : ''; }
+}
+
+function prTogglePesertaAll() {
   const all = [...document.querySelectorAll('input[name="pr_peserta_check"]')];
   const allChecked = all.length > 0 && all.every(c => c.checked);
   all.forEach(c => { c.checked = !allChecked; });
