@@ -150,7 +150,8 @@ router.post('/send-multi-approval', async (req, res) => {
   const [requests] = await pool.query(
     `SELECT r.request_id, r.department, r.training_name, r.training_date_start,
             r.training_type, r.cost_total, r.is_scheduled, r.approval_status,
-            r.approval_token, r.approver_name, r.approver_email, r.approver_position
+            r.approval_token, r.approver_name, r.approver_email, r.approver_position,
+            r.training_reason
      FROM trx_training_request r
      WHERE r.request_id IN (${placeholders})`,
     request_ids
