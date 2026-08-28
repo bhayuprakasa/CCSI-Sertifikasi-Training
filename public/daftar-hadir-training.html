@@ -438,7 +438,7 @@ async function submitForm() {
     await api('/api/training-attendance', {
       method: 'POST',
       body: JSON.stringify({
-        training_title: title, instructor, location: organizer, department: dept,
+        training_title: title, instructor, department: dept,
         training_date_start: dateStart,
         training_date_end: dateEnd || dateStart,
         participants: participantsWithEval,

@@ -214,9 +214,9 @@ router.post('/absensi', upload.single('file'), async (req, res, next) => {
     try {
       const [result] = await pool.query(
         `INSERT INTO trx_training_attendance
-          (training_title, instructor, location, department, training_date_start, training_date_end)
-         VALUES (?,?,?,?,?,?)`,
-        [meta.training_title, toNull(meta.instructor), toNull(meta.location), meta.department,
+          (training_title, instructor, department, training_date_start, training_date_end)
+         VALUES (?,?,?,?,?)`,
+        [meta.training_title, toNull(meta.instructor), meta.department,
          toDate(meta.training_date_start), toDate(meta.training_date_end)]
       );
 
@@ -273,9 +273,9 @@ router.post('/evaluasi', upload.single('file'), async (req, res, next) => {
     try {
       const [result] = await pool.query(
         `INSERT INTO trx_training_attendance
-          (training_title, instructor, location, department, training_date_start, training_date_end)
-         VALUES (?,?,?,?,?,?)`,
-        [meta.training_title, toNull(meta.instructor), toNull(meta.location || null),
+          (training_title, instructor, department, training_date_start, training_date_end)
+         VALUES (?,?,?,?,?)`,
+        [meta.training_title, toNull(meta.instructor),
          meta.department, toDate(meta.training_date_start), toDate(meta.training_date_end || null)]
       );
 

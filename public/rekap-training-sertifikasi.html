@@ -184,11 +184,6 @@ tbody td{padding:10px 12px;vertical-align:middle}
           </div>
         </div>
 
-        <div class="form-group full" style="margin-bottom:18px">
-          <label>Lokasi</label>
-          <input type="text" id="cert_location" placeholder="Lokasi pelaksanaan sertifikasi">
-        </div>
-
         <div style="display:flex;justify-content:flex-end;gap:10px">
           <button class="btn-cancel" onclick="resetCertForm()">Reset Form</button>
           <button class="tn-submit" id="certSubmitBtn" onclick="submitCertForm()">📤 Simpan Sertifikasi</button>
@@ -433,7 +428,6 @@ function resetCertForm() {
   const certIssuingBody = document.getElementById('cert_issuing_body');
   certIssuingBody.value = ''; certIssuingBody.readOnly = false;
   buildDeptOptions(document.getElementById('cert_dept'), []);
-  document.getElementById('cert_location').value = '';
   document.getElementById('cert_lifetime').checked = false;
   toggleExpiryDate();
   selectedEmployee = null;
@@ -486,7 +480,6 @@ async function submitCertForm() {
         competency_id: competencyId || null,
         delivery_method: method,
         certification_type: type,
-        location: document.getElementById('cert_location').value.trim() || null,
         is_lifetime: isLifetime ? 1 : 0,
       }),
     });
