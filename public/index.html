@@ -209,6 +209,13 @@ select.filter:focus{border-color:var(--navy-lt)}
 .saran-item{padding:10px 14px;border-bottom:1px solid #f0f3f6}
 .saran-item:last-child{border-bottom:none}
 .saran-who{font-size:.72rem;color:var(--text3);margin-bottom:3px}
+.eval-detail-section{margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.eval-detail-sec-title{background:var(--accent-lt);padding:9px 14px;font-weight:700;font-size:.79rem;color:var(--navy)}
+.eval-detail-qrow{padding:9px 14px;border-top:1px solid #f0f3f6;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.eval-detail-qlabel{font-size:.78rem;color:var(--text2);line-height:1.4;flex:1;min-width:160px}
+.eval-detail-score{display:flex;align-items:center;gap:5px}
+.eval-radio{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:2px solid var(--border);font-size:.78rem;color:var(--text3);font-weight:500}
+.eval-radio.active{background:var(--navy);color:#fff;border-color:var(--navy);font-weight:700}
 .saran-text{font-size:.82rem;color:var(--text);line-height:1.5}
 </style>
 </head>
@@ -705,6 +712,19 @@ select.filter:focus{border-color:var(--navy-lt)}
     <div class="modal-body" id="rkDetailBody"></div>
     <div class="modal-footer" style="display:flex;justify-content:flex-end;padding:12px 20px;border-top:1px solid var(--border)">
       <button class="btn-cancel" onclick="document.getElementById('rkDetailModal').classList.remove('open')">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EVAL DETAIL -->
+<div class="modal-overlay" id="evalDetailModal" onclick="if(event.target===this)closeEvalDetail()">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header"><span class="modal-title" id="evalDetailTitle">Detail Evaluasi</span><button class="modal-close" onclick="closeEvalDetail()">✕</button></div>
+    <div class="modal-body" id="evalDetailBody" style="max-height:68vh;overflow-y:auto;padding:16px 18px"></div>
+    <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-top:1px solid var(--border)">
+      <button id="evalDetailPrev" onclick="evalDetailNav(-1)" style="padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;font-family:var(--font);font-size:.82rem">◀ Sebelumnya</button>
+      <span id="evalDetailNavInfo" style="font-size:.8rem;color:var(--text3)"></span>
+      <button id="evalDetailNext" onclick="evalDetailNav(1)" style="padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;font-family:var(--font);font-size:.82rem">Berikutnya ▶</button>
     </div>
   </div>
 </div>
@@ -2137,8 +2157,8 @@ async function renderEvaluasi(){
 
   cntEl.textContent=`${evals.length} responden`;
 
-  // Build header participant columns
-  const pCols=evals.map((e,i)=>`<th style="text-align:center;min-width:42px">P${i+1}<br><small style="font-weight:400;font-size:.63rem;color:var(--text3)">${e.name.split(' ')[0]}</small></th>`).join('');
+  // Store for detail modal
+  _evalDetailData={session,evals};
 
   let tbody='';
   let rowNo=1;
@@ -2147,9 +2167,7 @@ async function renderEvaluasi(){
   EVAL_Q_SECTIONS.forEach(sec=>{
     // Section header row
     tbody+=`<tr style="background:var(--accent-lt)">
-      <td colspan="2" style="font-weight:700;font-size:.79rem;padding:8px 12px;color:var(--navy)">${sec.label}</td>
-      ${evals.map(()=>'<td></td>').join('')}
-      <td></td><td></td>
+      <td colspan="4" style="font-weight:700;font-size:.79rem;padding:8px 12px;color:var(--navy)">${sec.label}</td>
     </tr>`;
 
     const secItemAvgs=[];
@@ -2162,7 +2180,6 @@ async function renderEvaluasi(){
       tbody+=`<tr>
         <td style="color:var(--text3);text-align:center;padding:7px 10px;font-size:.78rem">${rowNo++}</td>
         <td style="font-size:.77rem;line-height:1.4;padding:7px 10px">${q}</td>
-        ${scores.map(s=>`<td style="text-align:center;font-size:.79rem;color:var(--text)">${s!==null?s:'<span style="color:var(--text3)">-</span>'}</td>`).join('')}
         <td style="text-align:center;font-weight:700;font-size:.81rem">${avg!==null?avg.toFixed(2):'-'}</td>
         <td style="padding:7px 10px"><span class="badge ${k.cls}">${k.label}</span></td>
       </tr>`;
@@ -2174,7 +2191,6 @@ async function renderEvaluasi(){
     const sk=secAvg!==null?evalKriteria(secAvg):{label:'-',cls:'b-gray'};
     tbody+=`<tr style="background:#f0f3f8;border-top:2px solid var(--border)">
       <td colspan="2" style="font-weight:700;font-size:.79rem;padding:7px 12px">Total rata-rata ${sec.label}</td>
-      ${evals.map(()=>'<td></td>').join('')}
       <td style="text-align:center;font-weight:800;font-size:.83rem">${secAvg!==null?secAvg.toFixed(2):'-'}</td>
       <td style="padding:7px 10px"><span class="badge ${sk.cls}" style="font-size:.72rem">${sk.label}</span></td>
     </tr>`;
@@ -2185,7 +2201,6 @@ async function renderEvaluasi(){
   const gk=grandAvg!==null?evalKriteria(grandAvg):{label:'-',cls:'b-gray'};
   tbody+=`<tr style="background:var(--navy);color:#fff">
     <td colspan="2" style="font-weight:800;padding:9px 12px;font-size:.83rem">TOTAL RATA-RATA</td>
-    ${evals.map(()=>'<td></td>').join('')}
     <td style="text-align:center;font-weight:800;font-size:.88rem">${grandAvg!==null?grandAvg.toFixed(2):'-'}</td>
     <td style="padding:7px 10px"><span class="badge" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3)">${gk.label}</span></td>
   </tr>`;
@@ -2198,17 +2213,19 @@ async function renderEvaluasi(){
   const tgl=(tS===tE||!session.training_date_end)?tS:`${tS} s/d ${tE}`;
 
   document.getElementById('evalBody').innerHTML=`
-    <div class="eval-prog-meta">
-      <span><strong>Program:</strong> ${session.training_title}</span>
-      <span><strong>Instruktur:</strong> ${session.instructor||'-'}</span>
-      <span><strong>Departemen:</strong> ${session.department||'-'}</span>
-      <span><strong>Lokasi:</strong> ${session.location||'-'}</span>
-      <span><strong>Tanggal:</strong> ${tgl}</span>
-      <span><strong>Responden:</strong> ${evals.length} peserta</span>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div class="eval-prog-meta" style="margin-bottom:0">
+        <span><strong>Program:</strong> ${session.training_title}</span>
+        <span><strong>Instruktur:</strong> ${session.instructor||'-'}</span>
+        <span><strong>Lokasi:</strong> ${session.location||'-'}</span>
+        <span><strong>Tanggal:</strong> ${tgl}</span>
+        <span><strong>Responden:</strong> ${evals.length} peserta</span>
+      </div>
+      <button onclick="openEvalDetail(${session.attendance_id})" style="padding:7px 16px;border-radius:7px;border:1px solid #a7c7f5;background:#e8f0fe;color:#1a56c4;cursor:pointer;font-family:var(--font);font-size:.8rem;font-weight:600;white-space:nowrap">👤 Lihat Detail Responden</button>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th style="width:36px">No</th><th>Aspek Penilaian</th>${pCols}<th style="min-width:80px">Rata-rata</th><th style="min-width:90px">Kriteria</th></tr></thead>
+        <thead><tr><th style="width:36px">No</th><th>Aspek Penilaian</th><th style="min-width:80px">Rata-rata</th><th style="min-width:90px">Kriteria</th></tr></thead>
         <tbody>${tbody}</tbody>
       </table>
     </div>
@@ -2473,6 +2490,72 @@ function evalKriteria(avg){
   if(avg>=1.5) return {label:'Cukup',cls:'b-yellow'};
   if(avg>0)    return {label:'Kurang',cls:'b-red'};
   return {label:'-',cls:'b-gray'};
+}
+
+// =====================
+// EVAL DETAIL MODAL
+// =====================
+let _evalDetailData=null;
+let _evalDetailIdx=0;
+
+function openEvalDetail(attendanceId){
+  if(!_evalDetailData||_evalDetailData.session.attendance_id!==attendanceId) return;
+  _evalDetailIdx=0;
+  _renderEvalDetailSlide();
+  document.getElementById('evalDetailModal').classList.add('open');
+}
+
+function closeEvalDetail(){
+  document.getElementById('evalDetailModal').classList.remove('open');
+}
+
+function evalDetailNav(dir){
+  if(!_evalDetailData) return;
+  const n=_evalDetailData.evals.length;
+  _evalDetailIdx=(_evalDetailIdx+dir+n)%n;
+  _renderEvalDetailSlide();
+}
+
+function _renderEvalDetailSlide(){
+  const {session,evals}=_evalDetailData;
+  const idx=_evalDetailIdx;
+  const n=evals.length;
+  const e=evals[idx];
+  const tS=session.training_date_start?(session.training_date_start+'').split('T')[0]:'-';
+  const tE=session.training_date_end?(session.training_date_end+'').split('T')[0]:'-';
+  const tgl=(tS===tE||!session.training_date_end)?tS:`${tS} s/d ${tE}`;
+  document.getElementById('evalDetailTitle').textContent=`Evaluasi — ${session.training_title}`;
+  let html=`
+    <div style="background:var(--navy);color:#fff;padding:14px 18px;border-radius:8px;margin-bottom:16px">
+      <div style="font-size:.7rem;opacity:.7;margin-bottom:4px">${session.training_title} &nbsp;·&nbsp; ${tgl}</div>
+      <div style="font-size:.92rem;font-weight:700">${e.name}</div>
+      <div style="font-size:.7rem;opacity:.75;margin-top:3px">Instruktur: ${session.instructor||'-'} &nbsp;·&nbsp; Lokasi: ${session.location||'-'}</div>
+    </div>`;
+  EVAL_Q_SECTIONS.forEach(sec=>{
+    html+=`<div class="eval-detail-section"><div class="eval-detail-sec-title">${sec.label}</div>`;
+    sec.questions.forEach((q,qi)=>{
+      const score=e.data[sec.key]?e.data[sec.key][qi]:null;
+      const k=score!==null?evalKriteria(score):null;
+      html+=`<div class="eval-detail-qrow">
+        <div class="eval-detail-qlabel">${qi+1}. ${q}</div>
+        <div class="eval-detail-score">
+          ${[1,2,3,4].map(v=>`<span class="eval-radio${score===v?' active':''}" title="${evalKriteria(v).label}">${v}</span>`).join('')}
+          ${k?`<span class="badge ${k.cls}" style="margin-left:6px;font-size:.72rem">${k.label}</span>`:'<span style="color:var(--text3);font-size:.78rem;margin-left:8px">-</span>'}
+        </div>
+      </div>`;
+    });
+    html+=`</div>`;
+  });
+  if(e.data.saran&&(e.data.saran+'').trim()){
+    html+=`<div class="eval-detail-section">
+      <div class="eval-detail-sec-title">💬 Saran &amp; Komentar</div>
+      <div style="padding:12px 14px;font-size:.82rem;line-height:1.6;color:var(--text)">${e.data.saran}</div>
+    </div>`;
+  }
+  document.getElementById('evalDetailBody').innerHTML=html;
+  document.getElementById('evalDetailNavInfo').textContent=`Peserta ${idx+1} dari ${n}`;
+  document.getElementById('evalDetailPrev').style.visibility=n>1?'visible':'hidden';
+  document.getElementById('evalDetailNext').style.visibility=n>1?'visible':'hidden';
 }
 
 function buildEvalForm(){
