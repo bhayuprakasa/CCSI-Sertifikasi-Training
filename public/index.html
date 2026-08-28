@@ -827,6 +827,10 @@ select.filter:focus{border-color:var(--navy-lt)}
         </select>
         <input type="text" id="mph_peserta_search" oninput="mphFilterPeserta()" placeholder="Cari nama..." style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;flex:2;min-width:130px">
       </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div id="mph_peserta_count" style="font-size:.73rem;color:var(--text3)"></div>
+        <button type="button" id="mph_select_all_btn" onclick="mphTogglePesertaAll()" style="padding:4px 14px;border:1px solid #2a5298;border-radius:6px;font-size:.76rem;background:#e8eef7;color:#1a3c6e;cursor:pointer;font-weight:600">☑ Pilih Semua</button>
+      </div>
       <div id="mph_peserta" style="background:#f8fafd;border:1px solid var(--border);border-radius:8px;padding:10px 14px;max-height:180px;overflow-y:auto;margin-bottom:14px">
         <div style="color:var(--text3);font-size:.8rem;font-style:italic">Memuat data karyawan...</div>
       </div>
@@ -3028,7 +3032,7 @@ function mphFilterPeserta() {
   let emps = _mphAllEmps;
   if (deptF) emps = emps.filter(e => e.department === deptF);
   if (search) emps = emps.filter(e => (e.full_name||'').toLowerCase().includes(search) || (e.department||'').toLowerCase().includes(search));
-  if (!emps.length) { container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Tidak ada karyawan yang sesuai filter</div>'; return; }
+  if (!emps.length) { container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Tidak ada karyawan yang sesuai filter</div>'; mphUpdatePesertaUI(); return; }
   const byDept = {};
   emps.forEach(e => { const d=e.department||'Lainnya'; (byDept[d]=byDept[d]||[]).push(e); });
   container.innerHTML = Object.entries(byDept).map(([dept, list]) => `
@@ -3036,12 +3040,29 @@ function mphFilterPeserta() {
     ${list.map(e=>`
       <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f3f6">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;flex:1">
-          <input type="checkbox" name="mph_peserta_check" value="${e.full_name}" ${checked.has(e.full_name)?'checked':''} style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
+          <input type="checkbox" name="mph_peserta_check" value="${e.full_name}" ${checked.has(e.full_name)?'checked':''} onchange="mphUpdatePesertaUI()" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
           <span>${e.full_name}</span>
           <span style="font-size:.71rem;color:var(--text3)">${e.position||''}</span>
         </label>
       </div>`).join('')}
   `).join('');
+  mphUpdatePesertaUI();
+}
+
+function mphUpdatePesertaUI(){
+  const all=[...document.querySelectorAll('input[name="mph_peserta_check"]')];
+  const n=all.filter(c=>c.checked).length;
+  const btn=document.getElementById('mph_select_all_btn');
+  const countEl=document.getElementById('mph_peserta_count');
+  if(btn){const allCk=all.length>0&&n===all.length;btn.textContent=allCk?'☐ Hapus Semua':'☑ Pilih Semua';}
+  if(countEl){countEl.textContent=n>0?`${n} peserta dipilih (dari ${all.length} yang tampil)`:all.length>0?`${all.length} karyawan tersedia`:'';}
+}
+
+function mphTogglePesertaAll(){
+  const all=[...document.querySelectorAll('input[name="mph_peserta_check"]')];
+  const allCk=all.length>0&&all.every(c=>c.checked);
+  all.forEach(c=>{c.checked=!allCk;});
+  mphUpdatePesertaUI();
 }
 
 function mphFormatCost(el){let v=el.value.replace(/\D/g,'');if(v)el.value=Number(v).toLocaleString('id-ID');else el.value='';}
