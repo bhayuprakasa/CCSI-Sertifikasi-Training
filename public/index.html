@@ -2160,6 +2160,9 @@ async function renderEvaluasi(){
 
   cntEl.textContent=`${evals.length} responden`;
 
+  // Virtual session object built from the merged group
+  const session={attendance_id:selIdx,training_title:group.title,instructor:group.instructor,location:group.location,training_date_start:group.dateStart,training_date_end:group.dateStart};
+
   // Store for detail modal
   _evalDetailData={session,evals};
 
