@@ -175,10 +175,6 @@ tbody td{padding:10px 12px;vertical-align:middle}
           <label>Nama Pelatihan *</label>
           <input type="text" id="pr_name" placeholder="Nama program pelatihan">
         </div>
-        <div class="form-group full">
-          <label>Tempat Pelatihan</label>
-          <input type="text" id="pr_venue" placeholder="Lokasi / tempat pelaksanaan">
-        </div>
       </div>
 
       <!-- PESERTA -->
@@ -520,7 +516,7 @@ async function prLoadPeserta(dept) {
 
 function prReset(skipConfirm = false) {
   if (!skipConfirm && !confirm('Reset form? Data yang belum dikirim akan hilang.')) return;
-  document.querySelectorAll('#pr_name,#pr_venue,#pr_organizer,#pr_instruktur,#pr_reason').forEach(el => el.value = '');
+  document.querySelectorAll('#pr_name,#pr_organizer,#pr_instruktur,#pr_reason').forEach(el => el.value = '');
   document.getElementById('pr_dept').value = '';
   document.getElementById('pr_dept_head').innerHTML = '<option value="">-- Pilih Dept Head --</option>';
   document.getElementById('pr_date_start').value = '';
@@ -542,7 +538,6 @@ async function prSubmit() {
   const dept = document.getElementById('pr_dept').value.trim();
   const deptHead = document.getElementById('pr_dept_head').value.trim();
   const name = document.getElementById('pr_name').value.trim();
-  const venue = document.getElementById('pr_venue').value.trim();
   const dateStart = document.getElementById('pr_date_start').value;
   const dateEnd = document.getElementById('pr_date_end').value;
   const type = document.getElementById('pr_type').value;
@@ -567,7 +562,7 @@ async function prSubmit() {
   const scoreSum = cls => [...document.querySelectorAll(`.${cls}`)].reduce((a, el) => a + (parseInt(el.value) || 0), 0);
 
   const body = {
-    department: dept, training_name: name, training_venue: venue,
+    department: dept, training_name: name,
     training_date_start: dateStart,
     training_date_end: dateEnd || dateStart,
     training_type: type, organizer, instruktur, kompetensi: kompetensi || null,
