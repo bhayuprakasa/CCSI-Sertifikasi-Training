@@ -2124,28 +2124,36 @@ async function renderEvaluasi(){
   // Only sessions with at least one participant who filled the questionnaire
   const withEval=attendances.filter(a=>(a.participants||[]).some(p=>p.eval_json));
 
+  // Group by training_title + date_start so duplicate records merge into one entry
+  const groupMap={};
+  withEval.forEach(a=>{
+    const tS=a.training_date_start?(a.training_date_start+'').split('T')[0]:'';
+    const gk=`${a.training_title}|||${tS}`;
+    if(!groupMap[gk]) groupMap[gk]={title:a.training_title,dateStart:tS,instructor:a.instructor,location:a.location,sessions:[]};
+    groupMap[gk].sessions.push(a);
+  });
+  const groupList=Object.values(groupMap);
+
   const fProg=document.getElementById('fEvalProg');
   const curVal=fProg.value;
   fProg.innerHTML='<option value="">-- Pilih Program --</option>'+
-    withEval.map(a=>{
-      const tS=a.training_date_start?(a.training_date_start+'').split('T')[0]:'';
-      const tE=a.training_date_end?(a.training_date_end+'').split('T')[0]:'';
-      const tgl=tS&&tE&&tS!==tE?` (${tS} s/d ${tE})`:tS?` (${tS})`:'';
-      return `<option value="${a.attendance_id}"${curVal==a.attendance_id?' selected':''}>${a.training_title}${tgl}</option>`;
+    groupList.map((g,i)=>{
+      const tgl=g.dateStart?` (${g.dateStart})`:'';
+      return `<option value="${i}"${curVal==i?' selected':''}>${g.title}${tgl}</option>`;
     }).join('');
 
-  const attendanceId=parseInt(fProg.value);
+  const selIdx=parseInt(fProg.value);
   const cntEl=document.getElementById('evalRespondenCount');
-  if(!attendanceId){
+  if(isNaN(selIdx)||selIdx<0||selIdx>=groupList.length){
     cntEl.textContent='';
     document.getElementById('evalBody').innerHTML='<p style="color:var(--text3);font-size:.83rem;text-align:center;padding:32px">Pilih program untuk melihat rekap evaluasi trainer</p>';
     return;
   }
 
-  const session=withEval.find(a=>a.attendance_id===attendanceId);
-  if(!session) return;
+  const group=groupList[selIdx];
 
-  const evalParticipants=(session.participants||[]).filter(p=>p.eval_json);
+  // Merge participants from all sessions in the group
+  const evalParticipants=group.sessions.flatMap(a=>(a.participants||[]).filter(p=>p.eval_json));
   if(!evalParticipants.length){
     cntEl.textContent='Belum ada kuesioner';
     document.getElementById('evalBody').innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:.83rem">Belum ada data kuesioner untuk sesi ini.</div>';
@@ -2156,6 +2164,9 @@ async function renderEvaluasi(){
   const evals=evalParticipants.map(p=>({name:p.employee_name,data:p.eval_json||{}}));
 
   cntEl.textContent=`${evals.length} responden`;
+
+  // Virtual session object for meta display and detail modal
+  const session={attendance_id:selIdx,training_title:group.title,instructor:group.instructor,location:group.location,training_date_start:group.dateStart,training_date_end:group.dateStart};
 
   // Store for detail modal
   _evalDetailData={session,evals};
