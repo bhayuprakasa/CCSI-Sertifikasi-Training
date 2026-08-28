@@ -145,10 +145,10 @@ router.post('/pelatihan', upload.single('file'), async (req, res, next) => {
     try {
       const [result] = await pool.query(
         `INSERT INTO trx_training_request
-          (department, training_name, training_venue, training_date_start, training_date_end,
+          (department, training_name, training_date_start, training_date_end,
            training_type, organizer, training_reason, submitted_by, is_scheduled, approval_status)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-        [r.department, r.training_name, toNull(r.training_venue), dateStart, dateEnd,
+         VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        [r.department, r.training_name, dateStart, dateEnd,
          trainingType, toNull(r.organizer), toNull(r.training_reason),
          toNull(r.submitted_by), toInt(r.is_scheduled, 0), 'Submitted_HR']
       );

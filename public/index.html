@@ -804,10 +804,6 @@ select.filter:focus{border-color:var(--navy-lt)}
           <label>Nama Pelatihan *</label>
           <input type="text" id="mph_name" placeholder="Nama program pelatihan">
         </div>
-        <div class="form-group full">
-          <label>Tempat Pelatihan</label>
-          <input type="text" id="mph_venue" placeholder="Lokasi / tempat pelaksanaan">
-        </div>
         <div class="form-group">
           <label>Target Pelaksanaan *</label>
           <input type="month" id="mph_target_month">
@@ -1644,7 +1640,6 @@ function rkViewDetail(id){
         <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Departemen</div><div style="font-size:.83rem">${esc(r.department)}</div></div>
         <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Dept Head / Pengaju</div><div style="font-size:.83rem">${esc(r.submitted_by)}</div></div>
         <div style="grid-column:1/-1"><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Nama Pelatihan</div><div style="font-size:.83rem">${esc(r.training_name)}</div></div>
-        <div style="grid-column:1/-1"><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Tempat Pelatihan</div><div style="font-size:.83rem">${esc(r.training_venue)}</div></div>
         <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Jenis</div><div style="font-size:.83rem">${esc(r.training_type)}</div></div>
         <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Penyelenggara</div><div style="font-size:.83rem">${esc(r.organizer)}</div></div>
         <div><div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:2px">Rencana</div><div style="font-size:.83rem">${r.is_scheduled?'Terjadwal':'Tidak Terjadwal'}</div></div>
@@ -2164,9 +2159,6 @@ async function renderEvaluasi(){
   const evals=evalParticipants.map(p=>({name:p.employee_name,data:p.eval_json||{}}));
 
   cntEl.textContent=`${evals.length} responden`;
-
-  // Virtual session object for meta display and detail modal
-  const session={attendance_id:selIdx,training_title:group.title,instructor:group.instructor,location:group.location,training_date_start:group.dateStart,training_date_end:group.dateStart};
 
   // Store for detail modal
   _evalDetailData={session,evals};
@@ -3066,7 +3058,7 @@ function copyBodHrLink() {
 // MODAL PERMOHONAN PELATIHAN (HRD — tanpa approval)
 // =====================
 async function openPermHRModal() {
-  ['mph_submitter','mph_name','mph_venue','mph_organizer','mph_reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['mph_submitter','mph_name','mph_organizer','mph_reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const deptSel=document.getElementById('mph_dept');
   if(deptSel)deptSel.value='';
   document.getElementById('mph_type').value='';
@@ -3172,7 +3164,6 @@ async function mphSave() {
   const targetMonth=document.getElementById('mph_target_month').value;
   const type=document.getElementById('mph_type').value;
   const submitter=document.getElementById('mph_submitter').value.trim();
-  const venue=document.getElementById('mph_venue').value.trim();
   const organizer=document.getElementById('mph_organizer').value.trim();
   const reason=document.getElementById('mph_reason').value.trim();
   const kompetensi=document.getElementById('mph_kompetensi').value.trim();
@@ -3186,7 +3177,7 @@ async function mphSave() {
   if(!participants.length){showToast('Pilih minimal 1 peserta',false);return;}
 
   const body={
-    department:dept,training_name:name,training_venue:venue||null,
+    department:dept,training_name:name,
     training_date_start:targetMonth+'-01',training_date_end:targetMonth+'-01',
     training_type:type,organizer:organizer||null,training_reason:reason||null,kompetensi:kompetensi||null,
     participants,submitted_by:submitter||'HRD',submitted_by_hr:true,
@@ -3274,7 +3265,6 @@ const _UPLOAD_CONFIG = {
     cols: [
       { name: 'department', wajib: true, desc: 'Departemen / divisi' },
       { name: 'training_name', wajib: true, desc: 'Nama program pelatihan' },
-      { name: 'training_venue', wajib: false, desc: 'Tempat / lokasi pelatihan' },
       { name: 'training_date_start', wajib: false, desc: 'Tanggal mulai (YYYY-MM-DD)' },
       { name: 'training_date_end', wajib: false, desc: 'Tanggal selesai (YYYY-MM-DD)' },
       { name: 'training_type', wajib: false, desc: 'Internal atau Eksternal' },

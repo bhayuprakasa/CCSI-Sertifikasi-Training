@@ -220,7 +220,6 @@ async function sendApprovalEmail({ request, token, participants, approver, appUr
         ? '<span style="background:#e8eef7;color:#1a3c6e;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600">Internal</span>'
         : '<span style="background:#f4ecf7;color:#6c3483;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600">Eksternal</span>')}
       ${row('🏛️', 'Penyelenggara', request.organizer || '<em style="color:#94a3b8">—</em>')}
-      ${row('📍', 'Tempat Pelaksanaan', request.training_venue || '<em style="color:#94a3b8">—</em>')}
       ${row('📅', 'Target Pelaksanaan', fmtDate(request.training_date_start))}
       ${row('🗓️', 'Status Rencana', isScheduled)}
       ${row('💬', 'Alasan / Tujuan', request.training_reason || '<em style="color:#94a3b8">—</em>')}
@@ -434,7 +433,6 @@ async function sendHrdApprovalEmail({ request, token, participants, approver, ap
         ? '<span style="background:#e8eef7;color:#1a3c6e;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600">Internal</span>'
         : '<span style="background:#f4ecf7;color:#6c3483;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600">Eksternal</span>')}
       ${row('🏛️', 'Penyelenggara', request.organizer || '<em style="color:#94a3b8">—</em>')}
-      ${row('📍', 'Tempat Pelaksanaan', request.training_venue || '<em style="color:#94a3b8">—</em>')}
       ${row('📅', 'Target Pelaksanaan', fmtDate(request.training_date_start))}
       ${row('🗓️', 'Status Rencana', isScheduled)}
       ${row('💬', 'Alasan / Tujuan', request.training_reason || '<em style="color:#94a3b8">—</em>')}
