@@ -184,9 +184,15 @@ tbody td{padding:9px 8px;vertical-align:middle}
       </div>
 
       <!-- PESERTA -->
-      <div class="section-title">Peserta * <span style="font-size:.72rem;font-weight:400;color:var(--text3)">(dari master data karyawan berdasarkan departemen)</span></div>
+      <div class="section-title">Peserta * <span style="font-size:.72rem;font-weight:400;color:var(--text3)">(bisa pilih lintas departemen)</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <select id="pr_peserta_dept_filter" onchange="prFilterPeserta()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;font-family:var(--font);background:var(--bg);color:var(--text);flex:1;min-width:140px">
+          <option value="">Semua Departemen</option>
+        </select>
+        <input type="text" id="pr_peserta_search" oninput="prFilterPeserta()" placeholder="Cari nama karyawan..." style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;font-family:var(--font);flex:2;min-width:160px">
+      </div>
       <div id="pr_peserta" class="peserta-box">
-        <div class="peserta-empty">Pilih departemen terlebih dahulu</div>
+        <div class="peserta-empty">Memuat data karyawan...</div>
       </div>
 
       <!-- JENIS TRAINING -->
@@ -597,12 +603,13 @@ async function prLoadDeptHeads(dept) {
 
 async function prOnDeptChange() {
   const dept = document.getElementById('pr_dept').value;
-  // Reset dept head
   document.getElementById('pr_submitter').value = '';
   document.getElementById('pr_submitter_info').style.display = 'none';
-  // Load dept head sesuai departemen, lalu load peserta
   await prLoadDeptHeads(dept);
-  prLoadPeserta();
+  // Pre-set peserta dept filter to selected dept (user can clear it to see all)
+  const deptFilter = document.getElementById('pr_peserta_dept_filter');
+  if (deptFilter) deptFilter.value = dept;
+  prFilterPeserta();
 }
 
 function prOnSubmitterChange() {
@@ -631,41 +638,67 @@ function prOnApproverChange() {
   infoEl.style.display = 'block';
 }
 
+let _prAllEmps = null;
+
 async function prLoadPeserta() {
-  const dept = document.getElementById('pr_dept').value;
   const container = document.getElementById('pr_peserta');
-  if (!dept) {
-    container.innerHTML = '<div class="peserta-empty">Pilih departemen terlebih dahulu</div>';
-    return;
-  }
+  if (_prAllEmps) { prFilterPeserta(); return; }
   container.innerHTML = '<div class="peserta-empty">Memuat data karyawan...</div>';
   try {
-    let emps;
+    let emps = [];
     try {
-      const res = await fetch(`/api/employees?dept=${encodeURIComponent(dept)}`);
+      const res = await fetch('/api/employees');
       emps = res.ok ? await res.json() : [];
-    } catch (_) { emps = []; }
+    } catch (_) {}
     if (!emps.length) {
-      // Fallback: filter dari IndexedDB
       const all = await window.loadEmployeesWithFallback();
-      emps = all.filter(e => e.department === dept && (e.is_active == null || e.is_active == 1));
+      emps = all.filter(e => e.is_active == null || e.is_active == 1);
     }
     if (!emps.length) {
-      container.innerHTML = '<div class="peserta-empty">Tidak ada karyawan aktif di departemen ini</div>';
+      container.innerHTML = '<div class="peserta-empty">Tidak ada data karyawan aktif</div>';
       return;
     }
-    container.innerHTML = emps.map(e => `
-      <div class="peserta-check-row">
-        <label>
-          <input type="checkbox" name="pr_peserta_check" value="${e.full_name}">
-          <span>${e.full_name}</span>
-          <span class="emp-pos">${e.position || ''}</span>
-        </label>
-      </div>
-    `).join('');
+    emps.sort((a, b) => (a.department || '').localeCompare(b.department || '') || (a.full_name || '').localeCompare(b.full_name || ''));
+    _prAllEmps = emps;
+    // Populate dept filter dropdown
+    const depts = [...new Set(emps.map(e => e.department).filter(Boolean))].sort();
+    const deptFilter = document.getElementById('pr_peserta_dept_filter');
+    deptFilter.innerHTML = '<option value="">Semua Departemen</option>' +
+      depts.map(d => `<option value="${d}">${d}</option>`).join('');
+    prFilterPeserta();
   } catch {
     container.innerHTML = '<div class="peserta-empty" style="color:var(--red)">Gagal memuat data karyawan</div>';
   }
+}
+
+function prFilterPeserta() {
+  const container = document.getElementById('pr_peserta');
+  if (!_prAllEmps) return;
+  const deptF = (document.getElementById('pr_peserta_dept_filter')?.value || '');
+  const search = (document.getElementById('pr_peserta_search')?.value || '').toLowerCase().trim();
+  // Preserve checked state across re-renders
+  const checked = new Set([...document.querySelectorAll('input[name="pr_peserta_check"]:checked')].map(i => i.value));
+  let emps = _prAllEmps;
+  if (deptF) emps = emps.filter(e => e.department === deptF);
+  if (search) emps = emps.filter(e => (e.full_name || '').toLowerCase().includes(search) || (e.department || '').toLowerCase().includes(search));
+  if (!emps.length) {
+    container.innerHTML = '<div class="peserta-empty">Tidak ada karyawan yang sesuai filter</div>';
+    return;
+  }
+  // Group by department
+  const byDept = {};
+  emps.forEach(e => { const d = e.department || 'Lainnya'; (byDept[d] = byDept[d] || []).push(e); });
+  container.innerHTML = Object.entries(byDept).map(([dept, list]) => `
+    <div style="font-size:.7rem;font-weight:700;color:var(--navy-lt);text-transform:uppercase;letter-spacing:.5px;padding:6px 0 3px;margin-top:2px;border-bottom:1px solid var(--border)">${dept}</div>
+    ${list.map(e => `
+      <div class="peserta-check-row">
+        <label>
+          <input type="checkbox" name="pr_peserta_check" value="${e.full_name}" ${checked.has(e.full_name) ? 'checked' : ''}>
+          <span>${e.full_name}</span>
+          <span class="emp-pos">${e.position || ''}</span>
+        </label>
+      </div>`).join('')}
+  `).join('');
 }
 
 function prReset(skipConfirm = false) {
@@ -681,7 +714,11 @@ function prReset(skipConfirm = false) {
   submitterSel.disabled = true;
   document.getElementById('pr_submitter_info').style.display = 'none';
   document.querySelector('input[name="pr_scheduled"][value="0"]').checked = true;
-  document.getElementById('pr_peserta').innerHTML = '<div class="peserta-empty">Pilih departemen terlebih dahulu</div>';
+  const deptFilter = document.getElementById('pr_peserta_dept_filter');
+  if (deptFilter) deptFilter.value = '';
+  const pesertaSearch = document.getElementById('pr_peserta_search');
+  if (pesertaSearch) pesertaSearch.value = '';
+  prFilterPeserta();
   document.querySelectorAll('[id^="pr_cost_"]').forEach(el => { if (el.tagName === 'INPUT') el.value = ''; });
   document.querySelectorAll('[id^="pr_eq_"]').forEach(el => el.value = '0');
   document.querySelector('input[name="pr_cb"][value="0"]').checked = true;
@@ -1029,6 +1066,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pr_target_month').min = minMonth;
   prLoadDepts();
   prLoadApprovers();
+  prLoadPeserta();
   loadRekapData();
 });
 </script>

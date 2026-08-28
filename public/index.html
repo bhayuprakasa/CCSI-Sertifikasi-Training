@@ -776,7 +776,7 @@ select.filter:focus{border-color:var(--navy-lt)}
         </div>
         <div class="form-group">
           <label>Departemen / Divisi *</label>
-          <select id="mph_dept" onchange="mphLoadPeserta()">
+          <select id="mph_dept" onchange="(function(){const df=document.getElementById('mph_peserta_dept_filter');if(df)df.value=this.value;mphFilterPeserta();}).call(this)">
             <option value="">-- Pilih Departemen --</option>
           </select>
         </div>
@@ -820,9 +820,15 @@ select.filter:focus{border-color:var(--navy-lt)}
           <textarea id="mph_kompetensi" placeholder="Deskripsi kompetensi yang akan dipenuhi..." rows="2"></textarea>
         </div>
       </div>
-      <div style="font-size:.82rem;font-weight:700;color:var(--navy);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Peserta * <span style="font-size:.72rem;font-weight:400;color:var(--text3)">(dari master data karyawan berdasarkan departemen)</span></div>
+      <div style="font-size:.82rem;font-weight:700;color:var(--navy);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Peserta * <span style="font-size:.72rem;font-weight:400;color:var(--text3)">(bisa pilih lintas departemen)</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <select id="mph_peserta_dept_filter" onchange="mphFilterPeserta()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;background:#f8fafd;color:#1e293b;flex:1;min-width:130px">
+          <option value="">Semua Departemen</option>
+        </select>
+        <input type="text" id="mph_peserta_search" oninput="mphFilterPeserta()" placeholder="Cari nama..." style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;flex:2;min-width:130px">
+      </div>
       <div id="mph_peserta" style="background:#f8fafd;border:1px solid var(--border);border-radius:8px;padding:10px 14px;max-height:180px;overflow-y:auto;margin-bottom:14px">
-        <div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen terlebih dahulu</div>
+        <div style="color:var(--text3);font-size:.8rem;font-style:italic">Memuat data karyawan...</div>
       </div>
       <div style="font-size:.82rem;font-weight:700;color:var(--navy);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Rincian Biaya</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -2971,7 +2977,13 @@ async function openPermHRModal() {
   document.querySelectorAll('input[name="mph_scheduled"]').forEach(r=>{r.checked=(r.value==='0');});
   ['mph_cost_fee','mph_cost_akomodasi','mph_cost_transport','mph_cost_makan','mph_cost_snack','mph_cost_emergency'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('mph_cost_total').textContent='Rp 0';
-  document.getElementById('mph_peserta').innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen terlebih dahulu</div>';
+  // Reset peserta filter & cache so employees reload fresh
+  _mphAllEmps = null;
+  const pesertaDeptFilter = document.getElementById('mph_peserta_dept_filter');
+  if (pesertaDeptFilter) pesertaDeptFilter.innerHTML = '<option value="">Semua Departemen</option>';
+  const pesertaSearch = document.getElementById('mph_peserta_search');
+  if (pesertaSearch) pesertaSearch.value = '';
+  document.getElementById('mph_peserta').innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Memuat data karyawan...</div>';
 
   try {
     const emps=await getAll('mst_employee');
@@ -2982,26 +2994,54 @@ async function openPermHRModal() {
     deptSel.innerHTML='<option value="">-- Pilih Departemen --</option>'+fallback.map(d=>`<option value="${d}">${d}</option>`).join('');
   }
   document.getElementById('modalPermHR').classList.add('open');
+  mphLoadPeserta();
 }
 
+let _mphAllEmps = null;
+
 async function mphLoadPeserta() {
-  const dept=document.getElementById('mph_dept').value;
-  const container=document.getElementById('mph_peserta');
-  if(!dept){container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen terlebih dahulu</div>';return;}
-  container.innerHTML='<div style="color:var(--text3);font-size:.8rem">Memuat data karyawan...</div>';
+  const container = document.getElementById('mph_peserta');
+  if (_mphAllEmps) { mphFilterPeserta(); return; }
+  container.innerHTML = '<div style="color:var(--text3);font-size:.8rem">Memuat data karyawan...</div>';
   try {
-    const allEmps=await getAll('mst_employee');
-    const emps=allEmps.filter(e=>e.is_active&&e.department===dept);
-    if(!emps.length){container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Tidak ada karyawan aktif di departemen ini</div>';return;}
-    container.innerHTML=emps.map(e=>`
+    const allEmps = await getAll('mst_employee');
+    const emps = allEmps.filter(e => e.is_active).sort((a, b) =>
+      (a.department||'').localeCompare(b.department||'') || (a.full_name||'').localeCompare(b.full_name||''));
+    if (!emps.length) { container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Tidak ada data karyawan aktif</div>'; return; }
+    _mphAllEmps = emps;
+    const depts = [...new Set(emps.map(e=>e.department).filter(Boolean))].sort();
+    const df = document.getElementById('mph_peserta_dept_filter');
+    df.innerHTML = '<option value="">Semua Departemen</option>' + depts.map(d=>`<option value="${d}">${d}</option>`).join('');
+    // Pre-select the training dept in filter
+    const dept = document.getElementById('mph_dept').value;
+    if (dept) df.value = dept;
+    mphFilterPeserta();
+  } catch { container.innerHTML='<div style="color:var(--red);font-size:.8rem">Gagal memuat data karyawan</div>'; }
+}
+
+function mphFilterPeserta() {
+  const container = document.getElementById('mph_peserta');
+  if (!_mphAllEmps) return;
+  const deptF = document.getElementById('mph_peserta_dept_filter')?.value || '';
+  const search = (document.getElementById('mph_peserta_search')?.value || '').toLowerCase().trim();
+  const checked = new Set([...document.querySelectorAll('input[name="mph_peserta_check"]:checked')].map(i=>i.value));
+  let emps = _mphAllEmps;
+  if (deptF) emps = emps.filter(e => e.department === deptF);
+  if (search) emps = emps.filter(e => (e.full_name||'').toLowerCase().includes(search) || (e.department||'').toLowerCase().includes(search));
+  if (!emps.length) { container.innerHTML='<div style="color:var(--text3);font-size:.8rem;font-style:italic">Tidak ada karyawan yang sesuai filter</div>'; return; }
+  const byDept = {};
+  emps.forEach(e => { const d=e.department||'Lainnya'; (byDept[d]=byDept[d]||[]).push(e); });
+  container.innerHTML = Object.entries(byDept).map(([dept, list]) => `
+    <div style="font-size:.7rem;font-weight:700;color:#2a5298;text-transform:uppercase;letter-spacing:.5px;padding:5px 0 2px;margin-top:2px;border-bottom:1px solid #dde3ec">${dept}</div>
+    ${list.map(e=>`
       <div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f0f3f6">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;flex:1">
-          <input type="checkbox" name="mph_peserta_check" value="${e.full_name}" style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
+          <input type="checkbox" name="mph_peserta_check" value="${e.full_name}" ${checked.has(e.full_name)?'checked':''} style="width:15px;height:15px;cursor:pointer;accent-color:var(--navy)">
           <span>${e.full_name}</span>
           <span style="font-size:.71rem;color:var(--text3)">${e.position||''}</span>
         </label>
-      </div>`).join('');
-  } catch {container.innerHTML='<div style="color:var(--red);font-size:.8rem">Gagal memuat data karyawan</div>';}
+      </div>`).join('')}
+  `).join('');
 }
 
 function mphFormatCost(el){let v=el.value.replace(/\D/g,'');if(v)el.value=Number(v).toLocaleString('id-ID');else el.value='';}
