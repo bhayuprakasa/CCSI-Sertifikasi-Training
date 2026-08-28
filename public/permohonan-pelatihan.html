@@ -701,6 +701,13 @@ function prFilterPeserta() {
   `).join('');
 }
 
+function prToggleSelectAll() {
+  const all = [...document.querySelectorAll('input[name="pr_peserta_check"]')];
+  const allChecked = all.length > 0 && all.every(c => c.checked);
+  all.forEach(c => { c.checked = !allChecked; });
+  prUpdatePesertaUI();
+}
+
 function prReset(skipConfirm = false) {
   if (!skipConfirm && !confirm('Reset form? Data yang belum dikirim akan hilang.')) return;
   document.querySelectorAll('#pr_name,#pr_venue,#pr_organizer,#pr_instruktur,#pr_reason').forEach(el => el.value = '');
