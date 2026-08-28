@@ -406,8 +406,8 @@ function toggleExpiryDate() {
   }
 }
 
-function resetCertForm() {
-  if (!confirm('Reset form? Data yang belum disimpan akan hilang.')) return;
+function resetCertForm(skipConfirm = false) {
+  if (!skipConfirm && !confirm('Reset form? Data yang belum disimpan akan hilang.')) return;
   document.getElementById('cert_training').value = '';
   document.getElementById('cert_dept').value = '';
   document.getElementById('cert_dept').disabled = true;
@@ -484,7 +484,7 @@ async function submitCertForm() {
       }),
     });
     showToast('Data sertifikasi berhasil disimpan!');
-    resetCertForm();
+    resetCertForm(true);
   } catch (e) {
     showToast(e.message, false);
   } finally {
