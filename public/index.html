@@ -2643,7 +2643,13 @@ async function populateTrxSelects() {
 }
 
 function clearTrxForm() {
-  ['c_emp','c_sertif','c_no','c_penerbit','c_terbit','c_expiry','c_notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['c_emp','c_sertif','c_no','c_penerbit','c_terbit','c_expiry','c_notes','c_aksi','c_sertif_baru'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const row=document.getElementById('c_sertif_baru_row'); if(row) row.style.display='none';
+}
+function onAksiChange() {
+  const aksi=document.getElementById('c_aksi').value;
+  const row=document.getElementById('c_sertif_baru_row');
+  if(row) row.style.display=(aksi==='Sudah diperpanjang')?'block':'none';
 }
 
 async function editCert(id) {
@@ -2688,7 +2694,9 @@ async function saveTrx() {
     issue_date:terbit,
     expiry_date:document.getElementById('c_expiry').value||'',
     is_active:1, renewal_count:0,
-    notes:document.getElementById('c_notes').value||''
+    notes:document.getElementById('c_notes').value||'',
+    renewal_action:document.getElementById('c_aksi').value||null,
+    renewal_cert_id:(document.getElementById('c_aksi').value==='Sudah diperpanjang'&&document.getElementById('c_sertif_baru').value)?parseInt(document.getElementById('c_sertif_baru').value):null
   };
   if(editCertId) obj.cert_id=editCertId;
   await putRecord('trx_certification',obj);
