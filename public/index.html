@@ -767,6 +767,8 @@ select.filter:focus{border-color:var(--navy-lt)}
           <div class="form-group"><label>Tgl Terbit *</label><input type="date" id="c_terbit"></div>
           <div class="form-group"><label>Expiry Date</label><input type="date" id="c_expiry"><small>Kosongkan jika tidak ada batas berlaku</small></div>
           <div class="form-group full"><label>Catatan</label><textarea id="c_notes" placeholder="Catatan perpanjangan dll"></textarea></div>
+          <div class="form-group full"><label>Aksi *</label><select id="c_aksi" onchange="onAksiChange()"><option value="">-- Pilih Aksi --</option><option value="Tidak diperpanjang">Tidak diperpanjang</option><option value="Sudah diperpanjang">Sudah diperpanjang</option></select></div>
+          <div class="form-group full" id="c_sertif_baru_row" style="display:none"><label>Sertifikat yang baru</label><select id="c_sertif_baru"><option value="">-- Pilih Sertifikat Baru --</option></select><small>Sertifikat karyawan yang sama dengan tanggal terbit lebih baru</small></div>
         </div>
       </div>
     </div>
@@ -2730,9 +2732,16 @@ function setTrxMode(m) {
 
 function clearTrxForm() {
   ['t_emp','t_prog','t_start','t_end','t_aktivitas','t_pre','t_post','t_react','t_cost','t_notes',
-   'c_emp','c_sertif','c_no','c_penerbit','c_terbit','c_expiry','c_notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+   'c_emp','c_sertif','c_no','c_penerbit','c_terbit','c_expiry','c_notes','c_aksi','c_sertif_baru'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   const ts=document.getElementById('t_status'); if(ts) ts.value='Done';
   const es=document.getElementById('evalSection'); if(es) es.innerHTML=buildEvalForm();
+  const row=document.getElementById('c_sertif_baru_row'); if(row) row.style.display='none';
+}
+
+function onAksiChange() {
+  const aksi=document.getElementById('c_aksi').value;
+  const row=document.getElementById('c_sertif_baru_row');
+  if(row) row.style.display=(aksi==='Sudah diperpanjang')?'flex':'none';
 }
 
 async function editTrx(id) {
@@ -2772,6 +2781,19 @@ async function editCert(id) {
   document.getElementById('c_terbit').value=c.issue_date||'';
   document.getElementById('c_expiry').value=c.expiry_date||'';
   document.getElementById('c_notes').value=c.notes||'';
+  // Populate Aksi field
+  const aksiEl=document.getElementById('c_aksi');
+  if(aksiEl) aksiEl.value=c.renewal_action||'';
+  // Populate filtered sertifikat baru dropdown
+  const sertifBaruSel=document.getElementById('c_sertif_baru');
+  if(sertifBaruSel){
+    const newerCerts=all.filter(x=>x.employee_id===c.employee_id && x.cert_id!==id && (x.issue_date||'')>(c.issue_date||''));
+    newerCerts.sort((a,b)=>(b.issue_date||'').localeCompare(a.issue_date||''));
+    sertifBaruSel.innerHTML='<option value="">-- Pilih Sertifikat Baru --</option>'+newerCerts.map(x=>`<option value="${x.cert_id}">${x.sertif_name} — ${fmtDate(x.issue_date)}</option>`).join('');
+    if(c.renewal_cert_id) sertifBaruSel.value=String(c.renewal_cert_id);
+  }
+  const row=document.getElementById('c_sertif_baru_row');
+  if(row) row.style.display=(c.renewal_action==='Sudah diperpanjang')?'flex':'none';
   document.getElementById('modalTrx').classList.add('open');
 }
 
@@ -2814,6 +2836,8 @@ async function saveTrx() {
     const sertif=document.getElementById('c_sertif').value.trim();
     const terbit=document.getElementById('c_terbit').value;
     if(!emp||!sertif||!terbit){showToast('Karyawan, nama sertifikasi, dan tgl terbit wajib diisi',false);return;}
+    const aksiVal=document.getElementById('c_aksi').value||'';
+    const sertifBaruVal=document.getElementById('c_sertif_baru').value;
     const obj={
       employee_id:emp, trx_id:null,
       sertif_name:sertif,
@@ -2822,7 +2846,9 @@ async function saveTrx() {
       issue_date:terbit,
       expiry_date:document.getElementById('c_expiry').value||'',
       is_active:1, renewal_count:0,
-      notes:document.getElementById('c_notes').value||''
+      notes:document.getElementById('c_notes').value||'',
+      renewal_action:aksiVal||null,
+      renewal_cert_id:(aksiVal==='Sudah diperpanjang'&&sertifBaruVal)?parseInt(sertifBaruVal):null
     };
     if(editCertId) obj.cert_id=editCertId;
     await putRecord('trx_certification',obj);

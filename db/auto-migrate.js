@@ -76,6 +76,14 @@ async function autoMigrate() {
     `);
 
     console.log('[AutoMigrate] Schema trx_training_request OK');
+
+    // 8. trx_certification — renewal tracking fields
+    await conn.query(`
+      ALTER TABLE trx_certification
+        ADD COLUMN IF NOT EXISTS renewal_action  VARCHAR(30) NULL DEFAULT NULL AFTER notes,
+        ADD COLUMN IF NOT EXISTS renewal_cert_id INT NULL DEFAULT NULL AFTER renewal_action
+    `);
+    console.log('[AutoMigrate] Schema trx_certification renewal OK');
   } catch (err) {
     console.error('[AutoMigrate] Error:', err.message);
     // Non-fatal: server still starts; routes will surface real DB errors.
