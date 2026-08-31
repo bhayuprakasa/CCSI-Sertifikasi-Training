@@ -762,6 +762,7 @@ select.filter:focus{border-color:var(--navy-lt)}
           <div class="form-group"><label>Berlaku Hingga</label><input type="date" id="c_expiry"><small>Kosongkan jika tidak ada batas berlaku</small></div>
           <div class="form-group full"><label>Catatan</label><textarea id="c_notes" placeholder="Catatan perpanjangan dll"></textarea></div>
           <div class="form-group full"><label>Aksi *</label><select id="c_aksi" onchange="onAksiChange()"><option value="">-- Pilih Aksi --</option><option value="Tidak diperpanjang">Tidak diperpanjang</option><option value="Sudah diperpanjang">Sudah diperpanjang</option></select></div>
+          <div class="form-group full" id="c_sertif_baru_row" style="display:none"><label>Sertifikat yang baru</label><select id="c_sertif_baru"><option value="">-- Pilih Sertifikat Baru --</option></select><small>Sertifikat karyawan yang sama dengan tanggal terbit lebih baru</small></div>
         </div>
         <div class="form-group" id="c_sertif_baru_row" style="display:none;margin-top:12px"><label>Sertifikat yang baru</label><select id="c_sertif_baru"><option value="">-- Pilih Sertifikat Baru --</option></select><small>Sertifikat karyawan yang sama dengan tanggal terbit lebih baru</small></div>
       </div>
