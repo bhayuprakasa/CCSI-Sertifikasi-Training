@@ -5,7 +5,7 @@ const { logAudit } = require('../middleware/auditLog');
 
 router.get('/', async (req, res) => {
   const [rows] = await pool.query(
-    'SELECT attendance_id, training_title, instructor, location, department, training_date_start, training_date_end, submitted_at FROM trx_training_attendance ORDER BY attendance_id DESC'
+    'SELECT attendance_id, training_title, instructor, department, training_date_start, training_date_end, submitted_at FROM trx_training_attendance ORDER BY attendance_id DESC'
   );
   const [parts] = await pool.query(
     'SELECT participant_id, attendance_id, employee_id, employee_name, eval_json FROM trx_training_attendance_participant ORDER BY participant_id'
@@ -22,8 +22,8 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { training_title, instructor, location, department, training_date_start, training_date_end, participants } = req.body;
-  if (!training_title || !department || !training_date_start || !participants?.length) {
+  const { training_title, instructor, department, training_date_start, training_date_end, participants } = req.body;
+  if (!training_title || !department || !participants?.length) {
     return res.status(400).json({ error: 'Field wajib belum lengkap' });
   }
 
@@ -32,8 +32,8 @@ router.post('/', async (req, res) => {
     await conn.beginTransaction();
 
     const [result] = await conn.query(
-      'INSERT INTO trx_training_attendance (training_title, instructor, location, department, training_date_start, training_date_end) VALUES (?,?,?,?,?,?)',
-      [training_title, instructor || null, location || null, department, training_date_start, training_date_end || training_date_start]
+      'INSERT INTO trx_training_attendance (training_title, instructor, department, training_date_start, training_date_end) VALUES (?,?,?,?,?)',
+      [training_title, instructor || null, department, training_date_start, training_date_end || null]
     );
     const id = result.insertId;
 
@@ -51,7 +51,7 @@ router.post('/', async (req, res) => {
       table_name: 'trx_training_attendance',
       record_id: id,
       operation: 'CREATE',
-      new_data: { training_title, instructor, location, department, training_date_start, training_date_end, participant_count: participants.length },
+      new_data: { training_title, instructor, department, training_date_start, training_date_end, participant_count: participants.length },
       changed_by: req.changedBy,
       conn,
     });

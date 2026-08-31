@@ -35,7 +35,7 @@ function validScore(v) {
 router.get('/', async (req, res) => {
   try {
     const [requests] = await pool.query(
-      'SELECT request_id, department, training_name, training_venue, training_date_start, training_date_end, actual_date_start, actual_date_end, training_type, organizer, instruktur, kompetensi, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status, approver_name, approver_email, approver_position FROM trx_training_request ORDER BY request_id DESC'
+      'SELECT request_id, department, training_name, training_date_start, training_date_end, actual_date_start, actual_date_end, training_type, organizer, instruktur, kompetensi, training_reason, cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total, eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan, coffee_break, score_peserta_atasan, score_peserta_hrd, score_materi_atasan, score_materi_hrd, score_grand_total, submitted_by, submitted_at, is_scheduled, approval_status, approver_name, approver_email, approver_position FROM trx_training_request ORDER BY request_id DESC'
     );
     const [participants] = await pool.query('SELECT participant_id, request_id, participant_name FROM trx_training_request_participant ORDER BY participant_id');
     const result = requests.map(r => ({
@@ -79,7 +79,7 @@ router.post('/', async (req, res) => {
 
     const [result] = await conn.query(
       `INSERT INTO trx_training_request (
-        department, training_name, training_venue, training_date_start, training_date_end,
+        department, training_name, training_date_start, training_date_end,
         training_type, organizer, instruktur, kompetensi, training_reason,
         cost_training_fee, cost_akomodasi, cost_transport, cost_makan, cost_snack, cost_emergency, cost_total,
         eq_proyektor, eq_laptop, eq_kabel_hdmi, eq_pointer, eq_flipchart, eq_notebook, eq_ruangan, eq_colokan,
@@ -89,7 +89,7 @@ router.post('/', async (req, res) => {
         approver_name, approver_email, approver_position
       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
-        item.department, item.training_name, item.training_venue || null,
+        item.department, item.training_name,
         item.training_date_start, item.training_date_end || item.training_date_start,
         item.training_type, item.organizer || null, item.instruktur || null, item.kompetensi || null, item.training_reason || null,
         item.cost_training_fee || 0, item.cost_akomodasi || 0, item.cost_transport || 0,
@@ -150,7 +150,8 @@ router.post('/send-multi-approval', async (req, res) => {
   const [requests] = await pool.query(
     `SELECT r.request_id, r.department, r.training_name, r.training_date_start,
             r.training_type, r.cost_total, r.is_scheduled, r.approval_status,
-            r.approval_token, r.approver_name, r.approver_email, r.approver_position
+            r.approval_token, r.approver_name, r.approver_email, r.approver_position,
+            r.training_reason
      FROM trx_training_request r
      WHERE r.request_id IN (${placeholders})`,
     request_ids
@@ -437,21 +438,22 @@ router.patch('/:id/dates', async (req, res) => {
 });
 
 router.patch('/:id/organizer-participants', async (req, res) => {
-  const { organizer, participants, kompetensi, instruktur } = req.body;
+  const { organizer, participants, kompetensi, instruktur, department } = req.body;
   if (!Array.isArray(participants) || !participants.length) {
     return res.status(400).json({ error: 'Minimal 1 peserta wajib diisi' });
   }
 
-  const [existing] = await pool.query('SELECT request_id, organizer, kompetensi, instruktur FROM trx_training_request WHERE request_id = ?', [req.params.id]);
+  const [existing] = await pool.query('SELECT request_id, department, organizer, kompetensi, instruktur FROM trx_training_request WHERE request_id = ?', [req.params.id]);
   if (!existing.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
 
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
+    const newDept = department || existing[0].department;
     await conn.query(
-      'UPDATE trx_training_request SET organizer = ?, kompetensi = ?, instruktur = ? WHERE request_id = ?',
-      [organizer || null, kompetensi || null, instruktur || null, req.params.id]
+      'UPDATE trx_training_request SET department = ?, organizer = ?, kompetensi = ?, instruktur = ? WHERE request_id = ?',
+      [newDept, organizer || null, kompetensi || null, instruktur || null, req.params.id]
     );
 
     await conn.query('DELETE FROM trx_training_request_participant WHERE request_id = ?', [req.params.id]);
@@ -465,14 +467,14 @@ router.patch('/:id/organizer-participants', async (req, res) => {
       table_name: 'trx_training_request',
       record_id: req.params.id,
       operation: 'UPDATE',
-      old_data: { organizer: existing[0].organizer, kompetensi: existing[0].kompetensi, instruktur: existing[0].instruktur },
-      new_data: { organizer, kompetensi, instruktur, participant_count: participants.length },
+      old_data: { department: existing[0].department, organizer: existing[0].organizer, kompetensi: existing[0].kompetensi, instruktur: existing[0].instruktur },
+      new_data: { department: newDept, organizer, kompetensi, instruktur, participant_count: participants.length },
       changed_by: req.changedBy,
       conn,
     });
 
     await conn.commit();
-    res.json({ updated: true, organizer, kompetensi, instruktur, participant_count: participants.length });
+    res.json({ updated: true, department: newDept, organizer, kompetensi, instruktur, participant_count: participants.length });
   } catch (e) {
     await conn.rollback();
     throw e;

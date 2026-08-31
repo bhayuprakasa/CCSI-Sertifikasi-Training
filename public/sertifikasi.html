@@ -149,7 +149,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
         <div class="form-grid" style="margin-bottom:14px">
           <div class="form-group">
             <label>Kompetensi *</label>
-            <select id="cert_competency">
+            <select id="cert_competency" onchange="autoFillSertifName()">
               <option value="">-- Pilih Kompetensi --</option>
             </select>
           </div>
@@ -162,6 +162,11 @@ tbody td{padding:10px 12px;vertical-align:middle}
           </div>
         </div>
 
+        <div class="form-group full" style="margin-bottom:14px">
+          <label>Nama Sertifikasi *</label>
+          <input type="text" id="cert_sertif_name" placeholder="Nama sertifikasi (otomatis dari kompetensi, bisa diubah)">
+        </div>
+
         <div class="form-grid" style="margin-bottom:14px">
           <div class="form-group">
             <label>Internal / Eksternal *</label>
@@ -171,14 +176,9 @@ tbody td{padding:10px 12px;vertical-align:middle}
             </select>
           </div>
           <div class="form-group">
-            <label>Diselenggarakan Oleh *</label>
-            <input type="text" id="cert_issuing_body" placeholder="Nama organisasi / lembaga">
+            <label>Penerbit Sertifikat *</label>
+            <input type="text" id="cert_issuing_body" placeholder="Nama organisasi / lembaga penerbit">
           </div>
-        </div>
-
-        <div class="form-group full" style="margin-bottom:18px">
-          <label>Lokasi</label>
-          <input type="text" id="cert_location" placeholder="Lokasi pelaksanaan sertifikasi">
         </div>
 
         <div style="display:flex;justify-content:flex-end;gap:10px">
@@ -187,9 +187,38 @@ tbody td{padding:10px 12px;vertical-align:middle}
         </div>
 
       </div>
-
     </div>
   </div>
+
+  <!-- TABEL HASIL -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📋 Data Sertifikasi Tersimpan</span>
+      <span id="certTableCount" style="font-size:.78rem;color:var(--text2)"></span>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Karyawan</th>
+              <th>Sertifikasi</th>
+              <th>No. Sertifikat</th>
+              <th>Penerbit</th>
+              <th>Terbit</th>
+              <th>Expiry</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="certTableBody">
+            <tr class="empty-row"><td colspan="8">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -304,8 +333,7 @@ function toggleExpiryDate() {
   }
 }
 
-function resetCertForm() {
-  if (!confirm('Reset form? Data yang belum disimpan akan hilang.')) return;
+function clearCertForm() {
   document.getElementById('cert_dept').value = '';
   document.getElementById('cert_emp_search').value = '';
   document.getElementById('cert_emp_search').disabled = true;
@@ -315,19 +343,33 @@ function resetCertForm() {
   document.getElementById('cert_card_number').value = '';
   document.getElementById('cert_card_date').value = '';
   document.getElementById('cert_competency').value = '';
+  document.getElementById('cert_sertif_name').value = '';
   document.getElementById('cert_method').value = 'Offline';
   document.getElementById('cert_type').value = 'Eksternal';
   document.getElementById('cert_issuing_body').value = '';
-  document.getElementById('cert_location').value = '';
   document.getElementById('cert_lifetime').checked = false;
   toggleExpiryDate();
   selectedEmployee = null;
   hideEmpList();
 }
 
+function resetCertForm() {
+  if (!confirm('Reset form? Data yang belum diisi akan hilang.')) return;
+  clearCertForm();
+}
+
+function autoFillSertifName() {
+  const sel = document.getElementById('cert_competency');
+  const name = document.getElementById('cert_sertif_name');
+  if (sel.value && !name.value) {
+    name.value = sel.options[sel.selectedIndex].text;
+  }
+}
+
 async function submitCertForm() {
   if (!selectedEmployee) { showToast('Pilih karyawan terlebih dahulu', false); return; }
   const certNumber = document.getElementById('cert_number').value.trim();
+  const sertifName = document.getElementById('cert_sertif_name').value.trim();
   const issueDate = document.getElementById('cert_issue_date').value;
   const expiryDate = document.getElementById('cert_expiry_date').value;
   const competencyId = document.getElementById('cert_competency').value;
@@ -337,10 +379,10 @@ async function submitCertForm() {
   const isLifetime = document.getElementById('cert_lifetime').checked;
 
   const errors = [];
+  if (!sertifName) errors.push('Nama Sertifikasi wajib diisi');
   if (!certNumber) errors.push('No Sertifikat wajib diisi');
   if (!issueDate) errors.push('Tanggal Sertifikat wajib diisi');
-  if (!competencyId) errors.push('Kompetensi wajib dipilih');
-  if (!issuingBody) errors.push('Diselenggarakan Oleh wajib diisi');
+  if (!issuingBody) errors.push('Penerbit Sertifikat wajib diisi');
   if (!isLifetime && !expiryDate) errors.push('Berlaku Hingga wajib diisi atau pilih Seumur Hidup');
 
   if (errors.length) { showToast(errors[0], false); return; }
@@ -353,29 +395,86 @@ async function submitCertForm() {
       method: 'POST',
       body: JSON.stringify({
         employee_id: selectedEmployee.employee_id,
-        sertif_name: document.getElementById('cert_competency').options[document.getElementById('cert_competency').selectedIndex].text,
+        sertif_name: sertifName,
         certificate_number: certNumber,
         issue_date: issueDate,
         expiry_date: expiryDate || null,
         issuing_body: issuingBody,
         card_number: document.getElementById('cert_card_number').value.trim() || null,
         card_date: document.getElementById('cert_card_date').value || null,
-        competency_id: competencyId,
+        competency_id: competencyId || null,
         delivery_method: method,
         certification_type: type,
-        location: document.getElementById('cert_location').value.trim() || null,
         is_lifetime: isLifetime ? 1 : 0,
       }),
     });
-    showToast('Data sertifikasi berhasil disimpan!');
-    resetCertForm();
+    showToast('✅ Data sertifikasi berhasil disimpan!');
+    clearCertForm();
+    renderCertTable();
   } catch (e) {
-    showToast(e.message, false);
+    showToast('❌ Gagal menyimpan: ' + e.message, false);
   } finally {
     btn.disabled = false; btn.textContent = '📤 Simpan Sertifikasi';
   }
 }
 
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+function daysDiff(d) {
+  if (!d) return null;
+  return Math.floor((new Date(d) - new Date()) / 86400000);
+}
+
+async function renderCertTable() {
+  const tbody = document.getElementById('certTableBody');
+  const countEl = document.getElementById('certTableCount');
+  tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Memuat data...</td></tr>';
+  try {
+    const [certs, emps] = await Promise.all([
+      api('/api/certifications'),
+      api('/api/employees'),
+    ]);
+    const empMap = {};
+    emps.forEach(e => empMap[e.employee_id] = e);
+
+    if (!certs.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Belum ada data sertifikasi.</td></tr>';
+      countEl.textContent = '0 data';
+      return;
+    }
+
+    countEl.textContent = `${certs.length} data`;
+    tbody.innerHTML = certs.map((c, i) => {
+      const emp = empMap[c.employee_id] || {};
+      let statusHtml;
+      if (c.is_lifetime || !c.expiry_date) {
+        statusHtml = '<span class="badge b-navy">Seumur Hidup</span>';
+      } else {
+        const d = daysDiff(c.expiry_date);
+        if (d < 0) statusHtml = `<span class="badge b-red">Expired ${Math.abs(d)}h lalu</span>`;
+        else if (d <= 90) statusHtml = `<span class="badge b-yellow">${d} hari lagi</span>`;
+        else statusHtml = `<span class="badge b-green">${d} hari lagi</span>`;
+      }
+      return `<tr>
+        <td style="color:var(--text3);font-size:.75rem">${i + 1}</td>
+        <td><strong style="font-size:.82rem">${emp.full_name || c.employee_id}</strong><br><span style="font-size:.72rem;color:var(--text3)">${emp.employee_id || ''}</span></td>
+        <td>${c.sertif_name}</td>
+        <td style="font-size:.75rem;color:var(--text2)">${c.certificate_number || '-'}</td>
+        <td style="font-size:.75rem">${c.issuing_body || '-'}</td>
+        <td style="font-size:.75rem">${fmtDate(c.issue_date)}</td>
+        <td style="font-size:.75rem">${c.is_lifetime ? '—' : fmtDate(c.expiry_date)}</td>
+        <td>${statusHtml}</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">Gagal memuat data: ${e.message}</td></tr>`;
+  }
+}
 
 document.addEventListener('click', e => {
   const dropdown = document.querySelector('.emp-dropdown');
@@ -384,6 +483,7 @@ document.addEventListener('click', e => {
 
 document.addEventListener('DOMContentLoaded', () => {
   initPage();
+  renderCertTable();
 });
 </script>
 </body>

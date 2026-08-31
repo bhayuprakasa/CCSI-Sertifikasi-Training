@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
@@ -105,15 +105,13 @@ app.use('/api', requireApiKey);
 
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/competencies', require('./routes/competencies'));
-app.use('/api/programs', require('./routes/programs'));
-app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/certifications', require('./routes/certifications'));
 app.use('/api/training-needs', require('./routes/training-needs'));
 app.use('/api/training-requests', require('./routes/training-requests'));
 app.use('/api/training-attendance', require('./routes/training-attendance'));
 app.use('/api/audit-log', require('./routes/audit-log'));
-app.use('/api/approval-workflow', require('./routes/approval-workflow'));
 app.use('/api/email-log', require('./routes/email-log'));
+app.use('/api/upload', require('./routes/upload'));
 
 // Health check — cek koneksi MySQL tanpa auth
 app.get('/api/health', async (req, res) => {
