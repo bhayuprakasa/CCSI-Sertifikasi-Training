@@ -14,12 +14,23 @@ const PORT = process.env.PORT || 3000;
 const publicDir = path.join(__dirname, 'public');
 
 // Build CORS allowlist from APP_URL + optional CORS_ORIGINS env var.
-// localhost variants are always included so local/dev access works without .env.
+// localhost, 127.0.0.1, dan semua IP LAN server selalu diizinkan agar
+// akses dari jaringan lokal (mis. 192.168.x.x:3000) tidak diblokir.
+const _localNetIPs = (() => {
+  try {
+    const nets = require('os').networkInterfaces();
+    return Object.values(nets).flat()
+      .filter(n => n && n.family === 'IPv4' && !n.internal)
+      .map(n => `http://${n.address}:${process.env.PORT || 3000}`);
+  } catch { return []; }
+})();
+
 const ALLOWED_ORIGINS = [
   process.env.APP_URL,
   ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()) : []),
   `http://localhost:${process.env.PORT || 3000}`,
   `http://127.0.0.1:${process.env.PORT || 3000}`,
+  ..._localNetIPs,
 ].filter(Boolean);
 
 app.use(cors({
