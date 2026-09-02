@@ -180,13 +180,17 @@
     // MutationObserver: rebuilds option list when children (options) or attributes change
     _observe() {
       this._obs = new MutationObserver(muts => {
+        // Proses SEMUA mutation dulu sebelum bertindak.
+        // Jangan break lebih awal: saat disabled dan innerHTML diubah berdekatan,
+        // browser membatch keduanya — break pada handler 'attributes' akan memotong
+        // loop sebelum 'childList' diproses sehingga _sync() tidak pernah dipanggil.
         let needSync = false;
+        let needDisabledSync = false;
         for (const m of muts) {
-          if (m.type === 'childList') { needSync = true; break; }
-          if (m.type === 'attributes' && m.attributeName === 'disabled') {
-            this._syncDisabled(); break;
-          }
+          if (m.type === 'childList') needSync = true;
+          else if (m.type === 'attributes' && m.attributeName === 'disabled') needDisabledSync = true;
         }
+        if (needDisabledSync) this._syncDisabled();
         if (needSync) this._sync();
       });
       this._obs.observe(this.el, {
