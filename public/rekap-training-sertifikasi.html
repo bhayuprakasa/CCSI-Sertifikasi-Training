@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
 <script src="/js/api-client.js"></script>
+<script src="/js/searchable-select.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pendaftaran Sertifikasi — CCSI</title>
@@ -102,7 +103,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
         <div class="form-grid" style="margin-bottom:14px">
           <div class="form-group full">
             <label>Nama Pelatihan *</label>
-            <select id="cert_training" onchange="onTrainingSelect()">
+            <select id="cert_training" onchange="onTrainingSelect()" data-searchable>
               <option value="">-- Pilih Nama Pelatihan --</option>
             </select>
           </div>
@@ -110,7 +111,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
         <div class="form-grid" style="margin-bottom:14px">
           <div class="form-group">
             <label>Departemen *</label>
-            <select id="cert_dept" onchange="loadEmployees()" disabled>
+            <select id="cert_dept" onchange="loadEmployees()" disabled data-searchable>
               <option value="">-- Pilih Departemen --</option>
             </select>
           </div>
@@ -157,13 +158,13 @@ tbody td{padding:10px 12px;vertical-align:middle}
         <div class="form-grid" style="margin-bottom:14px">
           <div class="form-group">
             <label>Kompetensi *</label>
-            <select id="cert_competency" onchange="autoFillSertifName()">
+            <select id="cert_competency" onchange="autoFillSertifName()" data-searchable>
               <option value="">-- Pilih Kompetensi --</option>
             </select>
           </div>
           <div class="form-group">
             <label>Online / Offline *</label>
-            <select id="cert_method">
+            <select id="cert_method" data-searchable>
               <option value="Offline">Offline</option>
               <option value="Online">Online</option>
             </select>
@@ -178,7 +179,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
         <div class="form-grid" style="margin-bottom:14px">
           <div class="form-group">
             <label>Internal / Eksternal *</label>
-            <select id="cert_type">
+            <select id="cert_type" data-searchable>
               <option value="Eksternal">Eksternal</option>
               <option value="Internal">Internal</option>
             </select>
@@ -522,6 +523,7 @@ document.addEventListener('click', e => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  SearchableSelect.initAll();
   initPage();
 });
 </script>
