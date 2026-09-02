@@ -453,7 +453,7 @@ select.filter:focus{border-color:var(--navy-lt)}
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>Karyawan</th><th>Jabatan</th><th>Site</th><th>Sertifikasi</th><th>No. Sertifikat</th><th>Penerbit</th><th>Tgl. Terbit</th><th>Berlaku Hingga</th><th>Status</th><th>Perpanjang</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>#</th><th>Karyawan</th><th>Dept</th><th>Jabatan</th><th>Site</th><th>Sertifikasi</th><th>No. Sertifikat</th><th>Penerbit</th><th>Tgl. Terbit</th><th>Berlaku Hingga</th><th>Status</th><th>Perpanjang</th><th>Aksi</th></tr></thead>
             <tbody id="sertifBody"></tbody>
           </table>
         </div>
@@ -761,7 +761,8 @@ select.filter:focus{border-color:var(--navy-lt)}
       <!-- FORM CERT -->
       <div id="formCert">
         <div class="form-grid">
-          <div class="form-group full"><label>Karyawan *</label><select id="c_emp" data-searchable><option value="">-- Pilih Karyawan --</option></select></div>
+          <div class="form-group full"><label>Karyawan *</label><select id="c_emp" data-searchable onchange="onCertEmpChange()"><option value="">-- Pilih Karyawan --</option></select></div>
+          <div class="form-group full"><label>Departemen</label><input type="text" id="c_dept" placeholder="Departemen karyawan" disabled style="background:#f5f7fa;color:var(--text2)"></div>
           <div class="form-group full"><label>Nama Sertifikasi *</label><input type="text" id="c_sertif" placeholder="Nama sertifikasi / kompetensi"></div>
           <div class="form-group"><label>No. Sertifikat</label><input type="text" id="c_no" placeholder="Nomor sertifikat resmi"></div>
           <div class="form-group"><label>Lembaga Penerbit</label><input type="text" id="c_penerbit" placeholder="BNSP / Kemnaker / dll"></div>
@@ -2104,6 +2105,7 @@ async function renderSertif() {
     return `<tr>
       <td style="color:var(--text3)">${i+1}</td>
       <td><strong>${r.emp.full_name||r.employee_id}</strong><br><small style="color:var(--text3)">${r.employee_id}</small></td>
+      <td style="font-size:.75rem;color:var(--text2)">${r.emp.department||'-'}</td>
       <td style="color:var(--text2)">${r.emp.position||'-'}</td>
       <td><span class="badge b-navy" style="font-size:.68rem">${r.emp.site||'-'}</span></td>
       <td>${r.sertif_name}</td>
@@ -2118,7 +2120,7 @@ async function renderSertif() {
         <button class="btn-sm btn-del" onclick="deleteCert(${r.cert_id})">Hapus</button>
       </td>
     </tr>`;
-  }).join(''):'<tr class="empty-row"><td colspan="12">Tidak ada data</td></tr>';
+  }).join(''):'<tr class="empty-row"><td colspan="13">Tidak ada data</td></tr>';
 }
 
 // =====================
@@ -2675,14 +2677,24 @@ async function openAddModal() {
 }
 async function openTrxModal() { return openAddModal(); }
 
+let _empDeptMap={};
 async function populateTrxSelects() {
   const emps=await getAll('mst_employee');
+  // Simpan map employee_id -> department untuk auto-fill field Departemen
+  _empDeptMap={};
+  emps.forEach(e=>{ _empDeptMap[e.employee_id]=e.department||''; });
   const empOpts=emps.filter(e=>e.is_active).map(e=>`<option value="${e.employee_id}">${e.full_name} (${e.employee_id})</option>`).join('');
   const el=document.getElementById('c_emp'); if(el) el.innerHTML='<option value="">-- Pilih Karyawan --</option>'+empOpts;
 }
 
+function onCertEmpChange() {
+  const empId=document.getElementById('c_emp').value;
+  const deptEl=document.getElementById('c_dept');
+  if(deptEl) deptEl.value=_empDeptMap[empId]||'';
+}
+
 function clearTrxForm() {
-  ['c_emp','c_sertif','c_no','c_penerbit','c_terbit','c_expiry','c_notes','c_aksi','c_sertif_baru'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['c_emp','c_dept','c_sertif','c_no','c_penerbit','c_terbit','c_expiry','c_notes','c_aksi','c_sertif_baru'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   const row=document.getElementById('c_sertif_baru_row'); if(row) row.style.display='none';
 }
 function onAksiChange() {
@@ -2698,6 +2710,9 @@ async function editCert(id) {
   document.getElementById('modalTrxTitle').textContent='Edit Sertifikasi';
   await populateTrxSelects();
   document.getElementById('c_emp').value=c.employee_id;
+  // Auto-fill dept dari map yang sudah dimuat di populateTrxSelects
+  const deptEl=document.getElementById('c_dept');
+  if(deptEl) deptEl.value=_empDeptMap[c.employee_id]||c.department||'';
   document.getElementById('c_sertif').value=c.sertif_name||'';
   document.getElementById('c_no').value=c.certificate_number||'';
   document.getElementById('c_penerbit').value=c.issuing_body||'';
