@@ -164,11 +164,6 @@ tbody td{padding:10px 12px;vertical-align:middle}
           </div>
         </div>
 
-        <div class="form-group full" style="margin-bottom:14px">
-          <label>Nama Sertifikasi *</label>
-          <input type="text" id="cert_sertif_name" placeholder="Nama sertifikasi (otomatis dari kompetensi, bisa diubah)">
-        </div>
-
         <div class="form-grid" style="margin-bottom:14px">
           <div class="form-group">
             <label>Internal / Eksternal *</label>
@@ -345,7 +340,6 @@ function clearCertForm() {
   document.getElementById('cert_card_number').value = '';
   document.getElementById('cert_card_date').value = '';
   document.getElementById('cert_competency').value = '';
-  document.getElementById('cert_sertif_name').value = '';
   document.getElementById('cert_method').value = 'Offline';
   document.getElementById('cert_type').value = 'Eksternal';
   document.getElementById('cert_issuing_body').value = '';
@@ -361,27 +355,24 @@ function resetCertForm() {
 }
 
 function autoFillSertifName() {
-  const sel = document.getElementById('cert_competency');
-  const name = document.getElementById('cert_sertif_name');
-  if (sel.value && !name.value) {
-    name.value = sel.options[sel.selectedIndex].text;
-  }
+  // kept for compatibility with onchange="autoFillSertifName()" on competency select
 }
 
 async function submitCertForm() {
   if (!selectedEmployee) { showToast('Pilih karyawan terlebih dahulu', false); return; }
   const certNumber = document.getElementById('cert_number').value.trim();
-  const sertifName = document.getElementById('cert_sertif_name').value.trim();
   const issueDate = document.getElementById('cert_issue_date').value;
   const expiryDate = document.getElementById('cert_expiry_date').value;
-  const competencyId = document.getElementById('cert_competency').value;
+  const competencySel = document.getElementById('cert_competency');
+  const competencyId = competencySel.value;
+  // sertif_name diambil otomatis dari nama kompetensi yang dipilih
+  const sertifName = competencySel.value ? competencySel.options[competencySel.selectedIndex].text : '';
   const method = document.getElementById('cert_method').value;
   const type = document.getElementById('cert_type').value;
   const issuingBody = document.getElementById('cert_issuing_body').value.trim();
   const isLifetime = document.getElementById('cert_lifetime').checked;
 
   const errors = [];
-  if (!sertifName) errors.push('Nama Sertifikasi wajib diisi');
   if (!certNumber) errors.push('No Sertifikat wajib diisi');
   if (!issueDate) errors.push('Tanggal Sertifikat wajib diisi');
   if (!issuingBody) errors.push('Penerbit Sertifikat wajib diisi');

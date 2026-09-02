@@ -172,11 +172,6 @@ tbody td{padding:10px 12px;vertical-align:middle}
           </div>
         </div>
 
-        <div class="form-group full" style="margin-bottom:14px">
-          <label>Nama Sertifikasi *</label>
-          <input type="text" id="cert_sertif_name" placeholder="Nama sertifikasi (otomatis dari kompetensi, bisa diubah)" oninput="this.dataset.manual=this.value?'1':''">
-        </div>
-
         <div class="form-grid" style="margin-bottom:14px">
           <div class="form-group">
             <label>Internal / Eksternal *</label>
@@ -303,12 +298,6 @@ function onTrainingSelect() {
     }
     certComp.disabled = true;
 
-    // Auto-fill Nama Sertifikasi from kompetensi
-    const sertifNameEl = document.getElementById('cert_sertif_name');
-    if (!sertifNameEl.dataset.manual) {
-      sertifNameEl.value = komp || '';
-    }
-
     const attendedEmps = getAttendedEmployees();
     const depts = [...new Set(attendedEmps.map(e => e.department).filter(Boolean))].sort();
     buildDeptOptions(deptSel, depts);
@@ -320,8 +309,6 @@ function onTrainingSelect() {
     certType.disabled = false;
     certComp.value = '';
     certComp.disabled = false;
-    document.getElementById('cert_sertif_name').value = '';
-    delete document.getElementById('cert_sertif_name').dataset.manual;
     buildDeptOptions(deptSel, []);
     deptSel.disabled = true;
   }
@@ -410,12 +397,7 @@ function selectEmployee(empId, empName) {
 }
 
 function autoFillSertifName() {
-  if (selectedTraining) return; // already filled by training selection
-  const sel = document.getElementById('cert_competency');
-  const nameEl = document.getElementById('cert_sertif_name');
-  if (sel.value && !nameEl.dataset.manual) {
-    nameEl.value = sel.options[sel.selectedIndex].text;
-  }
+  // kept for compatibility with onchange="autoFillSertifName()" on competency select
 }
 
 function toggleExpiryDate() {
@@ -442,9 +424,6 @@ function resetCertForm(skipConfirm = false) {
   document.getElementById('cert_expiry_date').value = '';
   document.getElementById('cert_card_number').value = '';
   document.getElementById('cert_card_date').value = '';
-  const certSertifName = document.getElementById('cert_sertif_name');
-  certSertifName.value = '';
-  delete certSertifName.dataset.manual;
   const certComp = document.getElementById('cert_competency');
   const tempOpt = certComp.querySelector('option[data-temp]');
   if (tempOpt) certComp.removeChild(tempOpt);
@@ -465,19 +444,21 @@ function resetCertForm(skipConfirm = false) {
 async function submitCertForm() {
   if (!selectedEmployee) { showToast('Pilih karyawan terlebih dahulu', false); return; }
   const certNumber = document.getElementById('cert_number').value.trim();
-  const sertifName = document.getElementById('cert_sertif_name').value.trim();
   const issueDate = document.getElementById('cert_issue_date').value;
   const expiryDate = document.getElementById('cert_expiry_date').value;
   const certCompEl = document.getElementById('cert_competency');
   const rawCompId = certCompEl.value;
   const competencyId = (rawCompId && rawCompId !== '__komp__') ? rawCompId : null;
+  // sertif_name: dari training_name jika ada pelatihan, fallback ke nama kompetensi
+  const sertifName = selectedTraining
+    ? (selectedTraining.training_name || '')
+    : (certCompEl.value ? certCompEl.options[certCompEl.selectedIndex].text : '');
   const method = document.getElementById('cert_method').value;
   const type = document.getElementById('cert_type').value;
   const issuingBody = document.getElementById('cert_issuing_body').value.trim();
   const isLifetime = document.getElementById('cert_lifetime').checked;
 
   const errors = [];
-  if (!sertifName) errors.push('Nama Sertifikasi wajib diisi');
   if (!certNumber) errors.push('No Sertifikat wajib diisi');
   if (!issueDate) errors.push('Tanggal Sertifikat wajib diisi');
   if (!selectedTraining && !competencyId) errors.push('Kompetensi wajib dipilih');
