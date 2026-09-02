@@ -990,7 +990,9 @@ select.filter:focus{border-color:var(--navy-lt)}
 // =====================
 // DATABASE (IndexedDB)
 // =====================
-const DB_NAME = 'CCSI_Training_v2', DB_VER = 1;
+// DB_VER harus >= versi tertinggi yang pernah ada di browser user.
+// Naikkan angka ini (jangan turunkan) jika ada perubahan skema IndexedDB.
+const DB_NAME = 'CCSI_Training_v2', DB_VER = 2;
 let db;
 
 function openDB() {
