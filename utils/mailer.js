@@ -725,6 +725,206 @@ async function sendMultiApprovalEmail({ approver, requests, appUrl: appUrlOverri
   }
 }
 
+// ── HR Notification email (informational, tanpa tombol approve/reject) ────────
+// Dikirim ke email HR setelah BOD Dept atau HRD mengambil keputusan.
+async function sendHrNotificationEmail({ request, participants, actionBy, actionAt, actionStatus, toEmail }) {
+  if (!toEmail) return;
+
+  // Label dan warna berdasarkan status aksi
+  const statusConfig = {
+    approved_dept: { icon: '✅', color: '#00a86b', label: 'Disetujui oleh Direktur Departemen', bannerBg: '#f0f8f4', bannerBorder: '#a7e8cc', bannerText: '#0a4a2a' },
+    rejected_dept: { icon: '❌', color: '#d63031', label: 'Ditolak oleh Direktur Departemen',   bannerBg: '#fff0f0', bannerBorder: '#f5a0a0', bannerText: '#5a0a0a' },
+    approved_hrd:  { icon: '✅', color: '#00a86b', label: 'Disetujui Final oleh Direktur HRD',  bannerBg: '#f0f8f4', bannerBorder: '#a7e8cc', bannerText: '#0a4a2a' },
+    rejected_hrd:  { icon: '❌', color: '#d63031', label: 'Ditolak oleh Direktur HRD',          bannerBg: '#fff0f0', bannerBorder: '#f5a0a0', bannerText: '#5a0a0a' },
+  };
+  const sc = statusConfig[actionStatus] || statusConfig.approved_dept;
+
+  // Format tanggal-waktu aksi: "2 September 2026, 14:35 WIB"
+  const pad = n => String(n).padStart(2, '0');
+  const d = actionAt instanceof Date ? actionAt : new Date(actionAt);
+  const actionAtLabel = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())} WIB`;
+
+  const costItems = [
+    ['Training Fee',   request.cost_training_fee],
+    ['Akomodasi',      request.cost_akomodasi],
+    ['Transport',      request.cost_transport],
+    ['Makan',          request.cost_makan],
+    ['Snack',          request.cost_snack],
+    ['Emergency Cash', request.cost_emergency],
+  ].filter(([, v]) => v > 0);
+
+  const costRows = costItems.map(([label, val]) =>
+    `<tr><td style="padding:5px 12px;color:#64748b;font-size:12px;border-bottom:1px solid #f0f3f6">${label}</td><td style="padding:5px 12px;text-align:right;font-size:12px;border-bottom:1px solid #f0f3f6">${fmtRp(val)}</td></tr>`
+  ).join('');
+
+  const participantList = (participants || [])
+    .map((p, i) => `<tr><td style="padding:5px 12px;color:#1e293b;font-size:12px;border-bottom:1px solid #f0f3f6">${i + 1}. ${p}</td></tr>`)
+    .join('');
+
+  // Format tanggal submit
+  const submitAt = request.submitted_at ? new Date(request.submitted_at) : null;
+  const submitLabel = submitAt
+    ? `${submitAt.getDate()} ${MONTHS[submitAt.getMonth()]} ${submitAt.getFullYear()}, ${pad(submitAt.getHours())}:${pad(submitAt.getMinutes())} WIB`
+    : '-';
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f3f8;font-family:'Segoe UI',Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:28px auto;font-size:14px">
+<tr><td>
+
+  <!-- Header -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#1a3c6e;border-radius:12px 12px 0 0">
+    <tr>
+      <td width="56" style="padding:16px 0 16px 20px;vertical-align:middle">
+        <div style="background:#e8a020;border-radius:8px;width:40px;height:40px;text-align:center;line-height:40px;font-weight:800;font-size:10px;color:#12294d;letter-spacing:-.5px">CCSI</div>
+      </td>
+      <td style="padding:16px 20px 16px 12px;vertical-align:middle">
+        <div style="color:#ffffff;font-size:15px;font-weight:700;margin:0">Notifikasi Permohonan Pelatihan</div>
+        <div style="color:#a0b4d0;font-size:11px;margin-top:3px">PT Communication Cable Systems Indonesia</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Status Banner -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:${sc.bannerBg};border-left:4px solid ${sc.color};border-right:1px solid ${sc.bannerBorder}">
+    <tr><td style="padding:11px 18px;font-size:13px;color:${sc.bannerText};font-weight:600">
+      ${sc.icon} &nbsp;${sc.label}
+    </td></tr>
+  </table>
+
+  <!-- Body -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #dde3ec;border-top:none">
+  <tr><td style="padding:24px">
+
+    <p style="margin:0 0 20px;color:#475569;font-size:13px;line-height:1.8">
+      Berikut adalah informasi permohonan pelatihan yang telah mendapat keputusan dari <strong>${actionBy}</strong>:
+    </p>
+
+    <!-- Kotak Status Keputusan -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;border-radius:8px;overflow:hidden">
+      <tr>
+        <td colspan="2" style="background:${sc.color};color:#fff;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:9px 14px;border-radius:6px 6px 0 0">
+          ${sc.icon} &nbsp;STATUS KEPUTUSAN
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f8fafd;border:1px solid #dde3ec;border-top:none;font-weight:600;color:#475569;width:40%;font-size:13px">Status</td>
+        <td style="padding:10px 14px;border:1px solid #dde3ec;border-top:none;border-left:none;font-weight:700;color:${sc.color};font-size:13px">${sc.label}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f8fafd;border:1px solid #dde3ec;border-top:none;font-weight:600;color:#475569;font-size:13px">Diputuskan Oleh</td>
+        <td style="padding:10px 14px;border:1px solid #dde3ec;border-top:none;border-left:none;color:#1e293b;font-size:13px">${actionBy || '-'}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f8fafd;border:1px solid #dde3ec;border-top:none;font-weight:600;color:#475569;font-size:13px">Waktu Keputusan</td>
+        <td style="padding:10px 14px;border:1px solid #dde3ec;border-top:none;border-left:none;color:#1e293b;font-size:13px">${actionAtLabel}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f8fafd;border:1px solid #dde3ec;border-top:none;font-weight:600;color:#475569;font-size:13px;border-radius:0 0 0 6px">Tanggal Submit</td>
+        <td style="padding:10px 14px;border:1px solid #dde3ec;border-top:none;border-left:none;color:#1e293b;font-size:13px;border-radius:0 0 6px 0">${submitLabel}</td>
+      </tr>
+    </table>
+
+    <!-- Detail Pelatihan -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+      <tr>
+        <td colspan="3" style="background:#1a3c6e;color:#fff;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:9px 14px;border-radius:6px 6px 0 0">
+          📋 &nbsp;DETAIL PELATIHAN
+        </td>
+      </tr>
+      ${row('📚', 'Nama Pelatihan', `<strong>${request.training_name}</strong>`, true)}
+      ${row('🏢', 'Departemen', request.department)}
+      ${row('👤', 'Diajukan Oleh', request.submitted_by || '<em style="color:#94a3b8">—</em>')}
+      ${row('🎯', 'Jenis Pelatihan', request.training_type === 'Internal'
+        ? '<span style="background:#e8eef7;color:#1a3c6e;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600">Internal</span>'
+        : '<span style="background:#f4ecf7;color:#6c3483;border-radius:4px;padding:2px 8px;font-size:12px;font-weight:600">Eksternal</span>')}
+      ${row('🏛️', 'Penyelenggara', request.organizer || '<em style="color:#94a3b8">—</em>')}
+      ${row('📅', 'Target Pelaksanaan', fmtDate(request.training_date_start))}
+      ${row('💬', 'Alasan / Tujuan', request.training_reason || '<em style="color:#94a3b8">—</em>')}
+    </table>
+
+    <!-- Peserta -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+      <tr>
+        <td style="background:#1a3c6e;color:#fff;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:9px 14px;border-radius:6px 6px 0 0">
+          👥 &nbsp;PESERTA (${(participants || []).length} orang)
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:0;border:1px solid #dde3ec;border-top:none;background:#f8fafd;border-radius:0 0 6px 6px">
+          <table style="width:100%;border-collapse:collapse">
+            ${participantList || '<tr><td style="padding:10px 14px;color:#94a3b8;font-size:12px">—</td></tr>'}
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Biaya -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+      <tr>
+        <td colspan="2" style="background:#1a3c6e;color:#fff;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:9px 14px;border-radius:6px 6px 0 0">
+          💰 &nbsp;RINCIAN BIAYA
+        </td>
+      </tr>
+      ${costRows || '<tr><td colspan="2" style="padding:10px 14px;color:#94a3b8;font-size:12px;border:1px solid #dde3ec;border-top:none">Tidak ada rincian biaya</td></tr>'}
+      <tr>
+        <td style="padding:10px 14px;background:#1a3c6e;color:#fff;font-weight:700;font-size:13px;border-radius:0 0 0 6px">Total Biaya</td>
+        <td style="padding:10px 14px;background:#1a3c6e;color:#fff;font-weight:800;font-size:14px;text-align:right;border-radius:0 0 6px 0">${fmtRp(request.cost_total)}</td>
+      </tr>
+    </table>
+
+    <p style="font-size:11px;color:#94a3b8;margin:0;text-align:center;line-height:1.8">
+      Email ini dikirim otomatis oleh sistem CCSI Training Dashboard.<br>
+      No. Permohonan: <strong>#${request.request_id}</strong>
+    </p>
+
+  </td></tr></table>
+
+  <!-- Footer -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafd;border:1px solid #dde3ec;border-top:none;border-radius:0 0 12px 12px">
+    <tr><td style="padding:12px 24px;text-align:center">
+      <span style="font-size:11px;color:#94a3b8">Terima kasih, &nbsp;<strong>Sistem HR Otomatis — CCSI Training</strong></span>
+    </td></tr>
+  </table>
+
+</td></tr></table>
+</body>
+</html>`;
+
+  const subject = `[Notifikasi] ${sc.label}: ${request.training_name} — ${request.department}`;
+  const logBase = {
+    to: toEmail,
+    approver_name: actionBy,
+    subject,
+    training_name: request.training_name,
+    department:    request.department,
+    request_id:    request.request_id,
+  };
+
+  const useGraph = !!(process.env.GRAPH_TENANT_ID && process.env.GRAPH_CLIENT_ID && process.env.GRAPH_CLIENT_SECRET);
+  const senderName = 'CCSI Training';
+
+  try {
+    if (useGraph) {
+      await sendViaGraph(toEmail, subject, html, { senderName });
+    } else {
+      await transporter.sendMail({
+        from:    process.env.SMTP_FROM || `"${senderName}" <${process.env.SMTP_USER}>`,
+        to:      toEmail,
+        subject,
+        html,
+      });
+    }
+    addLog({ ...logBase, status: 'success', method: useGraph ? 'Graph API' : 'SMTP' });
+  } catch (err) {
+    addLog({ ...logBase, status: 'failed', error: err.message, method: useGraph ? 'Graph API' : 'SMTP' });
+    // Non-fatal: jangan throw, cukup log
+    console.error('[Mailer] Gagal kirim notifikasi HR:', err.message);
+  }
+}
+
 function isEmailConfigured() {
   const hasSmtp  = !!process.env.SMTP_HOST;
   const hasGraph = !!(process.env.GRAPH_TENANT_ID && process.env.GRAPH_CLIENT_ID && process.env.GRAPH_CLIENT_SECRET);
@@ -736,4 +936,4 @@ function invalidateEmailSettingsCache() {
   _settingsCacheAt = 0;
 }
 
-module.exports = { sendApprovalEmail, sendHrdApprovalEmail, sendMultiApprovalEmail, getEmailLog, isEmailConfigured, invalidateEmailSettingsCache };
+module.exports = { sendApprovalEmail, sendHrdApprovalEmail, sendMultiApprovalEmail, sendHrNotificationEmail, getEmailLog, isEmailConfigured, invalidateEmailSettingsCache };

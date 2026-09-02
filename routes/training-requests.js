@@ -3,7 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const pool = require('../db');
 const { logAudit } = require('../middleware/auditLog');
-const { sendApprovalEmail, sendHrdApprovalEmail, sendMultiApprovalEmail, isEmailConfigured } = require('../utils/mailer');
+const { sendApprovalEmail, sendHrdApprovalEmail, sendMultiApprovalEmail, sendHrNotificationEmail, isEmailConfigured } = require('../utils/mailer');
 
 const VALID_TRAINING_TYPE = ['Internal', 'Eksternal'];
 
@@ -24,6 +24,38 @@ function getAppUrl(req) {
     return `http://${ip.address}:${process.env.PORT || 3000}`;
   }
   return `http://localhost:${process.env.PORT || 3000}`;
+}
+
+// Ambil email HR dari cfg_approver_hrd untuk notifikasi informasional
+async function getHrEmail() {
+  try {
+    const [rows] = await pool.query('SELECT email FROM cfg_approver_hrd ORDER BY id DESC LIMIT 1');
+    return rows[0]?.email || null;
+  } catch { return null; }
+}
+
+// Kirim notifikasi informasional ke HR (tanpa tombol approve/reject)
+// actionStatus: 'approved_dept' | 'rejected_dept' | 'approved_hrd' | 'rejected_hrd'
+async function triggerHrNotif(req_, actionBy, actionStatus) {
+  if (!isEmailConfigured()) return;
+  const hrEmail = await getHrEmail();
+  if (!hrEmail) return;
+  try {
+    const [parts] = await pool.query(
+      'SELECT participant_name FROM trx_training_request_participant WHERE request_id = ?',
+      [req_.request_id]
+    );
+    sendHrNotificationEmail({
+      request:     req_,
+      participants: parts.map(p => p.participant_name),
+      actionBy,
+      actionAt:    new Date(),
+      actionStatus,
+      toEmail:     hrEmail,
+    }).catch(err => console.error('[Mailer] Gagal kirim notifikasi HR:', err.message));
+  } catch (err) {
+    console.error('[triggerHrNotif]', err.message);
+  }
 }
 
 function validScore(v) {
@@ -303,6 +335,9 @@ router.get('/approve/:token', async (req, res) => {
     }).catch(err => console.error('[Mailer] Gagal kirim email HRD:', err.message));
   }
 
+  // Kirim notifikasi informasional ke HR (tanpa tombol)
+  triggerHrNotif(req_, req_.approver_name || 'Direktur Departemen', 'approved_dept');
+
   res.send(approvalPage('approved_l1', 'PendingBODHR', req_));
 });
 
@@ -323,6 +358,10 @@ router.get('/reject/:token', async (req, res) => {
     'UPDATE trx_training_request SET approval_status = ?, approval_token = NULL WHERE request_id = ?',
     ['Rejected_BODDept', req_.request_id]
   );
+
+  // Kirim notifikasi informasional ke HR
+  triggerHrNotif(req_, req_.approver_name || 'Direktur Departemen', 'rejected_dept');
+
   res.send(approvalPage('rejected_dept', 'Rejected_BODDept', req_));
 });
 
@@ -345,6 +384,15 @@ router.get('/approve-hrd/:token', async (req, res) => {
     'UPDATE trx_training_request SET approval_status = ?, approval_hrd_token = NULL WHERE request_id = ?',
     ['Approved', req_.request_id]
   );
+
+  // Ambil nama HRD dari cfg_approver_hrd untuk label notifikasi
+  let hrdName = 'Direktur HRD';
+  try {
+    const [hRows] = await pool.query('SELECT email FROM cfg_approver_hrd ORDER BY id DESC LIMIT 1');
+    if (hRows[0]?.full_name) hrdName = hRows[0].full_name;
+  } catch { /* abaikan */ }
+  triggerHrNotif(req_, hrdName, 'approved_hrd');
+
   res.send(approvalPage('approved', 'Approved', req_));
 });
 
@@ -365,6 +413,9 @@ router.get('/reject-hrd/:token', async (req, res) => {
     'UPDATE trx_training_request SET approval_status = ?, approval_hrd_token = NULL WHERE request_id = ?',
     ['Rejected_BODHR', req_.request_id]
   );
+
+  triggerHrNotif(req_, 'Direktur HRD', 'rejected_hrd');
+
   res.send(approvalPage('rejected_hrd', 'Rejected_BODHR', req_));
 });
 
@@ -388,6 +439,9 @@ router.patch('/:id/approve-hrd', async (req, res) => {
     new_data: { approval_status: 'Approved' },
     changed_by: req.changedBy,
   });
+
+  triggerHrNotif(req_, 'Direktur HRD', 'approved_hrd');
+
   res.json({ updated: true, approval_status: 'Approved' });
 });
 
@@ -411,6 +465,9 @@ router.patch('/:id/reject-hrd', async (req, res) => {
     new_data: { approval_status: 'Rejected_BODHR' },
     changed_by: req.changedBy,
   });
+
+  triggerHrNotif(req_, 'Direktur HRD', 'rejected_hrd');
+
   res.json({ updated: true, approval_status: 'Rejected_BODHR' });
 });
 
