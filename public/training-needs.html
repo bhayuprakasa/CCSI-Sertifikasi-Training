@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
 <script src="/js/api-client.js"></script>
+<script src="/js/searchable-select.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Form Kebutuhan Pelatihan — CCSI</title>
@@ -113,7 +114,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
       <div class="form-grid three" style="margin-bottom:16px">
         <div class="form-group">
           <label>Departemen *</label>
-          <select id="tn_dept_header" onchange="onDeptChange()">
+          <select id="tn_dept_header" onchange="onDeptChange()" data-searchable>
             <option value="">-- Pilih Departemen --</option>
             <option>HR &amp; GA</option>
             <option>Finance</option>
@@ -130,7 +131,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
         </div>
         <div class="form-group">
           <label>Tahun Perencanaan *</label>
-          <select id="tn_year" style="width:100%"></select>
+          <select id="tn_year" style="width:100%" data-searchable></select>
         </div>
         <div class="form-group">
           <label>Diajukan oleh</label>
@@ -433,7 +434,10 @@ async function tnSubmit() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', initPage);
+document.addEventListener('DOMContentLoaded', () => {
+  SearchableSelect.initAll();
+  initPage();
+});
 </script>
 </body>
 </html>

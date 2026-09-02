@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
 <script src="/js/api-client.js"></script>
+<script src="/js/searchable-select.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Permohonan Pelatihan — CCSI</title>
@@ -144,20 +145,20 @@ tbody td{padding:9px 8px;vertical-align:middle}
       <div class="form-grid" style="margin-bottom:14px">
         <div class="form-group">
           <label>Departemen / Divisi *</label>
-          <select id="pr_dept" onchange="prOnDeptChange()">
+          <select id="pr_dept" onchange="prOnDeptChange()" data-searchable>
             <option value="">-- Pilih Departemen --</option>
           </select>
         </div>
         <div class="form-group">
           <label>Dept Head *</label>
-          <select id="pr_submitter" onchange="prOnSubmitterChange()" disabled>
+          <select id="pr_submitter" onchange="prOnSubmitterChange()" disabled data-searchable>
             <option value="">-- Pilih Departemen dahulu --</option>
           </select>
           <div id="pr_submitter_info" style="display:none;margin-top:4px;font-size:.74rem;color:var(--navy);background:#e8eef7;border-radius:5px;padding:5px 9px"></div>
         </div>
         <div class="form-group">
           <label>Approver 1 (Direksi / BOD) *</label>
-          <select id="pr_approver1" onchange="prOnApproverChange()">
+          <select id="pr_approver1" onchange="prOnApproverChange()" data-searchable>
             <option value="">-- Pilih Approver --</option>
           </select>
           <div id="pr_approver1_info" style="display:none;margin-top:4px;font-size:.74rem;color:var(--navy);background:#e8eef7;border-radius:5px;padding:5px 9px"></div>
@@ -200,7 +201,7 @@ tbody td{padding:9px 8px;vertical-align:middle}
       <div class="form-grid" style="margin-bottom:14px">
         <div class="form-group">
           <label>Jenis *</label>
-          <select id="pr_type">
+          <select id="pr_type" data-searchable>
             <option value="">-- Pilih --</option>
             <option value="Internal">Internal</option>
             <option value="Eksternal">Eksternal</option>
@@ -1081,6 +1082,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const today = new Date();
   const minMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
   document.getElementById('pr_target_month').min = minMonth;
+  // Init searchable dropdowns before data loads (MutationObserver handles option updates)
+  SearchableSelect.initAll();
   prLoadDepts();
   prLoadApprovers();
   prLoadPeserta();

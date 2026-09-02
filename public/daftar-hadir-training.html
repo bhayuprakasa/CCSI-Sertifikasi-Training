@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
 <script src="/js/api-client.js"></script>
+<script src="/js/searchable-select.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Daftar Hadir Training — CCSI</title>
@@ -125,7 +126,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
       <div class="form-grid" style="margin-bottom:14px">
         <div class="form-group full">
           <label>Judul Training *</label>
-          <select id="at_title" onchange="onTrainingSelected()">
+          <select id="at_title" onchange="onTrainingSelected()" data-searchable>
             <option value="">-- Pilih Training yang Disetujui --</option>
           </select>
         </div>
@@ -155,7 +156,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
       <div class="form-grid" style="margin-bottom:10px">
         <div class="form-group">
           <label>Departemen *</label>
-          <select id="at_dept" onchange="loadEmployees()">
+          <select id="at_dept" onchange="loadEmployees()" data-searchable>
             <option value="">-- Pilih Departemen --</option>
           </select>
         </div>
@@ -480,6 +481,7 @@ document.addEventListener('click', e => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  SearchableSelect.initAll();
   initPage();
 });
 </script>

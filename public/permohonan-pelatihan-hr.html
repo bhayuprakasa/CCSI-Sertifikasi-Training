@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
 <script src="/js/api-client.js"></script>
+<script src="/js/searchable-select.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Input Permohonan Pelatihan (HRD) — CCSI</title>
@@ -146,13 +147,13 @@ tbody td{padding:10px 12px;vertical-align:middle}
       <div class="form-grid" style="margin-bottom:14px">
         <div class="form-group">
           <label>Departemen / Divisi *</label>
-          <select id="pr_dept" onchange="prOnDeptChange()">
+          <select id="pr_dept" onchange="prOnDeptChange()" data-searchable>
             <option value="">-- Pilih Departemen --</option>
           </select>
         </div>
         <div class="form-group">
           <label>Dept Head / PIC</label>
-          <select id="pr_dept_head">
+          <select id="pr_dept_head" data-searchable>
             <option value="">-- Pilih Dept Head --</option>
           </select>
         </div>
@@ -188,7 +189,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
       <div class="form-grid" style="margin-bottom:14px">
         <div class="form-group">
           <label>Jenis *</label>
-          <select id="pr_type">
+          <select id="pr_type" data-searchable>
             <option value="">-- Pilih --</option>
             <option value="Internal">Internal</option>
             <option value="Eksternal">Eksternal</option>
@@ -204,7 +205,7 @@ tbody td{padding:10px 12px;vertical-align:middle}
         </div>
         <div class="form-group">
           <label>Kompetensi</label>
-          <select id="pr_kompetensi">
+          <select id="pr_kompetensi" data-searchable>
             <option value="">-- Pilih Kompetensi --</option>
           </select>
         </div>
@@ -721,6 +722,7 @@ function renderRecap(data) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  SearchableSelect.initAll();
   prLoadDepts();
   prLoadKompetensi();
   loadRekapData();

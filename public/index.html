@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
 <script src="/js/api-client.js"></script>
+<script src="/js/searchable-select.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Training & Sertifikasi v2 — CCSI</title>
@@ -759,7 +760,7 @@ select.filter:focus{border-color:var(--navy-lt)}
       <!-- FORM CERT -->
       <div id="formCert">
         <div class="form-grid">
-          <div class="form-group full"><label>Karyawan *</label><select id="c_emp"><option value="">-- Pilih Karyawan --</option></select></div>
+          <div class="form-group full"><label>Karyawan *</label><select id="c_emp" data-searchable><option value="">-- Pilih Karyawan --</option></select></div>
           <div class="form-group full"><label>Nama Sertifikasi *</label><input type="text" id="c_sertif" placeholder="Nama sertifikasi / kompetensi"></div>
           <div class="form-group"><label>No. Sertifikat</label><input type="text" id="c_no" placeholder="Nomor sertifikat resmi"></div>
           <div class="form-group"><label>Lembaga Penerbit</label><input type="text" id="c_penerbit" placeholder="BNSP / Kemnaker / dll"></div>
@@ -804,7 +805,7 @@ select.filter:focus{border-color:var(--navy-lt)}
         </div>
         <div class="form-group">
           <label>Departemen / Divisi *</label>
-          <select id="mph_dept" onchange="(function(){const df=document.getElementById('mph_peserta_dept_filter');if(df)df.value=this.value;mphFilterPeserta();}).call(this)">
+          <select id="mph_dept" onchange="(function(){const df=document.getElementById('mph_peserta_dept_filter');if(df)df.value=this.value;mphFilterPeserta();}).call(this)" data-searchable>
             <option value="">-- Pilih Departemen --</option>
           </select>
         </div>
@@ -825,7 +826,7 @@ select.filter:focus{border-color:var(--navy-lt)}
         </div>
         <div class="form-group">
           <label>Jenis Training *</label>
-          <select id="mph_type">
+          <select id="mph_type" data-searchable>
             <option value="">-- Pilih --</option>
             <option value="Internal">Internal</option>
             <option value="Eksternal">Eksternal</option>
@@ -909,13 +910,13 @@ select.filter:focus{border-color:var(--navy-lt)}
         </div>
         <div class="form-group">
           <label>Kompetensi <span style="font-size:.7rem;font-weight:400;color:var(--text3)">(diisi oleh HR)</span></label>
-          <select id="rkEditKompetensi" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);background:#fff;color:var(--text1)">
+          <select id="rkEditKompetensi" data-searchable style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);background:#fff;color:var(--text1)">
             <option value="">-- Pilih Kompetensi --</option>
           </select>
         </div>
         <div class="form-group">
           <label>Departemen Training</label>
-          <select id="rkEditDeptTraining" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);background:#fff;color:var(--text1)">
+          <select id="rkEditDeptTraining" data-searchable style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);background:#fff;color:var(--text1)">
             <option value="">-- Pilih Departemen --</option>
           </select>
         </div>
@@ -923,7 +924,7 @@ select.filter:focus{border-color:var(--navy-lt)}
           <div style="font-size:.76rem;font-weight:600;color:var(--text2);margin-bottom:6px">Peserta *</div>
           <div class="form-group" style="margin-bottom:8px">
             <label style="font-size:.75rem;font-weight:400;color:var(--text3);margin-bottom:4px;display:block">Filter Karyawan per Departemen</label>
-            <select id="rkEditDept" onchange="rkEditLoadPeserta()" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);background:#fff;color:var(--text1)">
+            <select id="rkEditDept" onchange="rkEditLoadPeserta()" data-searchable style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font);background:#fff;color:var(--text1)">
               <option value="__ALL__">Semua Departemen</option>
             </select>
           </div>
@@ -2751,29 +2752,29 @@ const masterForms = {
     <div class="form-group"><label>Nama Lengkap *</label><input type="text" id="m_name" placeholder="Nama karyawan"></div>
     <div class="form-group"><label>Departemen *</label><input type="text" id="m_dept" placeholder="Produksi" list="deptList2"><datalist id="deptList2"><option>Direksi/BOD</option><option>HR & GA</option><option>Finance</option><option>IT</option><option>Produksi</option><option>QC/QA</option><option>Engineering</option><option>Purchasing</option><option>PPIC</option><option>Maintenance</option><option>Warehouse</option><option>Sales</option></datalist></div>
     <div class="form-group"><label>Jabatan *</label><input type="text" id="m_pos" placeholder="Staff / Supervisor / dll"></div>
-    <div class="form-group"><label>Site *</label><select id="m_site"><option value="">-- Pilih --</option><option>HO Jakarta</option><option>Cilegon</option></select></div>
+    <div class="form-group"><label>Site *</label><select id="m_site" data-searchable><option value="">-- Pilih --</option><option>HO Jakarta</option><option>Cilegon</option></select></div>
     <div class="form-group"><label>Email</label><input type="email" id="m_email" placeholder="nama@ccsi.co.id"></div>
-    <div class="form-group"><label>Status Kepegawaian</label><select id="m_empstatus"><option>PKWTT</option><option>PKWT</option></select></div>
+    <div class="form-group"><label>Status Kepegawaian</label><select id="m_empstatus" data-searchable><option>PKWTT</option><option>PKWT</option></select></div>
     <div class="form-group"><label>Tgl Join</label><input type="date" id="m_join"></div>
-    <div class="form-group"><label>Status</label><select id="m_active"><option value="1">Aktif</option><option value="0">Nonaktif</option></select></div>
-    <div class="form-group"><label>Dept Head</label><select id="m_dept_head"><option value="0">Tidak</option><option value="1">Ya</option></select></div>
+    <div class="form-group"><label>Status</label><select id="m_active" data-searchable><option value="1">Aktif</option><option value="0">Nonaktif</option></select></div>
+    <div class="form-group"><label>Dept Head</label><select id="m_dept_head" data-searchable><option value="0">Tidak</option><option value="1">Ya</option></select></div>
   </div>`,
   program:`<div class="form-grid">
     <div class="form-group full"><label>Nama Program *</label><input type="text" id="m_pname" placeholder="Nama program training"></div>
-    <div class="form-group"><label>Tipe *</label><select id="m_ptype"><option>Training</option><option>Sosialisasi</option><option>Sertifikasi</option></select></div>
-    <div class="form-group"><label>Status *</label><select id="m_pstatus"><option value="Waiting">Waiting</option><option value="On Process">On Process</option><option value="Done">Done</option></select></div>
+    <div class="form-group"><label>Tipe *</label><select id="m_ptype" data-searchable><option>Training</option><option>Sosialisasi</option><option>Sertifikasi</option></select></div>
+    <div class="form-group"><label>Status *</label><select id="m_pstatus" data-searchable><option value="Waiting">Waiting</option><option value="On Process">On Process</option><option value="Done">Done</option></select></div>
     <div class="form-group"><label>Tanggal Mulai</label><input type="date" id="m_pstart"></div>
     <div class="form-group"><label>Tanggal Selesai</label><input type="date" id="m_pend"></div>
-    <div class="form-group"><label>Metode</label><select id="m_pmethod"><option>Offline</option><option>Online</option><option>Hybrid</option><option>Vendor</option></select></div>
-    <div class="form-group"><label>Penyelenggara</label><select id="m_porgtype"><option value="Internal">Internal</option><option value="Eksternal">Eksternal</option></select></div>
+    <div class="form-group"><label>Metode</label><select id="m_pmethod" data-searchable><option>Offline</option><option>Online</option><option>Hybrid</option><option>Vendor</option></select></div>
+    <div class="form-group"><label>Penyelenggara</label><select id="m_porgtype" data-searchable><option value="Internal">Internal</option><option value="Eksternal">Eksternal</option></select></div>
     <div class="form-group"><label>Nama Penyelenggara</label><input type="text" id="m_pconducted" placeholder="Nama lembaga / vendor"></div>
     <div class="form-group"><label>Trainer</label><input type="text" id="m_ptrainer" placeholder="Nama trainer"></div>
-    <div class="form-group"><label>Kompetensi</label><select id="m_pcomp"><option value="">-- Pilih Kompetensi --</option></select></div>
-    <div class="form-group"><label>Wajib?</label><select id="m_pmandatory"><option value="1">Wajib</option><option value="0">Opsional</option></select></div>
+    <div class="form-group"><label>Kompetensi</label><select id="m_pcomp" data-searchable><option value="">-- Pilih Kompetensi --</option></select></div>
+    <div class="form-group"><label>Wajib?</label><select id="m_pmandatory" data-searchable><option value="1">Wajib</option><option value="0">Opsional</option></select></div>
   </div>`,
   competency:`<div class="form-grid">
     <div class="form-group full"><label>Nama Kompetensi *</label><input type="text" id="m_cname" placeholder="Nama standar kompetensi"></div>
-    <div class="form-group"><label>Tipe *</label><select id="m_ctype"><option>Hard Skill</option><option>Soft Skill</option><option>Safety</option><option>Leadership</option></select></div>
+    <div class="form-group"><label>Tipe *</label><select id="m_ctype" data-searchable><option>Hard Skill</option><option>Soft Skill</option><option>Safety</option><option>Leadership</option></select></div>
     <div class="form-group"><label>Kategori</label><input type="text" id="m_ccat" placeholder="K3 / Teknis / Finance / dll"></div>
   </div>`
 };
@@ -2783,6 +2784,8 @@ async function openMasterModal(mode) {
   const titles={employee:'Tambah Karyawan',program:'Tambah Program',competency:'Tambah Kompetensi'};
   document.getElementById('masterTitle').textContent=titles[mode];
   document.getElementById('masterBody').innerHTML=masterForms[mode];
+  // Init searchable dropdowns inside the freshly-injected modal HTML
+  SearchableSelect.initAll(document.getElementById('masterBody'));
   if(mode==='program') await populateCompSelect();
   document.getElementById('modalMaster').classList.add('open');
 }
@@ -2805,6 +2808,8 @@ async function editMaster(mode, key, isUsed=false) {
     : '';
 
   document.getElementById('masterBody').innerHTML = warnBanner + masterForms[mode];
+  // Init searchable dropdowns inside the freshly-injected modal HTML
+  SearchableSelect.initAll(document.getElementById('masterBody'));
   if(mode==='program') await populateCompSelect();
 
   if(mode==='employee'){
@@ -3490,6 +3495,8 @@ async function submitUpload() {
 // =====================
 (async()=>{
   try{
+    // Init searchable dropdowns on static DOM elements; dynamic modal selects are inited in openMasterModal
+    SearchableSelect.initAll();
     await openDB();
     await seedIfEmpty();
     // Prefetch semua store sekaligus agar cache terisi sebelum tab pertama render
