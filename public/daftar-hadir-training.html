@@ -219,7 +219,8 @@ async function initPage() {
   const sel = document.getElementById('at_dept');
   depts.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
 
-  approvedTrainings = trainings.filter(t => t.approval_status === 'Approved');
+  // Hanya tampilkan training yang disetujui dan belum selesai (training_selesai != 1)
+  approvedTrainings = trainings.filter(t => t.approval_status === 'Approved' && !t.training_selesai);
   const titleSel = document.getElementById('at_title');
   approvedTrainings.forEach(t => {
     const o = document.createElement('option');

@@ -91,6 +91,12 @@ async function autoMigrate() {
         ADD COLUMN IF NOT EXISTS approver_position VARCHAR(100) NULL AFTER approver_email
     `);
 
+    // 9a. training_selesai — flag training sudah selesai, sembunyikan dari daftar hadir
+    await conn.query(`
+      ALTER TABLE trx_training_request
+        ADD COLUMN IF NOT EXISTS training_selesai TINYINT(1) NOT NULL DEFAULT 0 AFTER approval_status
+    `);
+
     console.log('[AutoMigrate] Schema trx_training_request OK');
 
     // 9. cfg_approver_hrd — simplify: drop employee/personal columns, keep only email
