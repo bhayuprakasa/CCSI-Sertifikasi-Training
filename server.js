@@ -83,6 +83,9 @@ app.post('/webhook/github', express.raw({ type: 'application/json' }), (req, res
 
 app.use(express.json());
 
+// Fallback favicon.ico → redirect ke favicon.svg agar browser lama tidak 404
+app.get('/favicon.ico', (req, res) => res.redirect(301, '/favicon.svg'));
+
 // ── HTML serving dengan session cookie ───────────────────────────────────────
 // Browser membuka halaman → server set httpOnly cookie berisi signed session token.
 // API_KEY tidak pernah dikirim atau terekspos ke browser sama sekali.
