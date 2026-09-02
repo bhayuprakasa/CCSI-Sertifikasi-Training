@@ -1012,11 +1012,15 @@ function openDB() {
       }
     };
     req.onsuccess = e => { db = e.target.result; res(db); };
-    req.onerror = e => rej(e);
+    // blocked = tab lain masih pakai versi lama; resolve saja agar app tidak hang
+    req.onblocked = () => res(null);
+    req.onerror = e => rej(new Error('IndexedDB error: ' + (e.target?.error?.message || e)));
   });
 }
 
+// Kembalikan array kosong jika store tidak ada di IndexedDB (store hanya ada di API)
 function idbGetAll(store) {
+  if (!db || !db.objectStoreNames.contains(store)) return Promise.resolve([]);
   return new Promise((res, rej) => {
     const tx = db.transaction(store,'readonly');
     const req = tx.objectStore(store).getAll();
@@ -1035,6 +1039,7 @@ const _apiCache = {};
 const _CACHE_TTL = 300000; // 5 menit
 function getAll(store) {
   const ep = _API_MAP[store];
+  // Store tanpa API endpoint langsung ke IndexedDB
   if (!ep) return idbGetAll(store);
   const now = Date.now();
   const cached = _apiCache[store];
@@ -1043,7 +1048,13 @@ function getAll(store) {
   if (pending) return pending;
   const req = fetch(ep)
     .then(r => r.ok ? r.json() : Promise.reject(new Error('API error')))
-    .then(data => { _apiCache[store] = { data, ts: Date.now() }; delete _apiCache[store + '_pending']; return data; })
+    .then(data => {
+      // Pastikan data adalah array sebelum disimpan di cache
+      const arr = Array.isArray(data) ? data : (data && data.data ? data.data : []);
+      _apiCache[store] = { data: arr, ts: Date.now() };
+      delete _apiCache[store + '_pending'];
+      return arr;
+    })
     .catch(() => { delete _apiCache[store + '_pending']; return idbGetAll(store); });
   _apiCache[store + '_pending'] = req;
   return req;
@@ -3476,25 +3487,28 @@ async function submitUpload() {
     await seedIfEmpty();
     // Prefetch semua store sekaligus agar cache terisi sebelum tab pertama render
     await Promise.all(Object.keys(_API_MAP).map(store => getAll(store).catch(()=>{})));
-    renderDashboard();
+    renderDashboard().catch(e => console.warn('[renderDashboard]', e));
     initNetworkUrl();
-    // Check MySQL API connectivity
+    // Cek konektivitas MySQL — tampilkan status DB di header
     fetch('/api/employees?limit=1').then(r=>{
+      const el = document.getElementById('dbStatus');
+      if(!el) return;
       if(r.ok){
-        document.getElementById('dbStatus').textContent='● DB Aktif (MySQL)';
-        document.getElementById('dbStatus').style.color='#7bffc4';
+        el.textContent='● DB Aktif (MySQL)';
+        el.style.color='#7bffc4';
       } else {
-        document.getElementById('dbStatus').textContent='● DB Aktif (IndexedDB)';
-        document.getElementById('dbStatus').style.color='#7bffc4';
+        el.textContent='● DB Aktif (IndexedDB)';
+        el.style.color='#7bffc4';
       }
     }).catch(()=>{
-      document.getElementById('dbStatus').textContent='● DB Aktif (IndexedDB)';
-      document.getElementById('dbStatus').style.color='#7bffc4';
+      const el = document.getElementById('dbStatus');
+      if(el){ el.textContent='● DB Aktif (IndexedDB)'; el.style.color='#7bffc4'; }
     });
   } catch(e){
-    document.getElementById('dbStatus').textContent='● DB Error';
-    document.getElementById('dbStatus').style.color='#ff7b7b';
-    console.error(e);
+    // Hanya sampai sini jika IndexedDB benar-benar tidak bisa dibuka
+    console.error('[Init] DB Error:', e);
+    const el = document.getElementById('dbStatus');
+    if(el){ el.textContent='● DB Error'; el.style.color='#ff7b7b'; }
   }
 })();
 
