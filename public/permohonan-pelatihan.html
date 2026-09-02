@@ -182,11 +182,15 @@ tbody td{padding:9px 8px;vertical-align:middle}
 
       <!-- PESERTA -->
       <div class="section-title">Peserta * <span style="font-size:.72rem;font-weight:400;color:var(--text3)">(bisa pilih lintas departemen)</span></div>
-      <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-        <select id="pr_peserta_dept_filter" onchange="prFilterPeserta()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;font-family:var(--font);background:var(--bg);color:var(--text);flex:1;min-width:140px">
+      <!-- Filter departemen -->
+      <div style="margin-bottom:6px">
+        <select id="pr_peserta_dept_filter" onchange="prFilterPeserta()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;font-family:var(--font);background:var(--bg);color:var(--text);width:100%">
           <option value="">Semua Departemen</option>
         </select>
-        <input type="text" id="pr_peserta_search" oninput="prFilterPeserta()" placeholder="Cari nama karyawan..." style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;font-family:var(--font);flex:2;min-width:160px">
+      </div>
+      <!-- Search karyawan — diletakkan di atas list, bukan sejajar dept -->
+      <div style="margin-bottom:6px">
+        <input type="text" id="pr_peserta_search" oninput="prFilterPeserta()" placeholder="Cari nama karyawan..." style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:.8rem;font-family:var(--font);width:100%;box-sizing:border-box">
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div id="pr_peserta_count" style="font-size:.73rem;color:var(--text3)"></div>
