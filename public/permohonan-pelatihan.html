@@ -494,50 +494,27 @@ async function prLoadDepts() {
   }
 }
 
-function openIDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open('CCSI_Training_v2', 2);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      ['mst_employee','mst_competency','mst_program','trx_certification','trx_training_request'].forEach(s => {
-        if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { autoIncrement: true });
-      });
-    };
-    req.onsuccess = e => resolve(e.target.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function idbGetAll(db, storeName) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readonly');
-    const req = tx.objectStore(storeName).getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
 async function prLoadApprovers() {
   const sel = document.getElementById('pr_approver1');
   sel.innerHTML = '<option value="">-- Memuat... --</option>';
   sel.disabled = true;
   try {
     let direksi = [];
+    // Coba API publik (tidak butuh auth) — endpoint khusus untuk dropdown approver
     try {
       const res = await fetch('/api/employees?direktur=1');
       if (res.ok) direksi = await res.json();
     } catch (_) {}
-    // Fallback ke IndexedDB jika API gagal atau kosong
+    // Fallback: filter dari cache semua karyawan (loadAllEmployees sudah pakai IDB versi terbaru)
     if (!direksi.length) {
-      const db = await openIDB();
-      const emps = await idbGetAll(db, 'mst_employee');
+      const emps = await loadAllEmployees();
       direksi = emps.filter(e => {
         const active = e.is_active !== 0 && e.is_active !== false;
         const dept = (e.department || '').toLowerCase().trim();
         const pos  = (e.position  || '').toLowerCase().trim();
         const isBod = dept === 'bod' || dept === 'direksi';
         const isDirPos = pos.includes('direktur') || pos.includes('direksi') || pos.includes('president');
-        return active && (isBod || isDirPos || e.is_direktur);
+        return active && (isBod || isDirPos);
       });
     }
     sel.disabled = false;
@@ -566,20 +543,20 @@ async function prLoadDeptHeads(dept) {
   }
   try {
     let deptHeads = [];
+    // Coba API dengan filter dept (butuh session)
     try {
       const res = await fetch(`/api/employees?dept_head=1&dept=${encodeURIComponent(dept)}`);
       if (res.ok) deptHeads = await res.json();
     } catch (_) {}
-    // Fallback ke IndexedDB — filter by dept
+    // Fallback: filter dari cache semua karyawan — tidak bergantung pada IDB versi lama
     if (!deptHeads.length) {
-      const db = await openIDB();
-      const emps = await idbGetAll(db, 'mst_employee');
+      const emps = await loadAllEmployees();
       deptHeads = emps.filter(e => {
         const active = e.is_active !== 0 && e.is_active !== false;
         return active && e.is_dept_head && e.department === dept;
       });
     }
-    // Fallback kedua: semua dept head tanpa filter dept
+    // Fallback kedua: semua dept head lintas departemen
     if (!deptHeads.length) {
       try {
         const res = await fetch('/api/employees?dept_head=1');
