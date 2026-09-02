@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS trx_certification (
   is_active           TINYINT(1)    NOT NULL DEFAULT 1,
   renewal_count       INT           NOT NULL DEFAULT 0,
   notes               TEXT          NULL,
+  renewal_action      VARCHAR(50)   NULL,
+  renewal_cert_id     INT           NULL,
   created_at          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (employee_id) REFERENCES mst_employee(employee_id)
