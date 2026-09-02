@@ -2133,8 +2133,9 @@ async function renderAlerts() {
     const emp = emps.find(e => e.employee_id === c.employee_id);
     return `<div class="alert-item ${tp}"><span class="alert-icon">${ic}</span><div class="alert-text"><strong>${emp?emp.full_name:c.employee_id}</strong><span>${c.sertif_name}<br>${emp?emp.site:''} · ${fmtDate(c.expiry_date)} · ${tp==='danger'?`Expired ${Math.abs(d)} hari lalu`:`${d} hari lagi`}</span></div></div>`;
   };
-  const expired = certs.filter(c => c.is_active && c.expiry_date && daysDiff(c.expiry_date) < 0).sort((a,b) => new Date(a.expiry_date) - new Date(b.expiry_date));
-  const soon = certs.filter(c => c.is_active && c.expiry_date && daysDiff(c.expiry_date) >= 0 && daysDiff(c.expiry_date) <= 90).sort((a,b) => new Date(a.expiry_date) - new Date(b.expiry_date));
+  // Hanya tampilkan sertifikasi yang belum ada aksi (renewal_action kosong/null)
+  const expired = certs.filter(c => c.is_active && c.expiry_date && daysDiff(c.expiry_date) < 0 && !c.renewal_action).sort((a,b) => new Date(a.expiry_date) - new Date(b.expiry_date));
+  const soon = certs.filter(c => c.is_active && c.expiry_date && daysDiff(c.expiry_date) >= 0 && daysDiff(c.expiry_date) <= 90 && !c.renewal_action).sort((a,b) => new Date(a.expiry_date) - new Date(b.expiry_date));
   document.getElementById('alertExp').innerHTML = expired.length ? expired.map(c => mkA(c,'danger')).join('') : '<p style="color:var(--green);font-size:.81rem">✅ Tidak ada yang expired</p>';
   document.getElementById('alertSoon').innerHTML = soon.length ? soon.map(c => mkA(c,'warn')).join('') : '<p style="color:var(--green);font-size:.81rem">✅ Tidak ada yang expiry <90 hari</p>';
 
