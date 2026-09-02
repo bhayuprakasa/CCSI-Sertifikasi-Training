@@ -2244,7 +2244,6 @@ async function renderEvaluasi(){
       <div class="eval-prog-meta" style="margin-bottom:0">
         <span><strong>Program:</strong> ${session.training_title}</span>
         <span><strong>Instruktur:</strong> ${session.instructor||'-'}</span>
-        <span><strong>Lokasi:</strong> ${session.location||'-'}</span>
         <span><strong>Tanggal:</strong> ${tgl}</span>
         <span><strong>Responden:</strong> ${evals.length} peserta</span>
       </div>
@@ -2556,7 +2555,7 @@ function _renderEvalDetailSlide(){
     <div style="background:var(--navy);color:#fff;padding:14px 18px;border-radius:8px;margin-bottom:16px">
       <div style="font-size:.7rem;opacity:.7;margin-bottom:4px">${session.training_title} &nbsp;·&nbsp; ${tgl}</div>
       <div style="font-size:.92rem;font-weight:700">${e.name}</div>
-      <div style="font-size:.7rem;opacity:.75;margin-top:3px">Instruktur: ${session.instructor||'-'} &nbsp;·&nbsp; Lokasi: ${session.location||'-'}</div>
+      <div style="font-size:.7rem;opacity:.75;margin-top:3px">Instruktur: ${session.instructor||'-'}</div>
     </div>`;
   EVAL_Q_SECTIONS.forEach(sec=>{
     html+=`<div class="eval-detail-section"><div class="eval-detail-sec-title">${sec.label}</div>`;
