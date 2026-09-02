@@ -771,7 +771,6 @@ select.filter:focus{border-color:var(--navy-lt)}
           <div class="form-group full"><label>Aksi *</label><select id="c_aksi" onchange="onAksiChange()"><option value="">-- Pilih Aksi --</option><option value="Tidak diperpanjang">Tidak diperpanjang</option><option value="Sudah diperpanjang">Sudah diperpanjang</option></select></div>
           <div class="form-group full" id="c_sertif_baru_row" style="display:none"><label>Sertifikat yang baru</label><select id="c_sertif_baru"><option value="">-- Pilih Sertifikat Baru --</option></select><small>Sertifikat karyawan yang sama dengan tanggal terbit lebih baru</small></div>
         </div>
-        <div class="form-group" id="c_sertif_baru_row" style="display:none;margin-top:12px"><label>Sertifikat yang baru</label><select id="c_sertif_baru"><option value="">-- Pilih Sertifikat Baru --</option></select><small>Sertifikat karyawan yang sama dengan tanggal terbit lebih baru</small></div>
       </div>
     </div>
     <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('modalTrx')">Batal</button><button class="btn-save" onclick="saveTrx()">💾 Simpan</button></div>
@@ -2716,6 +2715,16 @@ async function saveTrx() {
   const sertif=document.getElementById('c_sertif').value.trim();
   const terbit=document.getElementById('c_terbit').value;
   if(!emp||!sertif||!terbit){showToast('Karyawan, nama sertifikasi, dan tgl terbit wajib diisi',false);return;}
+
+  // Saat edit, ambil renewal_count dari data yang sudah ada agar tidak direset
+  let existingRenewalCount=0;
+  if(editCertId){
+    const allCerts=await getAll('trx_certification');
+    const existing=allCerts.find(x=>x.cert_id===editCertId);
+    if(existing) existingRenewalCount=existing.renewal_count||0;
+  }
+
+  const aksi=document.getElementById('c_aksi').value||null;
   const obj={
     employee_id:emp, trx_id:null,
     sertif_name:sertif,
@@ -2723,16 +2732,17 @@ async function saveTrx() {
     issuing_body:document.getElementById('c_penerbit').value||'',
     issue_date:terbit,
     expiry_date:document.getElementById('c_expiry').value||'',
-    is_active:1, renewal_count:0,
+    is_active:1, renewal_count:existingRenewalCount,
     notes:document.getElementById('c_notes').value||'',
-    renewal_action:document.getElementById('c_aksi').value||null,
-    renewal_cert_id:(document.getElementById('c_aksi').value==='Sudah diperpanjang'&&document.getElementById('c_sertif_baru').value)?parseInt(document.getElementById('c_sertif_baru').value):null
+    renewal_action:aksi,
+    renewal_cert_id:(aksi==='Sudah diperpanjang'&&document.getElementById('c_sertif_baru').value)?parseInt(document.getElementById('c_sertif_baru').value):null
   };
   if(editCertId) obj.cert_id=editCertId;
   await putRecord('trx_certification',obj);
   try {
     if(editCertId){
-      await fetch(`/api/certifications/${editCertId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+      const r=await fetch(`/api/certifications/${editCertId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+      if(!r.ok) console.warn('MySQL update cert gagal, status:',r.status);
     } else {
       const r=await fetch('/api/certifications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
       if(r.ok){const d=await r.json();obj.cert_id=d.cert_id;await putRecord('trx_certification',obj);}

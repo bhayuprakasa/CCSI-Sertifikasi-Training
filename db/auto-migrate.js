@@ -99,6 +99,15 @@ async function autoMigrate() {
 
     console.log('[AutoMigrate] Schema trx_training_request OK');
 
+    // 10. trx_certification: tambah kolom renewal_action dan renewal_cert_id
+    //     untuk menyimpan status perpanjangan sertifikat
+    await conn.query(`
+      ALTER TABLE trx_certification
+        ADD COLUMN IF NOT EXISTS renewal_action  VARCHAR(50) NULL AFTER notes,
+        ADD COLUMN IF NOT EXISTS renewal_cert_id INT         NULL AFTER renewal_action
+    `);
+    console.log('[AutoMigrate] Schema trx_certification OK');
+
     // 9. cfg_approver_hrd — simplify: drop employee/personal columns, keep only email
     //    Ensure email column exists (for fresh installs from old schema)
     await conn.query(`
