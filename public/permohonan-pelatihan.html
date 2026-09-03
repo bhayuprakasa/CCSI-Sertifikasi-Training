@@ -310,9 +310,13 @@ tbody td{padding:9px 8px;vertical-align:middle}
         <div class="tn-gt-result" id="sc_gt_status"></div>
       </div>
 
-      <!-- SUBMIT -->
+      <!-- SUBMIT — tombol batal edit muncul saat mode edit aktif -->
+      <div id="prEditBanner" style="display:none;background:#fff8e6;border:1px solid var(--accent);border-radius:8px;padding:10px 14px;font-size:.83rem;color:#7d5800;margin-top:14px">
+        ✏️ <strong>Mode Edit</strong> — Anda sedang mengedit permohonan yang sudah tersimpan. Klik <em>Update</em> untuk menyimpan atau <em>Batal</em> untuk membatalkan.
+      </div>
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
         <button class="btn-cancel" onclick="prReset()">Reset Form</button>
+        <button class="btn-cancel" id="prCancelEditBtn" onclick="prCancelEdit()" style="display:none;color:var(--red);border-color:#fcd4d4;background:var(--red-lt)">✕ Batal Edit</button>
         <button class="tn-submit" id="prSubmitBtn" onclick="prSubmit()">💾 Submit</button>
       </div>
     </div>
@@ -378,36 +382,6 @@ tbody td{padding:9px 8px;vertical-align:middle}
   </div>
 </div>
 
-<div class="modal-overlay" id="prEditModal" onclick="if(event.target===this)prCloseEditModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border-radius:12px;width:100%;max-width:520px;margin:20px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
-    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-      <span style="font-size:.92rem;font-weight:700;color:var(--navy)">✏️ Edit Penyelenggara, Peserta & Kompetensi</span>
-      <button onclick="prCloseEditModal()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--text2)">✕</button>
-    </div>
-    <div style="padding:18px;display:flex;flex-direction:column;gap:14px">
-      <div style="background:#e8eef7;border-radius:7px;padding:9px 12px;font-size:.78rem;color:var(--navy)">
-        ℹ️ Ubah penyelenggara dan daftar peserta, atau isi kolom kompetensi (HR).
-      </div>
-      <div class="form-group">
-        <label>Penyelenggara</label>
-        <input type="text" id="prEditOrganizer" placeholder="Nama penyelenggara / lembaga">
-      </div>
-      <div class="form-group">
-        <label>Kompetensi <span style="font-weight:400;color:var(--text3)">(diisi oleh HR)</span></label>
-        <textarea id="prEditKompetensi" rows="3" placeholder="Deskripsi kompetensi yang akan dipenuhi..." style="resize:vertical"></textarea>
-      </div>
-      <div>
-        <div style="font-size:.78rem;font-weight:600;color:var(--text2);margin-bottom:6px">Peserta</div>
-        <div id="prEditPesertaList" style="display:flex;flex-direction:column;gap:5px;margin-bottom:6px"></div>
-        <button type="button" class="tn-add-peserta" onclick="prEditAddPeserta()">+ Tambah Peserta</button>
-      </div>
-    </div>
-    <div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
-      <button class="btn-cancel" onclick="prCloseEditModal()">Batal</button>
-      <button id="prEditSaveBtn" onclick="prSaveEdit()" style="padding:8px 20px;border-radius:7px;border:none;background:var(--navy);color:#fff;cursor:pointer;font-family:var(--font);font-size:.85rem;font-weight:700">💾 Simpan</button>
-    </div>
-  </div>
-</div>
 
 <div class="toast" id="toast"></div>
 
@@ -704,6 +678,14 @@ function prTogglePesertaAll() {
 
 function prReset(skipConfirm = false) {
   if (!skipConfirm && !confirm('Reset form? Data yang belum dikirim akan hilang.')) return;
+  // Bersihkan state edit jika aktif
+  _prEditingId = null;
+  document.getElementById('prEditBanner').style.display = 'none';
+  document.getElementById('prCancelEditBtn').style.display = 'none';
+  const submitBtn = document.getElementById('prSubmitBtn');
+  submitBtn.textContent = '💾 Submit';
+  submitBtn.style.background = '';
+  submitBtn.style.color = '';
   document.querySelectorAll('#pr_name,#pr_organizer,#pr_instruktur,#pr_reason').forEach(el => el.value = '');
   document.getElementById('pr_dept').value = '';
   document.getElementById('pr_target_month').value = '';
@@ -797,15 +779,25 @@ async function prSubmit() {
   const btn = document.getElementById('prSubmitBtn');
   btn.disabled = true; btn.textContent = '⏳ Mengirim...';
 
+  const isEditMode = !!_prEditingId;
+
   try {
-    await api('/api/training-requests', { method: 'POST', body: JSON.stringify(body) });
-    showToast('Permohonan berhasil disimpan! Pilih di tabel rekap untuk kirim approval.');
-    prReset(true);
+    if (isEditMode) {
+      // Mode edit: PATCH ke endpoint update penuh (hanya boleh saat status Submitted)
+      await api(`/api/training-requests/${_prEditingId}`, { method: 'PATCH', body: JSON.stringify(body) });
+      showToast('Permohonan berhasil diperbarui!');
+    } else {
+      // Mode tambah baru
+      await api('/api/training-requests', { method: 'POST', body: JSON.stringify(body) });
+      showToast('Permohonan berhasil disimpan! Pilih di tabel rekap untuk kirim approval.');
+    }
+    prCancelEdit(); // reset form dan state edit
     loadRekapData();
   } catch (e) {
     showToast(e.message, false);
   } finally {
-    btn.disabled = false; btn.textContent = '💾 Submit';
+    btn.disabled = false;
+    btn.textContent = isEditMode ? '💾 Update Permohonan' : '💾 Submit';
   }
 }
 
@@ -870,54 +862,137 @@ function prBuildOpts(key, values, labelMap) {
   ).join('');
 }
 
-let _prEditId = null;
-function prOpenEditModal(id) {
+// ID permohonan yang sedang diedit (null = mode tambah baru)
+let _prEditingId = null;
+
+// Isi semua field form dari data rekap yang dipilih, aktifkan mode edit
+async function prStartEdit(id) {
   const r = prAllData.find(x => x.request_id === id);
   if (!r) return;
-  _prEditId = id;
-  document.getElementById('prEditOrganizer').value = r.organizer || '';
-  document.getElementById('prEditKompetensi').value = r.kompetensi || '';
-  const list = document.getElementById('prEditPesertaList');
-  list.innerHTML = '';
-  const parts = r.participants && r.participants.length ? r.participants : [''];
-  parts.forEach(p => prEditAddPeserta(p));
-  const modal = document.getElementById('prEditModal');
-  modal.style.display = 'flex';
-}
-function prCloseEditModal() {
-  document.getElementById('prEditModal').style.display = 'none';
-  _prEditId = null;
-}
-function prEditAddPeserta(value = '') {
-  const list = document.getElementById('prEditPesertaList');
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex;gap:6px;align-items:center';
-  row.innerHTML = `<input type="text" value="${value.replace(/"/g,'&quot;')}" placeholder="Nama peserta" style="flex:1;padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:var(--font)">
-    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:1rem;padding:2px 5px">✕</button>`;
-  list.appendChild(row);
-}
-async function prSaveEdit() {
-  if (!_prEditId) return;
-  const organizer = document.getElementById('prEditOrganizer').value.trim();
-  const kompetensi = document.getElementById('prEditKompetensi').value.trim();
-  const inputs = document.querySelectorAll('#prEditPesertaList input');
-  const participants = [...inputs].map(i => i.value.trim()).filter(Boolean);
-  if (!participants.length) { showToast('Minimal 1 peserta wajib diisi', false); return; }
-  const btn = document.getElementById('prEditSaveBtn');
-  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
-  try {
-    await api(`/api/training-requests/${_prEditId}/organizer-participants`, {
-      method: 'PATCH',
-      body: JSON.stringify({ organizer, kompetensi: kompetensi || null, participants })
-    });
-    showToast('Data berhasil diperbarui');
-    prCloseEditModal();
-    loadRekapData();
-  } catch (e) {
-    showToast(e.message, false);
-  } finally {
-    btn.disabled = false; btn.textContent = '💾 Simpan';
+  if ((r.approval_status || 'Submitted') !== 'Submitted') {
+    showToast('Hanya permohonan berstatus Submitted yang dapat diedit', false);
+    return;
   }
+  _prEditingId = id;
+
+  // Scroll ke atas agar form terlihat
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // --- Informasi Dasar ---
+  document.getElementById('pr_dept').value = r.department || '';
+  document.getElementById('pr_dept').dispatchEvent(new Event('change'));
+
+  // Load dept heads untuk dept ini, lalu set submitter
+  await prLoadDeptHeads(r.department || '');
+  if (r.submitted_by) {
+    const subSel = document.getElementById('pr_submitter');
+    [...subSel.options].forEach(opt => { if (opt.value === r.submitted_by) opt.selected = true; });
+    prOnSubmitterChange();
+  }
+
+  document.getElementById('pr_name').value = r.training_name || '';
+
+  if (r.training_date_start) {
+    const parts = (r.training_date_start + '').split('T')[0].split('-');
+    document.getElementById('pr_target_month').value = `${parts[0]}-${parts[1]}`;
+  }
+
+  const schedVal = r.is_scheduled ? '1' : '0';
+  const schedRadio = document.querySelector(`input[name="pr_scheduled"][value="${schedVal}"]`);
+  if (schedRadio) schedRadio.checked = true;
+
+  // --- Approver — cocokkan berdasarkan nama karena yg disimpan adalah nama, bukan employee_id ---
+  const apvSel = document.getElementById('pr_approver1');
+  if (r.approver_name) {
+    [...apvSel.options].forEach(opt => {
+      if (opt.dataset.name === r.approver_name) opt.selected = true;
+    });
+    prOnApproverChange();
+  }
+
+  // --- Jenis Training ---
+  document.getElementById('pr_type').value = r.training_type || '';
+  document.getElementById('pr_organizer').value = r.organizer || '';
+  document.getElementById('pr_instruktur').value = r.instruktur || '';
+  document.getElementById('pr_reason').value = r.training_reason || '';
+
+  // --- Biaya ---
+  const setCost = (elId, val) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.value = val ? Number(val).toLocaleString('id-ID') : '';
+  };
+  setCost('pr_cost_fee', r.cost_training_fee);
+  setCost('pr_cost_akomodasi', r.cost_akomodasi);
+  setCost('pr_cost_transport', r.cost_transport);
+  setCost('pr_cost_makan', r.cost_makan);
+  setCost('pr_cost_snack', r.cost_snack);
+  setCost('pr_cost_emergency', r.cost_emergency);
+  prCalcTotal();
+
+  // --- Peralatan ---
+  const setEq = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val || 0; };
+  setEq('pr_eq_proyektor', r.eq_proyektor);
+  setEq('pr_eq_laptop', r.eq_laptop);
+  setEq('pr_eq_hdmi', r.eq_kabel_hdmi);
+  setEq('pr_eq_pointer', r.eq_pointer);
+  setEq('pr_eq_flipchart', r.eq_flipchart);
+  setEq('pr_eq_notebook', r.eq_notebook);
+  setEq('pr_eq_ruangan', r.eq_ruangan);
+  setEq('pr_eq_colokan', r.eq_colokan);
+
+  const cbVal = r.coffee_break ? '1' : '0';
+  const cbRadio = document.querySelector(`input[name="pr_cb"][value="${cbVal}"]`);
+  if (cbRadio) cbRadio.checked = true;
+
+  // --- Scoring — skor tersimpan adalah total per kolom, tidak bisa didistribusi ke tiap baris.
+  // Kosongkan tabel dan tampilkan GT lama sebagai referensi di status. ---
+  document.querySelectorAll('.tn-score-table input').forEach(el => el.value = '');
+  ['sc_pa_total','sc_ph_total','sc_ma_total','sc_mh_total','sc_gt'].forEach(elId => {
+    document.getElementById(elId).textContent = '0';
+  });
+  if (r.score_grand_total) {
+    const statusEl = document.getElementById('sc_gt_status');
+    statusEl.textContent = `Skor sebelumnya: GT = ${r.score_grand_total} — isi ulang jika ingin mengubah`;
+    statusEl.className = 'tn-gt-result';
+    statusEl.style.color = 'var(--text2)';
+  }
+
+  // --- Peserta — reset filter ke semua dept, lalu centang peserta dari record ---
+  await prLoadPeserta(); // noop jika sudah loaded
+  document.getElementById('pr_peserta_dept_filter').value = '';
+  const pesertaSearch = document.getElementById('pr_peserta_search');
+  if (pesertaSearch) pesertaSearch.value = '';
+  prFilterPeserta(); // render semua karyawan
+
+  const participantSet = new Set((r.participants || []).map(p => (p || '').trim()));
+  // Centang peserta yang sesuai setelah list dirender
+  document.querySelectorAll('input[name="pr_peserta_check"]').forEach(cb => {
+    cb.checked = participantSet.has(cb.value.trim());
+  });
+  prUpdatePesertaUI();
+
+  // --- Update UI form ke mode edit ---
+  document.getElementById('prEditBanner').style.display = '';
+  document.getElementById('prCancelEditBtn').style.display = '';
+  const btn = document.getElementById('prSubmitBtn');
+  btn.textContent = '💾 Update Permohonan';
+  btn.style.background = 'var(--accent)';
+  btn.style.color = 'var(--navy-dk)';
+
+  showToast('Form diisi dari data yang dipilih — edit dan klik Update');
+}
+
+// Batalkan mode edit, kembalikan form ke kondisi awal
+function prCancelEdit() {
+  _prEditingId = null;
+  document.getElementById('prEditBanner').style.display = 'none';
+  document.getElementById('prCancelEditBtn').style.display = 'none';
+  const btn = document.getElementById('prSubmitBtn');
+  btn.textContent = '💾 Submit';
+  btn.style.background = '';
+  btn.style.color = '';
+  prReset(true);
 }
 
 async function loadRekapData() {
@@ -991,7 +1066,11 @@ function renderRecap(data) {
       <td>${approver1}</td>
       <td><span class="badge ${apvCls}">${apvIcon} ${apvLabel}</span></td>
       <td style="font-size:.78rem;color:var(--text2)">${r.organizer || '<span style="color:var(--text3)">—</span>'}</td>
-      <td><button class="btn-sm" style="color:var(--purple);border-color:#c39bd3;background:var(--purple-lt);padding:3px 7px" onclick="prOpenEditModal(${r.request_id})">✏️</button></td>
+      <td>${apvStatus === 'Submitted'
+        /* Tombol edit aktif hanya saat status Submitted — sebelum dikirim ke approver */
+        ? `<button class="btn-sm btn-edit" style="padding:3px 7px" onclick="prStartEdit(${r.request_id})" title="Edit semua field permohonan">✏️</button>`
+        : `<button class="btn-sm" style="padding:3px 7px;opacity:.3;cursor:not-allowed" disabled title="Edit hanya tersedia untuk status Submitted">✏️</button>`
+      }</td>
     </tr>`;
   }).join('');
 

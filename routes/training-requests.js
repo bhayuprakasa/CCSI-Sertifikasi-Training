@@ -542,6 +542,95 @@ router.patch('/:id/organizer-participants', async (req, res) => {
   }
 });
 
+// Full edit hanya untuk status Submitted — semua field bisa diubah sebelum dikirim ke approver
+router.patch('/:id', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM trx_training_request WHERE request_id = ?', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
+  const existing = rows[0];
+
+  if (existing.approval_status !== 'Submitted') {
+    return res.status(400).json({ error: 'Hanya permohonan dengan status Submitted yang dapat diedit secara penuh' });
+  }
+
+  const item = req.body;
+  if (!item.department || !item.training_name || !item.training_date_start || !item.training_type || !item.participants?.length) {
+    return res.status(400).json({ error: 'Field wajib belum lengkap' });
+  }
+  if (!VALID_TRAINING_TYPE.includes(item.training_type)) {
+    return res.status(400).json({ error: `training_type must be one of: ${VALID_TRAINING_TYPE.join(', ')}` });
+  }
+
+  const pa = item.scores?.peserta_atasan ?? null;
+  const ph = item.scores?.peserta_hrd ?? null;
+  const ma = item.scores?.materi_atasan ?? null;
+  const mh = item.scores?.materi_hrd ?? null;
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const costTotal = (item.cost_training_fee || 0) + (item.cost_akomodasi || 0) +
+      (item.cost_transport || 0) + (item.cost_makan || 0) +
+      (item.cost_snack || 0) + (item.cost_emergency || 0);
+
+    const gt = (pa || 0) + (ph || 0) + (ma || 0) + (mh || 0) || null;
+
+    await conn.query(
+      `UPDATE trx_training_request SET
+        department=?, training_name=?, training_date_start=?, training_date_end=?,
+        training_type=?, organizer=?, instruktur=?, training_reason=?,
+        cost_training_fee=?, cost_akomodasi=?, cost_transport=?, cost_makan=?, cost_snack=?, cost_emergency=?, cost_total=?,
+        eq_proyektor=?, eq_laptop=?, eq_kabel_hdmi=?, eq_pointer=?, eq_flipchart=?, eq_notebook=?, eq_ruangan=?, eq_colokan=?,
+        coffee_break=?,
+        score_peserta_atasan=?, score_peserta_hrd=?, score_materi_atasan=?, score_materi_hrd=?, score_grand_total=?,
+        submitted_by=?, is_scheduled=?,
+        approver_name=?, approver_email=?, approver_position=?
+      WHERE request_id = ?`,
+      [
+        item.department, item.training_name,
+        item.training_date_start, item.training_date_end || item.training_date_start,
+        item.training_type, item.organizer || null, item.instruktur || null, item.training_reason || null,
+        item.cost_training_fee || 0, item.cost_akomodasi || 0, item.cost_transport || 0,
+        item.cost_makan || 0, item.cost_snack || 0, item.cost_emergency || 0, costTotal,
+        item.eq_proyektor || 0, item.eq_laptop || 0, item.eq_kabel_hdmi || 0,
+        item.eq_pointer || 0, item.eq_flipchart || 0, item.eq_notebook || 0,
+        item.eq_ruangan || 0, item.eq_colokan || 0,
+        item.coffee_break ? 1 : 0,
+        pa, ph, ma, mh, gt,
+        item.submitted_by || null,
+        item.is_scheduled != null ? (item.is_scheduled ? 1 : 0) : 0,
+        item.approver1_name || null, item.approver1_email || null, item.approver1_position || null,
+        req.params.id,
+      ]
+    );
+
+    await conn.query('DELETE FROM trx_training_request_participant WHERE request_id = ?', [req.params.id]);
+    for (const name of item.participants) {
+      if ((name || '').trim()) {
+        await conn.query('INSERT INTO trx_training_request_participant (request_id, participant_name) VALUES (?,?)', [req.params.id, name.trim()]);
+      }
+    }
+
+    await logAudit({
+      table_name: 'trx_training_request',
+      record_id: req.params.id,
+      operation: 'UPDATE',
+      old_data: { department: existing.department, training_name: existing.training_name, approval_status: existing.approval_status },
+      new_data: { department: item.department, training_name: item.training_name, training_type: item.training_type, cost_total: costTotal, participant_count: item.participants.length },
+      changed_by: req.changedBy,
+      conn,
+    });
+
+    await conn.commit();
+    res.json({ updated: true, request_id: parseInt(req.params.id), cost_total: costTotal });
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
+});
+
 router.delete('/:id', async (req, res) => {
   const [old] = await pool.query('SELECT * FROM trx_training_request WHERE request_id = ?', [req.params.id]);
   const [oldParts] = await pool.query('SELECT participant_name FROM trx_training_request_participant WHERE request_id = ?', [req.params.id]);
