@@ -41,7 +41,10 @@ pool.getConnection()
       await connection.query(`
         ALTER TABLE cfg_email_settings
           MODIFY COLUMN layer ENUM('dept','hrd','cert') NOT NULL
-      `).catch(() => {/* abaikan jika sudah sesuai */});
+      `).catch(err => {
+        // Catat warning agar error nyata (privilege, lock) tidak hilang diam-diam
+        console.warn('[db] ALTER TABLE cfg_email_settings:', err.message);
+      });
       await connection.query(`
         INSERT IGNORE INTO cfg_email_settings (layer, sender_name, subject_template) VALUES
           ('dept', 'CCSI Training System', '[Persetujuan Diperlukan] Pelatihan: {training_name} — {department}'),

@@ -388,7 +388,7 @@ router.get('/approve-hrd/:token', async (req, res) => {
   // Ambil nama HRD dari cfg_approver_hrd untuk label notifikasi
   let hrdName = 'Direktur HRD';
   try {
-    const [hRows] = await pool.query('SELECT email FROM cfg_approver_hrd ORDER BY id DESC LIMIT 1');
+    const [hRows] = await pool.query('SELECT email, full_name FROM cfg_approver_hrd ORDER BY id DESC LIMIT 1');
     if (hRows[0]?.full_name) hrdName = hRows[0].full_name;
   } catch { /* abaikan */ }
   triggerHrNotif(req_, hrdName, 'approved_hrd');
@@ -575,6 +575,10 @@ router.patch('/:id', async (req, res) => {
 
     const gt = (pa || 0) + (ph || 0) + (ma || 0) + (mh || 0) || null;
 
+    // Regenerate approval_token jika approver berubah agar link lama tidak berlaku
+    const approverChanged = (item.approver1_email || null) !== existing.approver_email;
+    const newToken = approverChanged ? crypto.randomBytes(32).toString('hex') : existing.approval_token;
+
     await conn.query(
       `UPDATE trx_training_request SET
         department=?, training_name=?, training_date_start=?, training_date_end=?,
@@ -584,7 +588,8 @@ router.patch('/:id', async (req, res) => {
         coffee_break=?,
         score_peserta_atasan=?, score_peserta_hrd=?, score_materi_atasan=?, score_materi_hrd=?, score_grand_total=?,
         submitted_by=?, is_scheduled=?,
-        approver_name=?, approver_email=?, approver_position=?
+        approver_name=?, approver_email=?, approver_position=?,
+        approval_token=?
       WHERE request_id = ?`,
       [
         item.department, item.training_name,
@@ -600,6 +605,7 @@ router.patch('/:id', async (req, res) => {
         item.submitted_by || null,
         item.is_scheduled != null ? (item.is_scheduled ? 1 : 0) : 0,
         item.approver1_name || null, item.approver1_email || null, item.approver1_position || null,
+        newToken,
         req.params.id,
       ]
     );

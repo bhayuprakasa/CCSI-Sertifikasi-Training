@@ -164,18 +164,25 @@ async function sendReminderEmail(toEmail, recipientName, certs, department) {
   await sendGenericEmail(toEmail, subject, html);
 }
 
-// ── Cek apakah sertifikat ini sudah dikirim dalam interval yang ditentukan ────
-async function wasRecentlySent(certId, intervalDays) {
+// ── Cek batch: kembalikan Set cert_id yang sudah dikirim dalam interval ───────
+// Satu query untuk semua cert sekaligus, menghindari N+1 round-trip ke DB.
+async function getRecentlySentSet(certIds, intervalDays) {
+  if (!certIds.length) return new Set();
+  const placeholders = certIds.map(() => '?').join(',');
+  // Ambil sent_at terbaru per cert_id dalam satu query
   const [rows] = await pool.query(
-    `SELECT sent_at FROM cfg_cert_reminder_log
-     WHERE cert_id = ?
-     ORDER BY sent_at DESC LIMIT 1`,
-    [certId]
+    `SELECT cert_id, MAX(sent_at) AS last_sent
+     FROM cfg_cert_reminder_log
+     WHERE cert_id IN (${placeholders})
+     GROUP BY cert_id`,
+    certIds
   );
-  if (!rows.length) return false;
-  const lastSent = new Date(rows[0].sent_at);
-  const diffDays = (Date.now() - lastSent.getTime()) / 86400000;
-  return diffDays < intervalDays;
+  const result = new Set();
+  for (const row of rows) {
+    const diffDays = (Date.now() - new Date(row.last_sent).getTime()) / 86400000;
+    if (diffDays < intervalDays) result.add(row.cert_id);
+  }
+  return result;
 }
 
 // ── Catat pengiriman ke log ───────────────────────────────────────────────────
@@ -214,12 +221,9 @@ async function runCertReminderJob() {
 
     if (!certs.length) return;
 
-    // 3. Filter: hanya sertifikat yang belum dikirim dalam interval
-    const toSend = [];
-    for (const c of certs) {
-      const skip = await wasRecentlySent(c.cert_id, intervalDays);
-      if (!skip) toSend.push(c);
-    }
+    // 3. Filter: hanya sertifikat yang belum dikirim dalam interval (batch query)
+    const recentlySent = await getRecentlySentSet(certs.map(c => c.cert_id), intervalDays);
+    const toSend = certs.filter(c => !recentlySent.has(c.cert_id));
     if (!toSend.length) return;
 
     // 4. Ambil semua dept head yang punya email (untuk menentukan penerima per dept)
@@ -279,9 +283,14 @@ async function runCertReminderJob() {
       console.log(`[CertReminder] Terkirim ke ${email} (${name}): ${recipientCerts.length} sertifikasi`);
     }
 
-    // 8. Catat log pengiriman untuk setiap cert yang dikirim
-    for (const c of toSend) {
-      await logSent(c.cert_id);
+    // 8. Catat log hanya untuk cert yang benar-benar punya penerima (ada di recipientMap)
+    // Cert tanpa dept head maupun HRD tidak boleh di-log agar tidak terblokir permanen.
+    const sentCertIds = new Set();
+    for (const { certs: recipientCerts } of Object.values(recipientMap)) {
+      for (const c of recipientCerts) sentCertIds.add(c.cert_id);
+    }
+    for (const certId of sentCertIds) {
+      await logSent(certId);
     }
 
   } catch (err) {
@@ -301,11 +310,8 @@ function startCertReminderScheduler() {
     next.setUTCHours(1, 0, 0, 0);
     if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
     const delay = next - now;
-    setTimeout(() => {
-      runCertReminderJob();
-      // Re-schedule untuk hari berikutnya
-      setInterval(runCertReminderJob, 24 * 60 * 60 * 1000);
-    }, delay);
+    // Re-schedule rekursif agar waktu tetap terpaku di 01:00 UTC tanpa drift
+    setTimeout(() => { runCertReminderJob(); scheduleNextRun(); }, delay);
   }
 
   scheduleNextRun();
