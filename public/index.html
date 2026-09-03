@@ -689,7 +689,11 @@ select.filter:focus{border-color:var(--navy-lt)}
             </div>
             <div id="esTab-hrd" onclick="esShowLayer('hrd')"
               style="padding:6px 16px;font-size:.82rem;font-weight:500;cursor:pointer;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text2)">
-              🏢 Direktur HRD
+              🏢 HR
+            </div>
+            <div id="esTab-cert" onclick="esShowLayer('cert')"
+              style="padding:6px 16px;font-size:.82rem;font-weight:500;cursor:pointer;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text2)">
+              🎓 Reminder Sertifikat
             </div>
           </div>
 
@@ -721,7 +725,7 @@ select.filter:focus{border-color:var(--navy-lt)}
             </div>
           </div>
 
-          <!-- Layer: HRD -->
+          <!-- Layer: HR (sebelumnya Direktur HRD) -->
           <div id="esPanel-hrd" style="display:none">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
               <div class="form-group">
@@ -739,13 +743,44 @@ select.filter:focus{border-color:var(--navy-lt)}
               <div class="form-group" style="grid-column:1/-1">
                 <label>Template Subject Email</label>
                 <input type="text" id="es-hrd-subject_template"
-                  placeholder="[Persetujuan HRD] Pelatihan: {training_name} — {department}">
+                  placeholder="[Persetujuan HR] Pelatihan: {training_name} — {department}">
                 <div style="font-size:.72rem;color:var(--text3);margin-top:3px" id="es-hrd-preview"></div>
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
               <button class="btn-sm btn-edit" onclick="esSave('hrd')" id="esBtnHrd">💾 Simpan</button>
               <span id="esMsg-hrd" style="font-size:.78rem;display:none"></span>
+            </div>
+          </div>
+
+          <!-- Layer: Reminder Sertifikat — konfigurasi email pengingat masa berlaku sertifikasi -->
+          <div id="esPanel-cert" style="display:none">
+            <div style="background:#f0faf4;border:1px solid #b6e0c8;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#0a4a28;margin-bottom:14px;line-height:1.6">
+              ℹ️ Konfigurasi email reminder sertifikasi. Placeholder subject: <code>{employee_name}</code>, <code>{cert_name}</code>, <code>{expiry_date}</code>, <code>{days_left}</code>.
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div class="form-group">
+                <label>Nama Pengirim (Sender Name)</label>
+                <input type="text" id="es-cert-sender_name" placeholder="Contoh: CCSI Sertifikasi">
+              </div>
+              <div class="form-group">
+                <label>Reply-To (opsional)</label>
+                <input type="email" id="es-cert-reply_to" placeholder="Contoh: sertifikasi@ccsi.co.id">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>CC (opsional — pisahkan dengan koma)</label>
+                <input type="text" id="es-cert-cc_emails" placeholder="Contoh: hr@ccsi.co.id, hse@ccsi.co.id">
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>Template Subject Email</label>
+                <input type="text" id="es-cert-subject_template"
+                  placeholder="[Reminder] Sertifikat {cert_name} — {employee_name} berakhir {expiry_date}">
+                <div style="font-size:.72rem;color:var(--text3);margin-top:3px" id="es-cert-preview"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn-sm btn-edit" onclick="esSave('cert')" id="esBtnCert">💾 Simpan</button>
+              <span id="esMsg-cert" style="font-size:.78rem;display:none"></span>
             </div>
           </div>
 
@@ -1496,7 +1531,8 @@ function esToggle() {
 
 function esShowLayer(layer) {
   esLayer = layer;
-  ['dept','hrd'].forEach(l => {
+  // iterasi semua tab termasuk cert (reminder sertifikat)
+  ['dept','hrd','cert'].forEach(l => {
     const active = l === layer;
     document.getElementById('esPanel-' + l).style.display = active ? 'block' : 'none';
     const tab = document.getElementById('esTab-' + l);
@@ -1511,10 +1547,20 @@ function esUpdatePreview(layer) {
   const tpl = document.getElementById(`es-${layer}-subject_template`).value;
   const prev = document.getElementById(`es-${layer}-preview`);
   if (!tpl) { prev.textContent = ''; return; }
-  const sample = tpl
-    .replace(/{training_name}/g, 'Pelatihan K3')
-    .replace(/{department}/g, 'Dept. Teknik')
-    .replace(/{request_id}/g, '42');
+  let sample;
+  if (layer === 'cert') {
+    // placeholder khusus reminder sertifikasi
+    sample = tpl
+      .replace(/{employee_name}/g, 'Budi Santoso')
+      .replace(/{cert_name}/g, 'Sertifikat K3')
+      .replace(/{expiry_date}/g, '31 Des 2026')
+      .replace(/{days_left}/g, '30');
+  } else {
+    sample = tpl
+      .replace(/{training_name}/g, 'Pelatihan K3')
+      .replace(/{department}/g, 'Dept. Teknik')
+      .replace(/{request_id}/g, '42');
+  }
   prev.innerHTML = `Preview: <em style="color:var(--navy)">${sample}</em>`;
 }
 
@@ -1525,7 +1571,8 @@ async function esLoad() {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     let configured = 0;
-    ['dept','hrd'].forEach(layer => {
+    // dept=approval direksi, hrd=approval HR, cert=reminder sertifikat
+    ['dept','hrd','cert'].forEach(layer => {
       const cfg = data[layer] || {};
       ['sender_name','reply_to','cc_emails','subject_template'].forEach(f => {
         const el = document.getElementById(`es-${layer}-${f}`);
@@ -1534,20 +1581,23 @@ async function esLoad() {
       if (cfg.sender_name || cfg.cc_emails || cfg.subject_template) configured++;
       esUpdatePreview(layer);
     });
-    ['dept','hrd'].forEach(layer => {
+    ['dept','hrd','cert'].forEach(layer => {
       const el = document.getElementById(`es-${layer}-subject_template`);
       if (el) el.addEventListener('input', () => esUpdatePreview(layer));
     });
-    badge.textContent = configured === 2 ? '✅ Terkonfigurasi' : configured === 1 ? '⚠️ Sebagian' : 'Belum diatur';
-    badge.style.background = configured === 2 ? '#e6f7f1' : configured === 1 ? '#fff8e6' : '#e8eef7';
-    badge.style.color      = configured === 2 ? '#007a50' : configured === 1 ? '#b7760a' : 'var(--navy)';
+    // 3 layer sekarang: dept, hrd, cert
+    badge.textContent = configured === 3 ? '✅ Terkonfigurasi' : configured > 0 ? '⚠️ Sebagian' : 'Belum diatur';
+    badge.style.background = configured === 3 ? '#e6f7f1' : configured > 0 ? '#fff8e6' : '#e8eef7';
+    badge.style.color      = configured === 3 ? '#007a50' : configured > 0 ? '#b7760a' : 'var(--navy)';
   } catch (e) {
     badge.textContent = '⚠️ Error';
   }
 }
 
 async function esSave(layer) {
-  const btn = document.getElementById(layer === 'dept' ? 'esBtnDept' : 'esBtnHrd');
+  // map layer ke id button yang sesuai
+  const btnId = layer === 'dept' ? 'esBtnDept' : layer === 'hrd' ? 'esBtnHrd' : 'esBtnCert';
+  const btn = document.getElementById(btnId);
   const msg = document.getElementById(`esMsg-${layer}`);
   const body = {
     layer,

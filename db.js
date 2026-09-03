@@ -28,7 +28,7 @@ pool.getConnection()
       await connection.query(`
         CREATE TABLE IF NOT EXISTS cfg_email_settings (
           id               INT          AUTO_INCREMENT PRIMARY KEY,
-          layer            ENUM('dept','hrd') NOT NULL UNIQUE,
+          layer            ENUM('dept','hrd','cert') NOT NULL UNIQUE,
           sender_name      VARCHAR(100) NULL,
           reply_to         VARCHAR(150) NULL,
           cc_emails        TEXT         NULL,
@@ -37,10 +37,16 @@ pool.getConnection()
           updated_by       VARCHAR(100) NULL
         ) ENGINE=InnoDB
       `);
+      // Jika tabel sudah ada dengan ENUM lama, tambahkan nilai 'cert' ke ENUM
+      await connection.query(`
+        ALTER TABLE cfg_email_settings
+          MODIFY COLUMN layer ENUM('dept','hrd','cert') NOT NULL
+      `).catch(() => {/* abaikan jika sudah sesuai */});
       await connection.query(`
         INSERT IGNORE INTO cfg_email_settings (layer, sender_name, subject_template) VALUES
           ('dept', 'CCSI Training System', '[Persetujuan Diperlukan] Pelatihan: {training_name} — {department}'),
-          ('hrd',  'CCSI Training System', '[Persetujuan HRD] Pelatihan: {training_name} — {department}')
+          ('hrd',  'CCSI Training System', '[Persetujuan HR] Pelatihan: {training_name} — {department}'),
+          ('cert', 'CCSI Sertifikasi', '[Reminder] Sertifikat {cert_name} — {employee_name} berakhir {expiry_date}')
       `);
       console.log('✅ Tabel cfg_email_settings siap.');
     } catch (e) {
