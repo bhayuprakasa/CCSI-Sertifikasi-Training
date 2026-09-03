@@ -88,7 +88,8 @@ router.post('/retry', async (req, res) => {
 router.get('/email-settings', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM cfg_email_settings');
-    const result = { dept: null, hrd: null };
+    // dept=approval direksi, hrd=approval HR, cert=reminder sertifikat
+    const result = { dept: null, hrd: null, cert: null };
     rows.forEach(r => { result[r.layer] = r; });
     res.json(result);
   } catch (e) {
@@ -99,8 +100,9 @@ router.get('/email-settings', async (req, res) => {
 // ─── POST Save Email Settings (satu layer per request) ───────────────────────
 router.post('/email-settings', async (req, res) => {
   const { layer, sender_name, reply_to, cc_emails, subject_template, updated_by } = req.body;
-  if (!['dept', 'hrd'].includes(layer)) {
-    return res.status(400).json({ error: 'layer harus "dept" atau "hrd"' });
+  // dept=approval direksi, hrd=approval HR, cert=reminder sertifikat
+  if (!['dept', 'hrd', 'cert'].includes(layer)) {
+    return res.status(400).json({ error: 'layer harus "dept", "hrd", atau "cert"' });
   }
   try {
     await pool.query(
