@@ -35,9 +35,10 @@ router.post('/approver-hrd', async (req, res) => {
   }
   try {
     await pool.query('DELETE FROM cfg_approver_hrd');
+    // Tabel hanya punya kolom: id, email, set_at (employee_id & full_name sudah di-drop via auto-migrate)
     await pool.query(
-      'INSERT INTO cfg_approver_hrd (employee_id, full_name, email) VALUES (?,?,?)',
-      ['', '', email]
+      'INSERT INTO cfg_approver_hrd (email) VALUES (?)',
+      [email]
     );
     res.json({ ok: true });
   } catch (e) {
