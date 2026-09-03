@@ -9,11 +9,14 @@
  * - Interval pengiriman diatur lewat cfg_reminder_setting
  *   (interval_value + frequency: hari/minggu/bulan)
  * - Tracking kapan terakhir dikirim disimpan di tabel cfg_cert_reminder_log
+ * - Email direkap per email tujuan:
+ *   - Dept head tiap departemen → menerima rekap sertifikasi dept-nya saja
+ *   - HRD (cfg_approver_hrd) → menerima rekap semua sertifikasi
  */
 
 const pool = require('../db');
 
-// ── Helper: hitung jumlah hari dari interval + frequency ─────────────────────
+// ── Helper: konversi interval + frequency ke jumlah hari ─────────────────────
 function intervalToDays(intervalValue, frequency) {
   switch (frequency) {
     case 'minggu': return intervalValue * 7;
@@ -22,94 +25,118 @@ function intervalToDays(intervalValue, frequency) {
   }
 }
 
-// ── Bangun HTML email reminder ────────────────────────────────────────────────
-function buildReminderHtml(certs, today) {
-  const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus',
-                  'September','Oktober','November','Desember'];
+// ── Helper: format tanggal YYYY-MM-DD → DD-MM-YYYY ───────────────────────────
+function fmtDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = (dateStr + '').split('T')[0].split('-');
+  if (d.length < 3) return dateStr;
+  return `${d[0]}-${d[1]}-${d[2]}`; // tetap format YYYY-MM-DD agar konsisten dengan screenshot
+}
 
-  function fmtDate(dateStr) {
-    if (!dateStr) return '-';
-    const d = (dateStr + '').split('T')[0].split('-');
-    return `${parseInt(d[2])} ${MONTHS[parseInt(d[1]) - 1]} ${d[0]}`;
-  }
+// ── Bangun HTML email reminder sesuai template screenshot ────────────────────
+// recipientName: nama penerima email (dept head atau HRD)
+// certs: array sertifikasi yang perlu diingatkan
+function buildReminderHtml(certs, recipientName) {
+  const appUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const formUrl = `${appUrl}/permohonan-pelatihan.html`;
 
-  function diffDays(expStr) {
-    const exp = new Date(expStr);
-    exp.setHours(0, 0, 0, 0);
-    const now = new Date(today);
-    now.setHours(0, 0, 0, 0);
-    return Math.round((exp - now) / 86400000);
-  }
-
-  const rows = certs.map(c => {
-    const diff  = diffDays(c.expiry_date);
-    const label = diff < 0
-      ? `<span style="color:#d63031;font-weight:700">EXPIRED ${Math.abs(diff)} hari lalu</span>`
-      : `<span style="color:${diff <= 30 ? '#d63031' : '#f39c12'};font-weight:700">H-${diff}</span>`;
-
-    return `
-      <tr>
-        <td style="padding:10px 14px;border-bottom:1px solid #f0f3f6;font-size:13px">${c.full_name}</td>
-        <td style="padding:10px 14px;border-bottom:1px solid #f0f3f6;font-size:13px;color:#64748b">${c.department}</td>
-        <td style="padding:10px 14px;border-bottom:1px solid #f0f3f6;font-size:13px">${c.sertif_name}</td>
-        <td style="padding:10px 14px;border-bottom:1px solid #f0f3f6;font-size:13px">${fmtDate(c.expiry_date)}</td>
-        <td style="padding:10px 14px;border-bottom:1px solid #f0f3f6;text-align:center">${label}</td>
-      </tr>`;
-  }).join('');
+  // Baris tabel untuk setiap sertifikasi
+  const rows = certs.map(c => `
+    <tr>
+      <td style="padding:10px 14px;border:1px solid #c8d0dc;font-size:13px;color:#1e293b">${c.full_name || '-'}</td>
+      <td style="padding:10px 14px;border:1px solid #c8d0dc;font-size:13px;color:#1e293b">${c.sertif_name || '-'}</td>
+      <td style="padding:10px 14px;border:1px solid #c8d0dc;font-size:13px;color:#1e293b;white-space:nowrap">${fmtDate(c.issue_date)}</td>
+      <td style="padding:10px 14px;border:1px solid #c8d0dc;font-size:13px;color:#1e293b;white-space:nowrap">${fmtDate(c.expiry_date)}</td>
+    </tr>`).join('');
 
   return `<!DOCTYPE html>
-<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<html lang="id">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f3f8;font-family:'Segoe UI',Arial,sans-serif">
-<div style="max-width:680px;margin:0 auto;padding:24px 16px">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td align="center" style="padding:24px 16px">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:680px;background:#ffffff;border:1px solid #dde3ec;border-radius:8px;overflow:hidden">
 
   <!-- Header -->
-  <div style="background:#1a3c6e;border-radius:10px 10px 0 0;padding:20px 24px;display:flex;align-items:center;gap:14px">
-    <div style="background:#e8a020;border-radius:6px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;color:#12294d;flex-shrink:0">CCSI</div>
-    <div>
-      <div style="color:#fff;font-size:1.05rem;font-weight:700">⏰ Reminder Sertifikasi Expired</div>
-      <div style="color:rgba(255,255,255,.7);font-size:.78rem;margin-top:2px">PT Communication Cable Systems Indonesia</div>
-    </div>
-  </div>
-
-  <!-- Banner -->
-  <div style="background:#fff8e6;border:1px solid #f5d57e;border-top:none;padding:12px 24px;font-size:.83rem;color:#7a4f00;line-height:1.5">
-    ⚠️ Terdapat <strong>${certs.length} sertifikasi</strong> yang belum diperpanjang dan memerlukan tindakan segera.
-    Email ini akan terus dikirim secara otomatis hingga kolom <strong>Aksi Perpanjangan</strong> diisi di sistem.
-  </div>
-
-  <!-- Tabel -->
-  <div style="background:#fff;border:1px solid #dde3ec;border-top:none;border-radius:0 0 10px 10px;overflow:hidden">
-    <table style="width:100%;border-collapse:collapse">
-      <thead>
-        <tr style="background:#f8fafd">
-          <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #dde3ec">Nama Karyawan</th>
-          <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #dde3ec">Departemen</th>
-          <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #dde3ec">Nama Sertifikasi</th>
-          <th style="padding:10px 14px;text-align:left;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #dde3ec">Tanggal Expired</th>
-          <th style="padding:10px 14px;text-align:center;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #dde3ec">Status</th>
+  <tr>
+    <td style="background:#1a3c6e;padding:16px 24px">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td width="46" style="vertical-align:middle">
+            <div style="background:#e8a020;border-radius:6px;width:38px;height:38px;text-align:center;line-height:38px;font-weight:800;font-size:9px;color:#12294d;letter-spacing:-.5px">CCSI</div>
+          </td>
+          <td style="padding-left:12px;vertical-align:middle">
+            <div style="color:#ffffff;font-size:15px;font-weight:700">Reminder Sertifikasi</div>
+            <div style="color:rgba(255,255,255,.7);font-size:11px;margin-top:2px">PT Communication Cable Systems Indonesia</div>
+          </td>
         </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
+      </table>
+    </td>
+  </tr>
 
-    <div style="padding:16px 24px;font-size:.8rem;color:#64748b;border-top:1px solid #f0f3f6;line-height:1.6">
-      Untuk menghentikan reminder ini, buka sistem CCSI Training → tab <strong>Sertifikasi</strong> →
-      isi kolom <strong>Aksi Perpanjangan</strong> dengan <em>"Sudah Perpanjang"</em> atau <em>"Tidak Perpanjang"</em>.
-    </div>
-  </div>
+  <!-- Body -->
+  <tr>
+    <td style="padding:28px 32px">
 
-  <div style="text-align:center;margin-top:16px;font-size:.72rem;color:#94a3b8">
-    Email ini dikirim otomatis oleh sistem CCSI Training · ${fmtDate(today)}
-  </div>
-</div>
-</body></html>`;
+      <!-- Greeting -->
+      <p style="margin:0 0 16px;font-size:14px;font-weight:700;color:#1e293b">Selamat Pagi Bapak/Ibu ${recipientName},</p>
+      <p style="margin:0 0 20px;font-size:13px;color:#475569;line-height:1.7">
+        Berikut kami sampaikan daftar sertifikasi karyawan bapak/ibu yang sudah memasuki tanggal expired.
+      </p>
+
+      <!-- Tabel Sertifikasi -->
+      <div style="overflow-x:auto;margin-bottom:24px">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;min-width:480px">
+          <thead>
+            <tr style="background:#1a3c6e">
+              <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:700;color:#ffffff;border:1px solid #2a5298">Nama Karyawan</th>
+              <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:700;color:#ffffff;border:1px solid #2a5298">Nama Sertifikasi</th>
+              <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:700;color:#ffffff;border:1px solid #2a5298;white-space:nowrap">Masa Berlaku Mulai</th>
+              <th style="padding:10px 14px;text-align:left;font-size:12px;font-weight:700;color:#ffffff;border:1px solid #2a5298;white-space:nowrap">Masa Berlaku Hingga</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- CTA -->
+      <p style="margin:0 0 6px;font-size:13px;color:#1e293b;font-weight:700;line-height:1.7">
+        Dimohon untuk segera memberikan informasi tindaklanjut dari daftar tersebut.
+        Jika sertifikasi diperpanjang, maka bapak/ibu dapat men-submit form berikut ini :
+      </p>
+      <p style="margin:0 0 28px">
+        <a href="${formUrl}" style="color:#1a3c6e;font-size:13px;word-break:break-all">${formUrl}</a>
+      </p>
+
+      <!-- Penutup -->
+      <p style="margin:0;font-size:13px;color:#1e293b;line-height:1.8">
+        Best Regards,<br>
+        <strong>HR Department &ndash; PT CCSI</strong>
+      </p>
+
+    </td>
+  </tr>
+
+  <!-- Footer -->
+  <tr>
+    <td style="background:#f8fafd;border-top:1px solid #dde3ec;padding:10px 24px;text-align:center">
+      <span style="font-size:11px;color:#94a3b8">Email ini dikirim otomatis oleh sistem CCSI Training</span>
+    </td>
+  </tr>
+
+</table>
+</td></tr></table>
+</body>
+</html>`;
 }
 
 // ── Kirim email reminder via sendGenericEmail (Graph atau SMTP otomatis) ──────
-async function sendReminderEmail(toEmail, certs, today) {
+async function sendReminderEmail(toEmail, recipientName, certs) {
   const { sendGenericEmail } = require('./mailer');
-  const html    = buildReminderHtml(certs, today);
-  const subject = `[Reminder] ${certs.length} Sertifikasi Memerlukan Perpanjangan`;
+  const html    = buildReminderHtml(certs, recipientName);
+  const subject = `[Reminder] ${certs.length} Sertifikasi Karyawan Memasuki Tanggal Expired`;
   await sendGenericEmail(toEmail, subject, html);
 }
 
@@ -122,9 +149,8 @@ async function wasRecentlySent(certId, intervalDays) {
     [certId]
   );
   if (!rows.length) return false;
-  const lastSent  = new Date(rows[0].sent_at);
-  const nowMs     = Date.now();
-  const diffDays  = (nowMs - lastSent.getTime()) / 86400000;
+  const lastSent = new Date(rows[0].sent_at);
+  const diffDays = (Date.now() - lastSent.getTime()) / 86400000;
   return diffDays < intervalDays;
 }
 
@@ -136,7 +162,7 @@ async function logSent(certId) {
   );
 }
 
-// ── Job utama: cek sertifikasi & kirim reminder ───────────────────────────────
+// ── Job utama: cek sertifikasi & kirim reminder per email tujuan ──────────────
 async function runCertReminderJob() {
   try {
     // 1. Baca konfigurasi reminder
@@ -148,22 +174,9 @@ async function runCertReminderJob() {
     const { interval_value, frequency, days_before } = cfgRows[0];
     const intervalDays = intervalToDays(interval_value, frequency);
 
-    // 2. Baca email tujuan (HRD)
-    const [hrdRows] = await pool.query(
-      'SELECT email FROM cfg_approver_hrd ORDER BY id DESC LIMIT 1'
-    );
-    if (!hrdRows.length || !hrdRows[0].email) return; // email belum diatur
-
-    const toEmail = hrdRows[0].email;
-    const today   = new Date().toISOString().split('T')[0];
-
-    // 3. Ambil sertifikasi yang:
-    //    - Tidak seumur hidup (is_lifetime = 0)
-    //    - Masih aktif (is_active = 1)
-    //    - expiry_date sudah masuk window H-days_before ATAU sudah lewat expired
-    //    - renewal_action KOSONG (belum ada aksi perpanjangan)
+    // 2. Ambil sertifikasi yang perlu direminder beserta issue_date dan dept employee
     const [certs] = await pool.query(
-      `SELECT c.cert_id, c.sertif_name, c.expiry_date, c.renewal_action,
+      `SELECT c.cert_id, c.sertif_name, c.expiry_date, c.issue_date, c.renewal_action,
               e.full_name, e.department
        FROM trx_certification c
        LEFT JOIN mst_employee e ON c.employee_id = e.employee_id
@@ -177,24 +190,75 @@ async function runCertReminderJob() {
 
     if (!certs.length) return;
 
-    // 4. Filter: hanya sertifikat yang belum dikirim dalam interval
+    // 3. Filter: hanya sertifikat yang belum dikirim dalam interval
     const toSend = [];
     for (const c of certs) {
       const skip = await wasRecentlySent(c.cert_id, intervalDays);
       if (!skip) toSend.push(c);
     }
-
     if (!toSend.length) return;
 
-    // 5. Kirim 1 email berisi semua sertifikasi yang perlu diingatkan
-    await sendReminderEmail(toEmail, toSend, today);
+    // 4. Ambil semua dept head yang punya email (untuk menentukan penerima per dept)
+    const [deptHeads] = await pool.query(
+      `SELECT full_name, email, department
+       FROM mst_employee
+       WHERE is_dept_head = 1
+         AND email IS NOT NULL
+         AND email != ''
+         AND is_active = 1`
+    );
+    // Map: department → { name, email }
+    const deptHeadMap = {};
+    for (const dh of deptHeads) {
+      deptHeadMap[dh.department] = { name: dh.full_name, email: dh.email };
+    }
 
-    // 6. Catat setiap cert ke log
+    // 5. Ambil email HRD sebagai penerima rekap semua sertifikasi
+    const [hrdRows] = await pool.query(
+      'SELECT email FROM cfg_approver_hrd ORDER BY id DESC LIMIT 1'
+    );
+    const hrdEmail = hrdRows[0]?.email || null;
+
+    // 6. Grouping: kumpulkan sertifikasi per email tujuan
+    //    { emailAddr: { name: '...', certs: [...] } }
+    const recipientMap = {};
+
+    for (const cert of toSend) {
+      const deptHead = deptHeadMap[cert.department];
+
+      // Kirim ke dept head departemen karyawan (jika ada emailnya)
+      if (deptHead?.email) {
+        if (!recipientMap[deptHead.email]) {
+          recipientMap[deptHead.email] = { name: deptHead.name, certs: [] };
+        }
+        recipientMap[deptHead.email].certs.push(cert);
+      }
+
+      // Kirim rekap ke HRD (semua cert, tidak diaklus jika sudah masuk dept head yg sama)
+      if (hrdEmail) {
+        if (!recipientMap[hrdEmail]) {
+          recipientMap[hrdEmail] = { name: 'HR Department', certs: [] };
+        }
+        // Hindari duplikat cert yang sama di satu recipient
+        const alreadyAdded = recipientMap[hrdEmail].certs.some(c => c.cert_id === cert.cert_id);
+        if (!alreadyAdded) {
+          recipientMap[hrdEmail].certs.push(cert);
+        }
+      }
+    }
+
+    // 7. Kirim email ke masing-masing penerima
+    for (const [email, { name, certs: recipientCerts }] of Object.entries(recipientMap)) {
+      if (!recipientCerts.length) continue;
+      await sendReminderEmail(email, name, recipientCerts);
+      console.log(`[CertReminder] Terkirim ke ${email} (${name}): ${recipientCerts.length} sertifikasi`);
+    }
+
+    // 8. Catat log pengiriman untuk setiap cert yang dikirim
     for (const c of toSend) {
       await logSent(c.cert_id);
     }
 
-    console.log(`[CertReminder] Terkirim ke ${toEmail}: ${toSend.length} sertifikasi`);
   } catch (err) {
     console.error('[CertReminder] Error:', err.message);
   }
@@ -202,7 +266,7 @@ async function runCertReminderJob() {
 
 // ── Start scheduler — cek setiap hari sekali (jam 08:00 WIB / 01:00 UTC) ─────
 function startCertReminderScheduler() {
-  // Jalankan sekali saat startup (dengan delay 30 detik agar DB siap)
+  // Jalankan sekali saat startup dengan delay 30 detik agar DB siap
   setTimeout(runCertReminderJob, 30_000);
 
   // Hitung delay ke jam 01:00 UTC berikutnya (= 08:00 WIB)
