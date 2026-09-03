@@ -756,7 +756,7 @@ select.filter:focus{border-color:var(--navy-lt)}
           <!-- Layer: Reminder Sertifikat — konfigurasi email pengingat masa berlaku sertifikasi -->
           <div id="esPanel-cert" style="display:none">
             <div style="background:#f0faf4;border:1px solid #b6e0c8;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#0a4a28;margin-bottom:14px;line-height:1.6">
-              ℹ️ Konfigurasi email reminder sertifikasi. Placeholder subject: <code>{employee_name}</code>, <code>{cert_name}</code>, <code>{expiry_date}</code>, <code>{days_left}</code>.
+              ℹ️ Konfigurasi email reminder sertifikasi. Placeholder subject: <code>{employee_name}</code>, <code>{cert_name}</code>, <code>{expiry_date}</code>, <code>{days_left}</code>, <code>{department}</code>.
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
               <div class="form-group">
@@ -1554,7 +1554,8 @@ function esUpdatePreview(layer) {
       .replace(/{employee_name}/g, 'Budi Santoso')
       .replace(/{cert_name}/g, 'Sertifikat K3')
       .replace(/{expiry_date}/g, '31 Des 2026')
-      .replace(/{days_left}/g, '30');
+      .replace(/{days_left}/g, '30')
+      .replace(/{department}/g, 'Dept. Teknik');
   } else {
     sample = tpl
       .replace(/{training_name}/g, 'Pelatihan K3')
