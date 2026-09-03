@@ -134,6 +134,18 @@ async function autoMigrate() {
       ) ENGINE=InnoDB
     `);
     console.log('[AutoMigrate] Schema cfg_reminder_setting OK');
+
+    // cfg_cert_reminder_log — log kapan terakhir kali reminder dikirim per sertifikat
+    // Dipakai scheduler untuk menentukan apakah interval sudah terpenuhi sebelum kirim ulang
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS cfg_cert_reminder_log (
+        log_id   INT      AUTO_INCREMENT PRIMARY KEY,
+        cert_id  INT      NOT NULL,
+        sent_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_cert_sent (cert_id, sent_at)
+      ) ENGINE=InnoDB
+    `);
+    console.log('[AutoMigrate] Schema cfg_cert_reminder_log OK');
   } catch (err) {
     console.error('[AutoMigrate] Error:', err.message);
     // Non-fatal: server still starts; routes will surface real DB errors.
