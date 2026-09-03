@@ -188,6 +188,7 @@ select.filter:focus{border-color:var(--navy-lt)}
 /* FIELD ERROR */
 .field-error{border-color:var(--red)!important;background:var(--red-lt)!important}
 @media(max-width:600px){.form-grid{grid-template-columns:1fr}.kpi-value{font-size:1.4rem}.header{padding:0 12px}}
+@media(max-width:640px){.rs-grid{grid-template-columns:1fr!important}}
 @media print{.header,.tabs,.toolbar,.btn-h,.btn-sm,.modal-overlay{display:none!important}.card{box-shadow:none;border:1px solid #ccc}body{background:#fff}}
 /* COLLAPSIBLE SECTION */
 .section-chev{font-size:.82rem;color:var(--text2);transition:transform .2s;display:inline-block}
@@ -566,6 +567,72 @@ select.filter:focus{border-color:var(--navy-lt)}
 
   <!-- LOG EMAIL -->
   <div id="tab-emaillog" class="tab-panel">
+
+    <!-- ── Konfigurasi Reminder Expiry Sertifikasi ───────────────────────── -->
+    <div class="card" style="margin-bottom:14px" id="rsCard">
+      <div class="card-header" style="cursor:pointer;user-select:none" onclick="rsToggle()">
+        <span class="card-title">⏰ Konfigurasi Reminder Sertifikasi Expired</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="rsBadge" style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:.72rem;font-weight:700;background:#e8eef7;color:var(--navy)">Memuat...</span>
+          <span id="rsChevron" style="font-size:.72rem;color:var(--text3);transition:transform .2s">▼</span>
+        </div>
+      </div>
+      <div id="rsBody" style="display:none">
+        <div class="card-body" style="padding:14px 18px">
+
+          <div style="background:#e8f4fd;border:1px solid #b8d4f0;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#0c2a52;margin-bottom:16px;line-height:1.6">
+            ℹ️ Atur kapan dan seberapa sering sistem mengirim reminder email untuk sertifikasi yang akan expired.<br>
+            Reminder dikirim mulai dari <strong>H- days_before</strong> hingga tanggal expiry, dengan interval yang bisa dikonfigurasi.
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px" class="rs-grid">
+
+            <!-- Interval value -->
+            <div class="form-group">
+              <label>Interval Pengiriman <span style="color:var(--red)">*</span></label>
+              <input type="number" id="rs-interval" min="1" placeholder="Contoh: 2"
+                style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:.83rem;font-family:inherit;outline:none;transition:border .15s"
+                onfocus="this.style.borderColor='var(--navy-lt)'" onblur="this.style.borderColor='var(--border)'"
+                oninput="rsOnChange()">
+              <span style="font-size:.72rem;color:var(--text3);margin-top:2px">Angka bulat, misal: 1 / 2 / 7</span>
+            </div>
+
+            <!-- Frequency -->
+            <div class="form-group">
+              <label>Satuan Frekuensi <span style="color:var(--red)">*</span></label>
+              <select id="rs-frequency"
+                style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:.83rem;font-family:inherit;outline:none;transition:border .15s;background:#fff"
+                onfocus="this.style.borderColor='var(--navy-lt)'" onblur="this.style.borderColor='var(--border)'"
+                onchange="rsOnChange()">
+                <option value="hari">Hari</option>
+                <option value="minggu" selected>Minggu</option>
+                <option value="bulan">Bulan</option>
+              </select>
+              <span style="font-size:.72rem;color:var(--text3);margin-top:2px">Hari / Minggu / Bulan</span>
+            </div>
+
+            <!-- Days before -->
+            <div class="form-group">
+              <label>Mulai Reminder H- <span style="color:var(--red)">*</span></label>
+              <input type="number" id="rs-days-before" min="1" placeholder="Contoh: 30"
+                style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:.83rem;font-family:inherit;outline:none;transition:border .15s"
+                onfocus="this.style.borderColor='var(--navy-lt)'" onblur="this.style.borderColor='var(--border)'"
+                oninput="rsOnChange()">
+              <span style="font-size:.72rem;color:var(--text3);margin-top:2px">Berapa hari sebelum expired mulai kirim</span>
+            </div>
+          </div>
+
+          <!-- Preview ringkasan konfigurasi -->
+          <div id="rsPreview" style="background:#f0f8ff;border:1px solid #c5d4ec;border-radius:7px;padding:9px 13px;font-size:.8rem;color:var(--navy);margin-bottom:14px;display:none"></div>
+
+          <div style="display:flex;align-items:center;gap:10px">
+            <button id="rsBtnSave" class="btn-sm btn-edit" onclick="rsSave()" disabled
+              style="padding:6px 16px;font-size:.82rem">💾 Simpan Konfigurasi</button>
+            <span id="rsMsg" style="font-size:.78rem;display:none"></span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Email HRD Notifikasi -->
     <div class="card" style="margin-bottom:14px">
@@ -1209,7 +1276,7 @@ const tabRenderers = {
   kompetensi: renderKompetensi,
   evaluasi: renderEvaluasi,
   master: renderMaster,
-  emaillog: () => { renderEmailLog(); elLoadCurrentApprover(); esLoad(); }
+  emaillog: () => { renderEmailLog(); elLoadCurrentApprover(); esLoad(); rsInitBadge(); }
 };
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -1279,6 +1346,122 @@ async function renderDashboard() {
 // =====================
 // LOG EMAIL TAB
 // =====================
+
+// ── Reminder Setting ─────────────────────────────────────────────────────────
+// Mengelola konfigurasi reminder expiry sertifikasi:
+// - interval_value : seberapa sering reminder dikirim (angka)
+// - frequency      : satuan interval (hari/minggu/bulan)
+// - days_before    : berapa hari sebelum expired mulai kirim reminder
+
+let rsOpen = false;
+
+// Toggle collapse/expand card reminder setting
+function rsToggle() {
+  rsOpen = !rsOpen;
+  document.getElementById('rsBody').style.display = rsOpen ? 'block' : 'none';
+  document.getElementById('rsChevron').style.transform = rsOpen ? 'rotate(180deg)' : '';
+  if (rsOpen) rsLoad();
+}
+
+// Muat nilai tersimpan dari API lalu isi form
+async function rsLoad() {
+  try {
+    const res = await fetch('/api/reminder-setting');
+    const data = await res.json();
+    document.getElementById('rs-interval').value    = data.interval_value ?? 1;
+    document.getElementById('rs-frequency').value   = data.frequency ?? 'minggu';
+    document.getElementById('rs-days-before').value = data.days_before ?? 30;
+    rsBadgeUpdate(data);
+    rsPreviewUpdate();
+  } catch {
+    document.getElementById('rsBadge').textContent = 'Gagal memuat';
+  }
+}
+
+// Update badge di header card berdasarkan data yang dimuat
+function rsBadgeUpdate(data) {
+  const badge = document.getElementById('rsBadge');
+  if (!data || !data.interval_value) {
+    badge.textContent = 'Belum diatur';
+    badge.style.background = '#f1f5f9';
+    badge.style.color = 'var(--text2)';
+    return;
+  }
+  badge.textContent = `Setiap ${data.interval_value} ${data.frequency}, mulai H-${data.days_before}`;
+  badge.style.background = '#e6f7f1';
+  badge.style.color = '#007a50';
+}
+
+// Tampilkan preview ringkasan konfigurasi di atas tombol simpan
+function rsPreviewUpdate() {
+  const iv  = parseInt(document.getElementById('rs-interval').value, 10);
+  const fr  = document.getElementById('rs-frequency').value;
+  const db  = parseInt(document.getElementById('rs-days-before').value, 10);
+  const preview = document.getElementById('rsPreview');
+  if (iv >= 1 && fr && db >= 1) {
+    preview.style.display = 'block';
+    preview.innerHTML = `📋 Reminder akan dikirim mulai <strong>H-${db}</strong> sebelum tanggal expired, setiap <strong>${iv} ${fr}</strong>.`;
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+// Aktifkan tombol simpan jika ada perubahan valid
+function rsOnChange() {
+  const iv = parseInt(document.getElementById('rs-interval').value, 10);
+  const db = parseInt(document.getElementById('rs-days-before').value, 10);
+  const ok = iv >= 1 && db >= 1;
+  document.getElementById('rsBtnSave').disabled = !ok;
+  rsPreviewUpdate();
+}
+
+// Kirim konfigurasi ke backend
+async function rsSave() {
+  const btn = document.getElementById('rsBtnSave');
+  const msg = document.getElementById('rsMsg');
+  btn.disabled = true;
+
+  const body = {
+    interval_value: parseInt(document.getElementById('rs-interval').value, 10),
+    frequency:      document.getElementById('rs-frequency').value,
+    days_before:    parseInt(document.getElementById('rs-days-before').value, 10),
+  };
+
+  try {
+    const res = await fetch('/api/reminder-setting', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Gagal menyimpan');
+    msg.style.display = 'inline';
+    msg.style.color   = 'var(--green)';
+    msg.textContent   = '✓ Tersimpan';
+    rsBadgeUpdate(body);
+    setTimeout(() => { msg.style.display = 'none'; btn.disabled = false; }, 2500);
+  } catch (e) {
+    msg.style.display = 'inline';
+    msg.style.color   = 'var(--red)';
+    msg.textContent   = '✗ ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+// Inisialisasi badge saat halaman pertama load (tanpa expand card)
+async function rsInitBadge() {
+  try {
+    const res  = await fetch('/api/reminder-setting');
+    const data = await res.json();
+    rsBadgeUpdate(data);
+    // Isi form sekalian agar siap saat card dibuka
+    document.getElementById('rs-interval').value    = data.interval_value ?? 1;
+    document.getElementById('rs-frequency').value   = data.frequency ?? 'minggu';
+    document.getElementById('rs-days-before').value = data.days_before ?? 30;
+  } catch {
+    document.getElementById('rsBadge').textContent = 'Belum diatur';
+  }
+}
 
 // ── Email Settings ────────────────────────────────────────────────────────────
 let esOpen = false, esLayer = 'dept';

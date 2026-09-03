@@ -119,6 +119,21 @@ async function autoMigrate() {
       await conn.query(`ALTER TABLE cfg_approver_hrd DROP COLUMN IF EXISTS ${col}`).catch(() => {});
     }
     console.log('[AutoMigrate] Schema cfg_approver_hrd OK');
+
+    // cfg_reminder_setting — konfigurasi reminder expiry sertifikasi
+    // interval_value : seberapa sering reminder dikirim (angka)
+    // frequency      : satuan interval (hari/minggu/bulan)
+    // days_before    : mulai kirim reminder berapa hari sebelum expiry
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS cfg_reminder_setting (
+        id              INT           AUTO_INCREMENT PRIMARY KEY,
+        interval_value  INT           NOT NULL DEFAULT 1,
+        frequency       ENUM('hari','minggu','bulan') NOT NULL DEFAULT 'minggu',
+        days_before     INT           NOT NULL DEFAULT 30,
+        updated_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB
+    `);
+    console.log('[AutoMigrate] Schema cfg_reminder_setting OK');
   } catch (err) {
     console.error('[AutoMigrate] Error:', err.message);
     // Non-fatal: server still starts; routes will surface real DB errors.
