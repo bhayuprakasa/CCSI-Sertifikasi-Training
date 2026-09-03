@@ -73,4 +73,15 @@ router.post('/', async (req, res) => {
   }
 });
 
+// POST /api/reminder-setting/send-now — trigger manual (untuk test atau kirim seketika)
+router.post('/send-now', async (req, res) => {
+  try {
+    const { runCertReminderJob } = require('../utils/cert-reminder');
+    await runCertReminderJob();
+    res.json({ ok: true, message: 'Job reminder dijalankan' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

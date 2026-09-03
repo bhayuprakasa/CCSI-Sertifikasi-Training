@@ -148,6 +148,7 @@ app.use((err, req, res, _next) => {
 });
 
 const autoMigrate = require('./db/auto-migrate');
+const { startCertReminderScheduler } = require('./utils/cert-reminder');
 
 app.listen(PORT, '0.0.0.0', async () => {
   const nets = require('os').networkInterfaces();
@@ -156,4 +157,6 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`  Local:   http://localhost:${PORT}`);
   ips.forEach(ip => console.log(`  Network: http://${ip}:${PORT}`));
   await autoMigrate();
+  // Jalankan scheduler reminder sertifikasi setelah DB siap
+  startCertReminderScheduler();
 });

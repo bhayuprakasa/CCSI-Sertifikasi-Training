@@ -936,4 +936,20 @@ function invalidateEmailSettingsCache() {
   _settingsCacheAt = 0;
 }
 
-module.exports = { sendApprovalEmail, sendHrdApprovalEmail, sendMultiApprovalEmail, sendHrNotificationEmail, getEmailLog, isEmailConfigured, invalidateEmailSettingsCache };
+// Kirim email umum (subject + html) tanpa template approval
+// Dipakai oleh cert-reminder dan modul lain yang tidak butuh template khusus
+async function sendGenericEmail(toEmail, subject, html, { senderName } = {}) {
+  const hasGraph = !!(process.env.GRAPH_TENANT_ID && process.env.GRAPH_CLIENT_ID && process.env.GRAPH_CLIENT_SECRET);
+  if (hasGraph) {
+    await sendViaGraph(toEmail, subject, html, { senderName: senderName || 'CCSI Training System' });
+  } else {
+    await transporter.sendMail({
+      from:    `"${senderName || 'CCSI Training System'}" <${process.env.SMTP_USER}>`,
+      to:      toEmail,
+      subject,
+      html,
+    });
+  }
+}
+
+module.exports = { sendApprovalEmail, sendHrdApprovalEmail, sendMultiApprovalEmail, sendHrNotificationEmail, sendGenericEmail, getEmailLog, isEmailConfigured, invalidateEmailSettingsCache };
