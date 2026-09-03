@@ -795,9 +795,12 @@ async function prSubmit() {
     loadRekapData();
   } catch (e) {
     showToast(e.message, false);
+    // Kembalikan teks tombol sesuai mode saat error (try block belum reset state)
+    btn.textContent = isEditMode ? '💾 Update Permohonan' : '💾 Submit';
   } finally {
     btn.disabled = false;
-    btn.textContent = isEditMode ? '💾 Update Permohonan' : '💾 Submit';
+    // Teks tombol tidak di-set di sini: saat sukses prCancelEdit() sudah mereset,
+    // saat error sudah di-set di catch block di atas.
   }
 }
 
@@ -983,15 +986,9 @@ async function prStartEdit(id) {
   showToast('Form diisi dari data yang dipilih — edit dan klik Update');
 }
 
-// Batalkan mode edit, kembalikan form ke kondisi awal
+// Batalkan mode edit, kembalikan form ke kondisi awal.
+// prReset(true) sudah menangani reset banner, tombol, dan semua field — tidak perlu duplikasi.
 function prCancelEdit() {
-  _prEditingId = null;
-  document.getElementById('prEditBanner').style.display = 'none';
-  document.getElementById('prCancelEditBtn').style.display = 'none';
-  const btn = document.getElementById('prSubmitBtn');
-  btn.textContent = '💾 Submit';
-  btn.style.background = '';
-  btn.style.color = '';
   prReset(true);
 }
 
