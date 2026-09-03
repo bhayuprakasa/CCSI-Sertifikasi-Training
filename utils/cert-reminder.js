@@ -132,11 +132,35 @@ function buildReminderHtml(certs, recipientName) {
 </html>`;
 }
 
+// ── Bangun subject dari template dengan mengganti semua placeholder ────────────
+// department: nama departemen penerima (dept head) atau string fallback untuk HRD
+async function buildSubject(certs, department) {
+  const [rows] = await pool.query(
+    "SELECT subject_template FROM cfg_email_settings WHERE layer = 'cert' LIMIT 1"
+  );
+  const tpl = rows[0]?.subject_template;
+  if (!tpl) {
+    // fallback jika belum dikonfigurasi
+    return `[Reminder] ${certs.length} Sertifikasi Karyawan Memasuki Tanggal Expired`;
+  }
+  const first = certs[0] || {};
+  // Hitung days_left dari cert pertama (bisa negatif jika sudah lewat)
+  const daysLeft = first.expiry_date
+    ? Math.ceil((new Date(first.expiry_date) - new Date()) / 86400000)
+    : '';
+  return tpl
+    .replace(/{employee_name}/g, first.full_name || '')
+    .replace(/{cert_name}/g,     first.sertif_name || '')
+    .replace(/{expiry_date}/g,   first.expiry_date ? fmtDate(first.expiry_date) : '')
+    .replace(/{days_left}/g,     daysLeft)
+    .replace(/{department}/g,    department || '');
+}
+
 // ── Kirim email reminder via sendGenericEmail (Graph atau SMTP otomatis) ──────
-async function sendReminderEmail(toEmail, recipientName, certs) {
+async function sendReminderEmail(toEmail, recipientName, certs, department) {
   const { sendGenericEmail } = require('./mailer');
   const html    = buildReminderHtml(certs, recipientName);
-  const subject = `[Reminder] ${certs.length} Sertifikasi Karyawan Memasuki Tanggal Expired`;
+  const subject = await buildSubject(certs, department);
   await sendGenericEmail(toEmail, subject, html);
 }
 
@@ -229,7 +253,8 @@ async function runCertReminderJob() {
       // Kirim ke dept head departemen karyawan (jika ada emailnya)
       if (deptHead?.email) {
         if (!recipientMap[deptHead.email]) {
-          recipientMap[deptHead.email] = { name: deptHead.name, certs: [] };
+          // simpan department agar bisa dipakai di placeholder {department}
+          recipientMap[deptHead.email] = { name: deptHead.name, department: cert.department, certs: [] };
         }
         recipientMap[deptHead.email].certs.push(cert);
       }
@@ -237,7 +262,7 @@ async function runCertReminderJob() {
       // Kirim rekap ke HRD (semua cert, tidak diaklus jika sudah masuk dept head yg sama)
       if (hrdEmail) {
         if (!recipientMap[hrdEmail]) {
-          recipientMap[hrdEmail] = { name: 'HR Department', certs: [] };
+          recipientMap[hrdEmail] = { name: 'HR Department', department: 'HR', certs: [] };
         }
         // Hindari duplikat cert yang sama di satu recipient
         const alreadyAdded = recipientMap[hrdEmail].certs.some(c => c.cert_id === cert.cert_id);
@@ -248,9 +273,9 @@ async function runCertReminderJob() {
     }
 
     // 7. Kirim email ke masing-masing penerima
-    for (const [email, { name, certs: recipientCerts }] of Object.entries(recipientMap)) {
+    for (const [email, { name, department, certs: recipientCerts }] of Object.entries(recipientMap)) {
       if (!recipientCerts.length) continue;
-      await sendReminderEmail(email, name, recipientCerts);
+      await sendReminderEmail(email, name, recipientCerts, department);
       console.log(`[CertReminder] Terkirim ke ${email} (${name}): ${recipientCerts.length} sertifikasi`);
     }
 
