@@ -28,6 +28,10 @@ router.post('/', async (req, res) => {
   if (certification_type && !VALID_CERT_TYPE.includes(certification_type)) {
     return res.status(400).json({ error: `certification_type must be one of: ${VALID_CERT_TYPE.join(', ')}` });
   }
+  // Validasi: expiry_date tidak boleh sebelum issue_date
+  if (!is_lifetime && expiry_date && issue_date && expiry_date < issue_date) {
+    return res.status(400).json({ error: 'Berlaku Hingga tidak boleh sebelum Tanggal Sertifikat' });
+  }
 
   const [result] = await pool.query(
     `INSERT INTO trx_certification (employee_id, trx_id, sertif_name, certificate_number, issue_date, expiry_date, issuing_body, card_number, card_date, competency_id, delivery_method, certification_type, is_lifetime, is_active, renewal_count, notes, renewal_action, renewal_cert_id)
@@ -54,6 +58,10 @@ router.put('/:id', async (req, res) => {
   }
   if (certification_type && !VALID_CERT_TYPE.includes(certification_type)) {
     return res.status(400).json({ error: `certification_type must be one of: ${VALID_CERT_TYPE.join(', ')}` });
+  }
+  // Validasi: expiry_date tidak boleh sebelum issue_date
+  if (!is_lifetime && expiry_date && issue_date && expiry_date < issue_date) {
+    return res.status(400).json({ error: 'Berlaku Hingga tidak boleh sebelum Tanggal Sertifikat' });
   }
 
   const [old] = await pool.query('SELECT cert_id, employee_id, trx_id, sertif_name, certificate_number, issue_date, expiry_date, issuing_body, card_number, card_date, competency_id, delivery_method, certification_type, is_lifetime, is_active, renewal_count, notes, renewal_action, renewal_cert_id FROM trx_certification WHERE cert_id = ?', [req.params.id]);

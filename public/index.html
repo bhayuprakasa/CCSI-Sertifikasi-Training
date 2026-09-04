@@ -3066,6 +3066,10 @@ async function saveTrx() {
   const terbit=document.getElementById('c_terbit').value;
   if(!emp||!sertif||!terbit){showToast('Karyawan, nama sertifikasi, dan tgl terbit wajib diisi',false);return;}
 
+  // Validasi: Berlaku Hingga tidak boleh lebih awal dari Tanggal Sertifikat
+  const expiry=document.getElementById('c_expiry').value;
+  if(expiry && expiry < terbit){showToast('Berlaku Hingga tidak boleh sebelum Tanggal Sertifikat',false);return;}
+
   // Saat edit, ambil renewal_count dari data yang sudah ada agar tidak direset
   let existingRenewalCount=0;
   if(editCertId){
