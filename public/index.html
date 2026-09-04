@@ -63,6 +63,7 @@ tbody td{padding:8px 8px;vertical-align:middle}
 .b-green{background:var(--green-lt);color:#007a50}.b-red{background:var(--red-lt);color:var(--red)}
 .b-yellow{background:var(--yellow-lt);color:#b7760a}.b-navy{background:#e8eef7;color:var(--navy)}
 .b-gray{background:#f1f5f9;color:var(--text2)}.b-purple{background:var(--purple-lt);color:var(--purple)}
+.b-teal{background:#e0f5f0;color:#0d6e60}
 /* TOOLBAR */
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
 .search-wrap{position:relative;flex:1;min-width:180px}
@@ -1797,6 +1798,7 @@ const RK_STATUS_LABELS = {
   'Approved':         'Disetujui',
   'Rejected_BODDept': 'Ditolak BOD Dept',
   'Rejected_BODHR':   'Ditolak BOD HR',
+  'Selesai':          '🎓 Selesai',
 };
 let rkAllData = [];
 const rkEscH = s => (s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1848,11 +1850,16 @@ function rkBuildOpts(key, values, labelMap) {
   ).join('');
 }
 
+// Fungsi bantu: dapatkan key status efektif untuk filter (training_selesai override ke 'Selesai')
+function rkEffectiveStatus(r) {
+  return r.training_selesai ? 'Selesai' : (r.approval_status || 'PendingBODDept');
+}
+
 function rkApplyFilter() {
   let data = rkAllData;
   if (rkMsState.Tahun.size > 0) data = data.filter(r => rkMsState.Tahun.has(rkGetYear(r.training_date_start)));
   if (rkMsState.Dept.size > 0) data = data.filter(r => rkMsState.Dept.has(r.department));
-  if (rkMsState.Status.size > 0) data = data.filter(r => rkMsState.Status.has(r.approval_status || 'PendingBODDept'));
+  if (rkMsState.Status.size > 0) data = data.filter(r => rkMsState.Status.has(rkEffectiveStatus(r)));
   rkRenderRows(data);
 }
 
@@ -1874,7 +1881,12 @@ function rkRenderRows(data) {
     const tglSelesai=rkFmtDate(r.actual_date_end);
     const apvStatus=r.approval_status||'PendingBODDept';
     const apvMap={'Submitted_HR':{cls:'b-purple',icon:'📋',lbl:'Submitted HR'},'PendingBODDept':{cls:'b-yellow',icon:'⏳',lbl:'Pending BOD'},'PendingBODHR':{cls:'b-navy',icon:'⏳',lbl:'Pending HR'},'Approved':{cls:'b-green',icon:'✅',lbl:'Disetujui'},'Rejected_BODDept':{cls:'b-red',icon:'❌',lbl:'Ditolak BOD'},'Rejected_BODHR':{cls:'b-red',icon:'❌',lbl:'Ditolak HR'}};
-    const {cls:statusCls,icon:statusIcon,lbl:statusLbl}=apvMap[apvStatus]||{cls:'b-gray',icon:'',lbl:apvStatus};
+    // Jika training_selesai=1, override badge status menjadi "Selesai"
+    const isSelesai = !!r.training_selesai;
+    const statusBadgeInfo = isSelesai
+      ? {cls:'b-teal',icon:'🎓',lbl:'Selesai'}
+      : (apvMap[apvStatus]||{cls:'b-gray',icon:'',lbl:apvStatus});
+    const {cls:statusCls,icon:statusIcon,lbl:statusLbl}=statusBadgeInfo;
     const gt=r.score_grand_total;
     const rid=r.request_id;
     const pts=r.participants||[];
@@ -1902,6 +1914,12 @@ function rkRenderRows(data) {
         <button class="btn-sm" style="color:var(--navy);border-color:#c8d9f0;background:#e8eef7;padding:3px 7px" onclick="rkViewDetail(${rid})">👁</button>
         <button class="btn-sm" style="color:#007a50;border-color:#a7e8cc;background:var(--green-lt);padding:3px 7px" onclick="rkOpenDateModal(${rid})">📅</button>
         <button class="btn-sm" style="color:var(--purple);border-color:#c39bd3;background:var(--purple-lt);padding:3px 7px" onclick="rkOpenEditModal(${rid})">✏️</button>
+        ${apvStatus==='Approved'&&!isSelesai
+          ? `<button class="btn-sm" style="color:#0d6e60;border-color:#a0d9cc;background:#e0f5f0;padding:3px 7px;font-size:.72rem" onclick="rkMarkSelesai(${rid})" title="Tandai training selesai">🎓 Selesai</button>`
+          : apvStatus==='Approved'&&isSelesai
+            ? `<button class="btn-sm" style="padding:3px 7px;font-size:.72rem;opacity:.4;cursor:not-allowed" disabled title="Training sudah selesai">🎓 Selesai</button>`
+            : `<button class="btn-sm" style="padding:3px 7px;font-size:.72rem;opacity:.3;cursor:not-allowed" disabled title="Tombol Selesai hanya tersedia jika status Disetujui">🎓 Selesai</button>`
+        }
         <button class="btn-sm btn-del" style="padding:3px 7px" onclick="rekapDelete(${rid})">Hapus</button>
         </div>
       </td>
@@ -2151,6 +2169,18 @@ async function rkSaveEdit() {
   finally { btn.disabled = false; btn.textContent = '💾 Simpan'; }
 }
 
+// Tandai training selesai — hanya aktif jika status Approved
+async function rkMarkSelesai(id) {
+  if (!confirm('Tandai training ini sebagai Selesai?\nStatus akan berubah menjadi Selesai dan training tidak akan muncul di Daftar Hadir.')) return;
+  try {
+    const res = await fetch(`/api/training-requests/${id}/mark-selesai`, { method: 'PATCH' });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || res.statusText); }
+    invalidateCache('trx_training_requests');
+    showToast('Training berhasil ditandai Selesai 🎓');
+    renderRekap();
+  } catch (e) { showToast(e.message, false); }
+}
+
 async function renderRekap() {
   try {
     const data = await getAll('trx_training_requests');
@@ -2164,8 +2194,9 @@ async function renderRekap() {
   } catch { rkAllData=[]; }
   const years=[...new Set(rkAllData.map(r=>rkGetYear(r.training_date_start)).filter(Boolean))].sort().reverse();
   const depts=[...new Set(rkAllData.map(r=>r.department).filter(Boolean))].sort();
-  const rkStatusOrder=['Submitted','Submitted_HR','PendingBODDept','PendingBODHR','Approved','Rejected_BODDept','Rejected_BODHR'];
-  const statuses=[...new Set(rkAllData.map(r=>r.approval_status||'PendingBODDept'))].sort((a,b)=>rkStatusOrder.indexOf(a)-rkStatusOrder.indexOf(b));
+  const rkStatusOrder=['Submitted','Submitted_HR','PendingBODDept','PendingBODHR','Approved','Selesai','Rejected_BODDept','Rejected_BODHR'];
+  // Gunakan effective status agar 'Selesai' muncul di filter jika ada training yang sudah selesai
+  const statuses=[...new Set(rkAllData.map(r=>rkEffectiveStatus(r)))].sort((a,b)=>rkStatusOrder.indexOf(a)-rkStatusOrder.indexOf(b));
   rkBuildOpts('Tahun', years);
   rkBuildOpts('Dept', depts);
   rkBuildOpts('Status', statuses, RK_STATUS_LABELS);

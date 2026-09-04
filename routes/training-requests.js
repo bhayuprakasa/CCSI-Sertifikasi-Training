@@ -542,6 +542,34 @@ router.patch('/:id/organizer-participants', async (req, res) => {
   }
 });
 
+// Tandai training selesai — hanya boleh jika approval_status = 'Approved'
+router.patch('/:id/mark-selesai', async (req, res) => {
+  const [rows] = await pool.query(
+    'SELECT request_id, approval_status, training_selesai FROM trx_training_request WHERE request_id = ?',
+    [req.params.id]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
+
+  const r = rows[0];
+  if (r.approval_status !== 'Approved') {
+    return res.status(400).json({ error: `Hanya training berstatus Approved yang dapat ditandai selesai. Status saat ini: ${r.approval_status}` });
+  }
+  if (r.training_selesai) {
+    return res.status(400).json({ error: 'Training sudah ditandai selesai sebelumnya' });
+  }
+
+  await pool.query('UPDATE trx_training_request SET training_selesai = 1 WHERE request_id = ?', [req.params.id]);
+  await logAudit({
+    table_name: 'trx_training_request',
+    record_id: req.params.id,
+    operation: 'UPDATE',
+    old_data: { training_selesai: 0 },
+    new_data: { training_selesai: 1 },
+    changed_by: req.changedBy,
+  });
+  res.json({ updated: true, training_selesai: 1 });
+});
+
 // Full edit hanya untuk status Submitted — semua field bisa diubah sebelum dikirim ke approver
 router.patch('/:id', async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM trx_training_request WHERE request_id = ?', [req.params.id]);
