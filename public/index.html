@@ -559,14 +559,33 @@ select.filter:focus{border-color:var(--navy-lt)}
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title">👥 Master Karyawan</span><div style="display:flex;gap:6px"><button class="btn-sm" id="btnSyncEmp" onclick="syncEmployeesToServer()" style="background:#e8f0fe;border:1px solid #c5d4f5;color:#1a56c4;font-size:.75rem">⟳ Sync ke Server</button><button class="btn-sm" onclick="openUploadModal('karyawan')" style="background:#e8f7ef;border:1px solid #a7d9b8;color:#1a6e3c">📤 Upload CSV</button><button class="btn-sm btn-edit" onclick="openMasterModal('employee')">+ Tambah</button></div></div>
-      <!-- Search bar pencarian karyawan: filter NIK, nama, dept, site, jabatan -->
-      <div style="padding:10px 14px 4px 14px">
-        <input type="text" id="empSearch" class="filter" placeholder="🔍 Cari NIK, nama, dept, site, jabatan..." style="width:100%;max-width:420px;box-sizing:border-box" oninput="renderMaster()">
-      </div>
-      <div class="card-body"><div class="table-wrap"><table>
+      <!-- Toolbar pencarian + filter Dept / Site / Status karyawan -->
+      <div class="card-body">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="empSearch" placeholder="Cari NIK, nama, dept, site, jabatan..." oninput="renderMaster()">
+          </div>
+          <!-- Dropdown filter Dept: opsi diisi dinamis dari data saat renderMaster -->
+          <select class="filter" id="fEmpDept" onchange="renderMaster()"><option value="">Semua Dept</option></select>
+          <!-- Dropdown filter Site -->
+          <select class="filter" id="fEmpSite" onchange="renderMaster()">
+            <option value="">Semua Site</option>
+            <option>HO Jakarta</option>
+            <option>Cilegon</option>
+          </select>
+          <!-- Dropdown filter Status aktif/nonaktif -->
+          <select class="filter" id="fEmpStatus" onchange="renderMaster()">
+            <option value="">Semua Status</option>
+            <option value="1">Aktif</option>
+            <option value="0">Nonaktif</option>
+          </select>
+        </div>
+        <div class="table-wrap"><table>
         <thead><tr><th>NIK</th><th>Nama</th><th>Dept</th><th>Site</th><th>Jabatan</th><th>Dept Head</th><th>Email</th><th>Status</th><th>Penggunaan</th><th>Aksi</th></tr></thead>
         <tbody id="empBody"></tbody>
-      </table></div></div>
+      </table></div>
+      </div>
     </div>
   </div>
 
@@ -2697,17 +2716,35 @@ async function renderMaster() {
   });
 
   // --- EMPLOYEE TABLE ---
-  // Filter berdasarkan input pencarian: cocokkan NIK, nama, dept, site, jabatan
-  const empQ = (document.getElementById('empSearch')?.value || '').toLowerCase().trim();
-  const filteredEmps = empQ
-    ? emps.filter(e => (
-        (e.employee_id || '').toLowerCase().includes(empQ) ||
-        (e.full_name   || '').toLowerCase().includes(empQ) ||
-        (e.department  || '').toLowerCase().includes(empQ) ||
-        (e.site        || '').toLowerCase().includes(empQ) ||
-        (e.position    || '').toLowerCase().includes(empQ)
-      ))
-    : emps;
+  // Isi opsi dropdown Dept secara dinamis dari data aktual (unik, diurutkan)
+  const deptSelEmp = document.getElementById('fEmpDept');
+  if (deptSelEmp) {
+    const prevDept = deptSelEmp.value;
+    const depts = [...new Set(emps.map(e => e.department).filter(Boolean))].sort();
+    deptSelEmp.innerHTML = '<option value="">Semua Dept</option>' +
+      depts.map(d => `<option${d === prevDept ? ' selected' : ''}>${d}</option>`).join('');
+  }
+
+  // Ambil nilai semua filter
+  const empQ      = (document.getElementById('empSearch')?.value  || '').toLowerCase().trim();
+  const fDept     = document.getElementById('fEmpDept')?.value    || '';
+  const fSiteEmp  = document.getElementById('fEmpSite')?.value    || '';
+  const fStatus   = document.getElementById('fEmpStatus')?.value  || '';
+
+  // Terapkan filter: teks bebas + dept + site + status
+  const filteredEmps = emps.filter(e => {
+    if (empQ && !(
+      (e.employee_id || '').toLowerCase().includes(empQ) ||
+      (e.full_name   || '').toLowerCase().includes(empQ) ||
+      (e.department  || '').toLowerCase().includes(empQ) ||
+      (e.site        || '').toLowerCase().includes(empQ) ||
+      (e.position    || '').toLowerCase().includes(empQ)
+    )) return false;
+    if (fDept    && e.department !== fDept)                 return false;
+    if (fSiteEmp && e.site       !== fSiteEmp)              return false;
+    if (fStatus  !== '' && String(e.is_active) !== fStatus) return false;
+    return true;
+  });
 
   document.getElementById('empBody').innerHTML = filteredEmps.length ? filteredEmps.map(e => {
     const eCert = empCertMap[e.employee_id] || [];
@@ -2741,7 +2778,7 @@ async function renderMaster() {
         <button class="btn-sm btn-del" onclick="deleteMaster('employee','${e.employee_id}',${used},'${e.full_name}')">Hapus</button>
       </td>
     </tr>`;
-  }).join('') : `<tr class="empty-row"><td colspan="10">${empQ ? 'Tidak ada karyawan yang cocok dengan pencarian "' + empQ + '"' : 'Belum ada data karyawan'}</td></tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="10">${(empQ||fDept||fSiteEmp||fStatus) ? 'Tidak ada karyawan yang cocok dengan filter yang dipilih' : 'Belum ada data karyawan'}</td></tr>`;
 }
 
 // =====================
