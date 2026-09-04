@@ -387,7 +387,7 @@ select.filter:focus{border-color:var(--navy-lt)}
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th style="width:26px">#</th><th style="min-width:70px">Departemen</th><th style="min-width:85px;white-space:normal">Nama Pelatihan</th><th style="min-width:70px;white-space:normal">Alasan</th><th style="min-width:75px;white-space:normal">Peserta</th><th style="min-width:55px">Jenis</th><th style="min-width:70px;white-space:normal">Penyelenggara</th><th style="min-width:75px;white-space:normal">Instruktur</th><th style="min-width:75px;white-space:normal">Kompetensi</th><th style="min-width:55px;white-space:normal">Tgl Submit</th><th style="min-width:52px;white-space:normal">Tgl Mulai</th><th style="min-width:52px;white-space:normal">Tgl Selesai</th><th style="min-width:65px;white-space:normal">Total Biaya</th><th style="width:32px">GT</th><th style="min-width:70px">Status</th><th style="min-width:115px">Aksi</th></tr></thead>
+              <thead><tr><th style="width:26px">#</th><th style="min-width:70px">Departemen</th><th style="min-width:85px;white-space:normal">Nama Pelatihan</th><th style="min-width:70px;white-space:normal">Alasan</th><th style="min-width:130px;white-space:normal">Peserta</th><th style="min-width:55px">Jenis</th><th style="min-width:70px;white-space:normal">Penyelenggara</th><th style="min-width:75px;white-space:normal">Kompetensi</th><th style="min-width:55px;white-space:normal">Tgl Submit</th><th style="min-width:52px;white-space:normal">Tgl Mulai</th><th style="min-width:52px;white-space:normal">Tgl Selesai</th><th style="min-width:65px;white-space:normal">Total Biaya</th><th style="width:32px">GT</th><th style="min-width:70px">Status</th><th style="min-width:115px">Aksi</th></tr></thead>
               <tbody id="rekapBody"></tbody>
             </table>
           </div>
@@ -1890,7 +1890,6 @@ function rkRenderRows(data) {
       <td style="font-size:.78rem">${ptHtml||'-'}</td>
       <td><span class="badge ${r.training_type==='Internal'?'b-navy':'b-purple'}">${rkEscH(r.training_type||'-')}</span></td>
       <td style="color:var(--text2);font-size:.78rem;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="${rkEscH(r.organizer||'-')}">${rkEscH(r.organizer||'-')}</td>
-      <td>${instrTrunc}</td>
       <td>${kompTrunc}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tglSubmit}</td>
       <td style="white-space:nowrap;font-size:.78rem">${tglMulai}</td>
