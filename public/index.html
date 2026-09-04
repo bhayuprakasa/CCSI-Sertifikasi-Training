@@ -1038,14 +1038,6 @@ select.filter:focus{border-color:var(--navy-lt)}
             <div style="color:var(--text3);font-size:.8rem;font-style:italic">Pilih departemen untuk memuat daftar karyawan</div>
           </div>
         </div>
-        <!-- Checkbox training selesai: jika diceklis, training hilang dari daftar hadir -->
-        <div style="border-top:1px solid var(--border);padding-top:12px">
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--navy)">
-            <input type="checkbox" id="rkEditTrainingSelesai" style="width:16px;height:16px;cursor:pointer;accent-color:var(--green)">
-            <span>✅ Training Selesai</span>
-          </label>
-          <div style="font-size:.73rem;color:var(--text3);margin-top:4px;padding-left:26px">Jika diceklis, training ini tidak akan muncul di form Daftar Hadir Training.</div>
-        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -2026,9 +2018,6 @@ async function rkOpenEditModal(id) {
   _rkEditParticipants = r.participants || [];
   document.getElementById('rkEditOrganizer').value = r.organizer || '';
   document.getElementById('rkEditInstruktur').value = r.instruktur || '';
-  // Set status training selesai dari data yang ada
-  document.getElementById('rkEditTrainingSelesai').checked = !!r.training_selesai;
-
   // Populate kompetensi dropdown from master
   const kompSel = document.getElementById('rkEditKompetensi');
   kompSel.innerHTML = '<option value="">-- Memuat... --</option>';
@@ -2139,8 +2128,6 @@ async function rkSaveEdit() {
   const instruktur = document.getElementById('rkEditInstruktur').value.trim();
   const kompetensi = document.getElementById('rkEditKompetensi').value.trim();
   const department = document.getElementById('rkEditDeptTraining').value || null;
-  const training_selesai = document.getElementById('rkEditTrainingSelesai').checked ? 1 : 0;
-
   // Sync final checkbox state before reading
   const allVisible = [...document.querySelectorAll('#rkEditPesertaList input[name="rkEditPesertaCheck"]')];
   if (allVisible.length > 0) {
@@ -2158,7 +2145,7 @@ async function rkSaveEdit() {
     const res = await fetch(`/api/training-requests/${_rkEditId}/organizer-participants`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ organizer, instruktur: instruktur || null, participants, kompetensi, department, training_selesai }),
+      body: JSON.stringify({ organizer, instruktur: instruktur || null, participants, kompetensi, department }),
     });
     if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || res.statusText); }
     invalidateCache('trx_training_requests');
