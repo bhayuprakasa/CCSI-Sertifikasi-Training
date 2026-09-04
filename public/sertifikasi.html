@@ -377,6 +377,10 @@ async function submitCertForm() {
   if (!issueDate) errors.push('Tanggal Sertifikat wajib diisi');
   if (!issuingBody) errors.push('Penerbit Sertifikat wajib diisi');
   if (!isLifetime && !expiryDate) errors.push('Berlaku Hingga wajib diisi atau pilih Seumur Hidup');
+  // Validasi: Berlaku Hingga tidak boleh lebih awal dari Tanggal Sertifikat
+  if (!isLifetime && expiryDate && issueDate && expiryDate < issueDate) {
+    errors.push('Berlaku Hingga tidak boleh sebelum Tanggal Sertifikat');
+  }
 
   if (errors.length) { showToast(errors[0], false); return; }
 
