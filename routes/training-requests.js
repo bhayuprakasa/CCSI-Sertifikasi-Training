@@ -495,11 +495,12 @@ router.patch('/:id/dates', async (req, res) => {
 });
 
 router.patch('/:id/organizer-participants', async (req, res) => {
-  const { organizer, participants, kompetensi, instruktur, department, training_selesai } = req.body;
+  const { organizer, participants, kompetensi, instruktur, department } = req.body;
   if (!Array.isArray(participants) || !participants.length) {
     return res.status(400).json({ error: 'Minimal 1 peserta wajib diisi' });
   }
 
+  // training_selesai tidak diubah dari form edit — dikelola via tombol 🎓 Selesai tersendiri
   const [existing] = await pool.query('SELECT request_id, department, organizer, kompetensi, instruktur, training_selesai FROM trx_training_request WHERE request_id = ?', [req.params.id]);
   if (!existing.length) return res.status(404).json({ error: 'Data tidak ditemukan' });
 
@@ -508,11 +509,10 @@ router.patch('/:id/organizer-participants', async (req, res) => {
     await conn.beginTransaction();
 
     const newDept = department || existing[0].department;
-    // training_selesai: 1 = selesai (tersembunyi dari daftar hadir), 0 = belum selesai
-    const selesai = training_selesai ? 1 : 0;
+    const selesai = existing[0].training_selesai; // pertahankan nilai selesai yang sudah ada
     await conn.query(
-      'UPDATE trx_training_request SET department = ?, organizer = ?, kompetensi = ?, instruktur = ?, training_selesai = ? WHERE request_id = ?',
-      [newDept, organizer || null, kompetensi || null, instruktur || null, selesai, req.params.id]
+      'UPDATE trx_training_request SET department = ?, organizer = ?, kompetensi = ?, instruktur = ? WHERE request_id = ?',
+      [newDept, organizer || null, kompetensi || null, instruktur || null, req.params.id]
     );
 
     await conn.query('DELETE FROM trx_training_request_participant WHERE request_id = ?', [req.params.id]);
@@ -526,7 +526,7 @@ router.patch('/:id/organizer-participants', async (req, res) => {
       table_name: 'trx_training_request',
       record_id: req.params.id,
       operation: 'UPDATE',
-      old_data: { department: existing[0].department, organizer: existing[0].organizer, kompetensi: existing[0].kompetensi, instruktur: existing[0].instruktur, training_selesai: existing[0].training_selesai },
+      old_data: { department: existing[0].department, organizer: existing[0].organizer, kompetensi: existing[0].kompetensi, instruktur: existing[0].instruktur, training_selesai: selesai },
       new_data: { department: newDept, organizer, kompetensi, instruktur, training_selesai: selesai, participant_count: participants.length },
       changed_by: req.changedBy,
       conn,
