@@ -559,6 +559,10 @@ select.filter:focus{border-color:var(--navy-lt)}
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title">👥 Master Karyawan</span><div style="display:flex;gap:6px"><button class="btn-sm" id="btnSyncEmp" onclick="syncEmployeesToServer()" style="background:#e8f0fe;border:1px solid #c5d4f5;color:#1a56c4;font-size:.75rem">⟳ Sync ke Server</button><button class="btn-sm" onclick="openUploadModal('karyawan')" style="background:#e8f7ef;border:1px solid #a7d9b8;color:#1a6e3c">📤 Upload CSV</button><button class="btn-sm btn-edit" onclick="openMasterModal('employee')">+ Tambah</button></div></div>
+      <!-- Search bar pencarian karyawan: filter NIK, nama, dept, site, jabatan -->
+      <div style="padding:10px 14px 4px 14px">
+        <input type="text" id="empSearch" class="filter" placeholder="🔍 Cari NIK, nama, dept, site, jabatan..." style="width:100%;max-width:420px;box-sizing:border-box" oninput="renderMaster()">
+      </div>
       <div class="card-body"><div class="table-wrap"><table>
         <thead><tr><th>NIK</th><th>Nama</th><th>Dept</th><th>Site</th><th>Jabatan</th><th>Dept Head</th><th>Email</th><th>Status</th><th>Penggunaan</th><th>Aksi</th></tr></thead>
         <tbody id="empBody"></tbody>
@@ -2693,7 +2697,19 @@ async function renderMaster() {
   });
 
   // --- EMPLOYEE TABLE ---
-  document.getElementById('empBody').innerHTML = emps.length ? emps.map(e => {
+  // Filter berdasarkan input pencarian: cocokkan NIK, nama, dept, site, jabatan
+  const empQ = (document.getElementById('empSearch')?.value || '').toLowerCase().trim();
+  const filteredEmps = empQ
+    ? emps.filter(e => (
+        (e.employee_id || '').toLowerCase().includes(empQ) ||
+        (e.full_name   || '').toLowerCase().includes(empQ) ||
+        (e.department  || '').toLowerCase().includes(empQ) ||
+        (e.site        || '').toLowerCase().includes(empQ) ||
+        (e.position    || '').toLowerCase().includes(empQ)
+      ))
+    : emps;
+
+  document.getElementById('empBody').innerHTML = filteredEmps.length ? filteredEmps.map(e => {
     const eCert = empCertMap[e.employee_id] || [];
     const used = eCert.length > 0;
     let tipRows = '';
@@ -2725,7 +2741,7 @@ async function renderMaster() {
         <button class="btn-sm btn-del" onclick="deleteMaster('employee','${e.employee_id}',${used},'${e.full_name}')">Hapus</button>
       </td>
     </tr>`;
-  }).join('') : '<tr class="empty-row"><td colspan="10">Belum ada data karyawan</td></tr>';
+  }).join('') : `<tr class="empty-row"><td colspan="10">${empQ ? 'Tidak ada karyawan yang cocok dengan pencarian "' + empQ + '"' : 'Belum ada data karyawan'}</td></tr>`;
 }
 
 // =====================
