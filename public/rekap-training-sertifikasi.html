@@ -243,7 +243,11 @@ async function initPage() {
     allTrainingRequests.forEach(r => {
       const o = document.createElement('option');
       o.value = r.request_id;
-      o.textContent = r.training_name;
+      // Tampilkan nama training + tanggal mulai agar user mudah membedakan training yang sama
+      const tglMulai = r.training_date_start
+        ? new Date(r.training_date_start).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+        : 'Tanggal TBD';
+      o.textContent = `${r.training_name} (${tglMulai})`;
       trainingSel.appendChild(o);
     });
 
