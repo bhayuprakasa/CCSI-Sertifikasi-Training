@@ -99,22 +99,25 @@ router.get('/email-settings', async (req, res) => {
 
 // ─── POST Save Email Settings (satu layer per request) ───────────────────────
 router.post('/email-settings', async (req, res) => {
-  const { layer, sender_name, reply_to, cc_emails, subject_template, updated_by } = req.body;
+  const { layer, sender_name, reply_to, cc_emails, subject_template, dept_head_email, updated_by } = req.body;
   // dept=approval direksi, hrd=approval HR, cert=reminder sertifikat
   if (!['dept', 'hrd', 'cert'].includes(layer)) {
     return res.status(400).json({ error: 'layer harus "dept", "hrd", atau "cert"' });
   }
   try {
     await pool.query(
-      `INSERT INTO cfg_email_settings (layer, sender_name, reply_to, cc_emails, subject_template, updated_by)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO cfg_email_settings (layer, sender_name, reply_to, cc_emails, subject_template, dept_head_email, updated_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
          sender_name      = VALUES(sender_name),
          reply_to         = VALUES(reply_to),
          cc_emails        = VALUES(cc_emails),
          subject_template = VALUES(subject_template),
+         dept_head_email  = VALUES(dept_head_email),
          updated_by       = VALUES(updated_by)`,
-      [layer, sender_name || null, reply_to || null, cc_emails || null, subject_template || null, updated_by || null]
+      [layer, sender_name || null, reply_to || null, cc_emails || null, subject_template || null,
+       // dept_head_email hanya relevan untuk dept dan hrd
+       (layer !== 'cert' ? (dept_head_email || null) : null), updated_by || null]
     );
     invalidateEmailSettingsCache();
     res.json({ ok: true });

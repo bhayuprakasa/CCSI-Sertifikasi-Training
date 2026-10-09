@@ -45,6 +45,15 @@ pool.getConnection()
         // Catat warning agar error nyata (privilege, lock) tidak hilang diam-diam
         console.warn('[db] ALTER TABLE cfg_email_settings:', err.message);
       });
+      // Tambahkan kolom dept_head_email jika belum ada (migrasi incremental)
+      await connection.query(`
+        ALTER TABLE cfg_email_settings
+          ADD COLUMN dept_head_email VARCHAR(150) NULL AFTER cc_emails
+      `).catch(err => {
+        if (!err.message.includes('Duplicate column name')) {
+          console.warn('[db] ALTER TABLE cfg_email_settings dept_head_email:', err.message);
+        }
+      });
       await connection.query(`
         INSERT IGNORE INTO cfg_email_settings (layer, sender_name, subject_template) VALUES
           ('dept', 'CCSI Training System', '[Persetujuan Diperlukan] Pelatihan: {training_name} — {department}'),
