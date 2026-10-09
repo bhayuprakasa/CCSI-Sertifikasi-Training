@@ -314,6 +314,21 @@ async function sendApprovalEmail({ request, token, participants, approver, appUr
   const defaultSubject = `[Persetujuan Diperlukan] Pelatihan: ${request.training_name} — ${request.department}`;
   const subject = applySubjectTemplate(cfg?.subject_template, request) || defaultSubject;
   const ccEmails = parseCcList(cfg?.cc_emails);
+
+  // Tambahkan email Dept Head ke CC secara otomatis berdasarkan departemen request
+  if (request.department) {
+    try {
+      const pool = require('../db');
+      const [dhRows] = await pool.query(
+        'SELECT email FROM mst_employee WHERE is_dept_head = 1 AND department = ? AND is_active = 1 AND email IS NOT NULL LIMIT 1',
+        [request.department]
+      );
+      if (dhRows.length && dhRows[0].email && !ccEmails.includes(dhRows[0].email)) {
+        ccEmails.push(dhRows[0].email);
+      }
+    } catch (_) { /* tidak perlu gagalkan pengiriman jika lookup dept head error */ }
+  }
+
   const senderName = cfg?.sender_name || 'CCSI Training';
   const replyTo  = cfg?.reply_to || null;
 
@@ -527,6 +542,21 @@ async function sendHrdApprovalEmail({ request, token, participants, approver, ap
   const defaultSubject = `[Persetujuan HRD] Pelatihan: ${request.training_name} — ${request.department}`;
   const subject = applySubjectTemplate(cfg?.subject_template, request) || defaultSubject;
   const ccEmails = parseCcList(cfg?.cc_emails);
+
+  // Tambahkan email Dept Head ke CC secara otomatis berdasarkan departemen request
+  if (request.department) {
+    try {
+      const pool = require('../db');
+      const [dhRows] = await pool.query(
+        'SELECT email FROM mst_employee WHERE is_dept_head = 1 AND department = ? AND is_active = 1 AND email IS NOT NULL LIMIT 1',
+        [request.department]
+      );
+      if (dhRows.length && dhRows[0].email && !ccEmails.includes(dhRows[0].email)) {
+        ccEmails.push(dhRows[0].email);
+      }
+    } catch (_) { /* tidak perlu gagalkan pengiriman jika lookup dept head error */ }
+  }
+
   const senderName = cfg?.sender_name || 'CCSI Training';
   const replyTo  = cfg?.reply_to || null;
 
