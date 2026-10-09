@@ -736,6 +736,11 @@ select.filter:focus{border-color:var(--navy-lt)}
                 <label>CC (opsional — pisahkan dengan koma)</label>
                 <input type="text" id="es-dept-cc_emails" placeholder="Contoh: hr@ccsi.co.id, manager@ccsi.co.id">
               </div>
+              <!-- Email penerima utama (Dept Head) untuk notifikasi persetujuan direksi departemen -->
+              <div class="form-group" style="grid-column:1/-1">
+                <label>Email Dept Head (penerima utama)</label>
+                <input type="email" id="es-dept-dept_head_email" placeholder="Contoh: depthead@ccsi.co.id">
+              </div>
               <div class="form-group" style="grid-column:1/-1">
                 <label>Template Subject Email</label>
                 <input type="text" id="es-dept-subject_template"
@@ -763,6 +768,11 @@ select.filter:focus{border-color:var(--navy-lt)}
               <div class="form-group" style="grid-column:1/-1">
                 <label>CC (opsional — pisahkan dengan koma)</label>
                 <input type="text" id="es-hrd-cc_emails" placeholder="Contoh: hr@ccsi.co.id, manager@ccsi.co.id">
+              </div>
+              <!-- Email penerima utama (HR Head) untuk notifikasi persetujuan layer HR -->
+              <div class="form-group" style="grid-column:1/-1">
+                <label>Email HR Head (penerima utama)</label>
+                <input type="email" id="es-hrd-dept_head_email" placeholder="Contoh: hrhead@ccsi.co.id">
               </div>
               <div class="form-group" style="grid-column:1/-1">
                 <label>Template Subject Email</label>
@@ -1595,6 +1605,11 @@ async function esLoad() {
         const el = document.getElementById(`es-${layer}-${f}`);
         if (el) el.value = cfg[f] || '';
       });
+      // muat dept_head_email hanya untuk layer yang memiliki field tersebut
+      if (layer !== 'cert') {
+        const dhEl = document.getElementById(`es-${layer}-dept_head_email`);
+        if (dhEl) dhEl.value = cfg.dept_head_email || '';
+      }
       if (cfg.sender_name || cfg.cc_emails || cfg.subject_template) configured++;
       esUpdatePreview(layer);
     });
@@ -1622,6 +1637,8 @@ async function esSave(layer) {
     reply_to:         document.getElementById(`es-${layer}-reply_to`).value.trim(),
     cc_emails:        document.getElementById(`es-${layer}-cc_emails`).value.trim(),
     subject_template: document.getElementById(`es-${layer}-subject_template`).value.trim(),
+    // dept_head_email hanya ada di layer dept dan hrd
+    ...(layer !== 'cert' && { dept_head_email: (document.getElementById(`es-${layer}-dept_head_email`)?.value || '').trim() }),
   };
   btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
   msg.style.display = 'none';
