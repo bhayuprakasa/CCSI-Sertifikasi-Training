@@ -721,6 +721,22 @@ async function sendMultiApprovalEmail({ approver, requests, appUrl: appUrlOverri
   const defaultSubject = `[Persetujuan Diperlukan] ${requests.length} Pengajuan Pelatihan dari ${deptLabel}`;
   const subject = defaultSubject;
   const ccEmails = parseCcList(cfg?.cc_emails);
+
+  // Tambahkan email Dept Head ke CC untuk setiap departemen yang ada di batch
+  if (depts.length) {
+    try {
+      const pool = require('../db');
+      const placeholders = depts.map(() => '?').join(',');
+      const [dhRows] = await pool.query(
+        `SELECT email FROM mst_employee WHERE is_dept_head = 1 AND department IN (${placeholders}) AND is_active = 1 AND email IS NOT NULL`,
+        depts
+      );
+      for (const row of dhRows) {
+        if (row.email && !ccEmails.includes(row.email)) ccEmails.push(row.email);
+      }
+    } catch (_) { /* tidak perlu gagalkan pengiriman jika lookup dept head error */ }
+  }
+
   const senderName = cfg?.sender_name || 'CCSI Training';
   const replyTo  = cfg?.reply_to || null;
 
