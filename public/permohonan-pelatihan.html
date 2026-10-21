@@ -596,6 +596,8 @@ function prOnApproverChange() {
 }
 
 let _prAllEmps = null;
+// Set persisten untuk menyimpan seleksi peserta lintas filter/search
+let _prSelectedPeserta = new Set();
 
 async function prLoadPeserta() {
   const container = document.getElementById('pr_peserta');
@@ -633,8 +635,12 @@ function prFilterPeserta() {
   if (!_prAllEmps) return;
   const deptF = (document.getElementById('pr_peserta_dept_filter')?.value || '');
   const search = (document.getElementById('pr_peserta_search')?.value || '').toLowerCase().trim();
-  // Preserve checked state across re-renders
-  const checked = new Set([...document.querySelectorAll('input[name="pr_peserta_check"]:checked')].map(i => i.value));
+  // Sinkronisasi state checked dari DOM ke Set persisten sebelum re-render
+  // (hanya checkbox yang saat ini visible yang ada di DOM)
+  document.querySelectorAll('input[name="pr_peserta_check"]').forEach(cb => {
+    if (cb.checked) _prSelectedPeserta.add(cb.value);
+    else _prSelectedPeserta.delete(cb.value);
+  });
   let emps = _prAllEmps;
   if (deptF) emps = emps.filter(e => e.department === deptF);
   if (search) emps = emps.filter(e => (e.full_name || '').toLowerCase().includes(search) || (e.department || '').toLowerCase().includes(search));
@@ -651,7 +657,7 @@ function prFilterPeserta() {
     ${list.map(e => `
       <div class="peserta-check-row">
         <label>
-          <input type="checkbox" name="pr_peserta_check" value="${e.full_name}" ${checked.has(e.full_name) ? 'checked' : ''} onchange="prUpdatePesertaUI()">
+          <input type="checkbox" name="pr_peserta_check" value="${e.full_name}" ${_prSelectedPeserta.has(e.full_name) ? 'checked' : ''} onchange="prOnPesertaCheck(this)">
           <span>${e.full_name}</span>
           <span class="emp-pos">${e.position || ''}</span>
         </label>
@@ -660,19 +666,32 @@ function prFilterPeserta() {
   prUpdatePesertaUI();
 }
 
+// Dipanggil saat checkbox diubah — update Set persisten lalu refresh UI
+function prOnPesertaCheck(cb) {
+  if (cb.checked) _prSelectedPeserta.add(cb.value);
+  else _prSelectedPeserta.delete(cb.value);
+  prUpdatePesertaUI();
+}
+
 function prUpdatePesertaUI() {
   const all = [...document.querySelectorAll('input[name="pr_peserta_check"]')];
-  const n = all.filter(c => c.checked).length;
+  // Jumlah total terpilih dari Set persisten (termasuk yang tidak tampil saat ini)
+  const n = _prSelectedPeserta.size;
   const btn = document.getElementById('pr_select_all_btn');
   const countEl = document.getElementById('pr_peserta_count');
-  if (btn) { const allCk = all.length > 0 && n === all.length; btn.textContent = allCk ? '☐ Hapus Semua' : '☑ Pilih Semua'; }
+  if (btn) { const allCk = all.length > 0 && all.every(c => c.checked); btn.textContent = allCk ? '☐ Hapus Semua' : '☑ Pilih Semua'; }
   if (countEl) { countEl.textContent = n > 0 ? `${n} peserta dipilih (dari ${all.length} yang tampil)` : all.length > 0 ? `${all.length} karyawan tersedia` : ''; }
 }
 
 function prTogglePesertaAll() {
   const all = [...document.querySelectorAll('input[name="pr_peserta_check"]')];
   const allChecked = all.length > 0 && all.every(c => c.checked);
-  all.forEach(c => { c.checked = !allChecked; });
+  all.forEach(c => {
+    c.checked = !allChecked;
+    // Sinkronisasi ke Set persisten
+    if (c.checked) _prSelectedPeserta.add(c.value);
+    else _prSelectedPeserta.delete(c.value);
+  });
   prUpdatePesertaUI();
 }
 
@@ -701,6 +720,8 @@ function prReset(skipConfirm = false) {
   if (deptFilter) deptFilter.value = '';
   const pesertaSearch = document.getElementById('pr_peserta_search');
   if (pesertaSearch) pesertaSearch.value = '';
+  // Bersihkan seleksi persisten saat form direset
+  _prSelectedPeserta.clear();
   prFilterPeserta();
   document.querySelectorAll('[id^="pr_cost_"]').forEach(el => { if (el.tagName === 'INPUT') el.value = ''; });
   document.querySelectorAll('[id^="pr_eq_"]').forEach(el => el.value = '0');
@@ -728,8 +749,13 @@ async function prSubmit() {
   const approverEmail = approverOpt?.dataset?.email || '';
   const approverPos = approverOpt?.dataset?.pos || '';
 
-  const checked = document.querySelectorAll('input[name="pr_peserta_check"]:checked');
-  const participants = [...checked].map(i => i.value.trim()).filter(Boolean);
+  // Sinkronisasi checkbox visible ke Set persisten sebelum submit
+  document.querySelectorAll('input[name="pr_peserta_check"]').forEach(cb => {
+    if (cb.checked) _prSelectedPeserta.add(cb.value);
+    else _prSelectedPeserta.delete(cb.value);
+  });
+  // Ambil dari Set persisten agar peserta yang dipilih saat filter tetap masuk
+  const participants = [..._prSelectedPeserta].filter(Boolean);
 
   const errors = [];
   if (!dept) errors.push('Departemen wajib dipilih');
@@ -968,10 +994,11 @@ async function prStartEdit(id) {
   if (pesertaSearch) pesertaSearch.value = '';
   prFilterPeserta(); // render semua karyawan
 
-  const participantSet = new Set((r.participants || []).map(p => (p || '').trim()));
-  // Centang peserta yang sesuai setelah list dirender
+  // Isi Set persisten dari data record, lalu render ulang agar semua peserta terceklis
+  _prSelectedPeserta = new Set((r.participants || []).map(p => (p || '').trim()));
+  // Sinkronisasi ke checkbox yang saat ini tampil
   document.querySelectorAll('input[name="pr_peserta_check"]').forEach(cb => {
-    cb.checked = participantSet.has(cb.value.trim());
+    cb.checked = _prSelectedPeserta.has(cb.value.trim());
   });
   prUpdatePesertaUI();
 
